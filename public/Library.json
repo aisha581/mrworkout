@@ -1,0 +1,32 @@
+{
+    "exercises": [
+        {
+            "id": "pushup",
+            "name": "Push-Up",
+            "category": "Chest",
+            "targetMuscle": "Pectorals, Triceps",
+            "savageTip": "Tuck elbows at 45 degrees. Squeeze glutes. Full range of motion."
+        },
+        {
+            "id": "bench_press",
+            "name": "Bench Press",
+            "category": "Chest",
+            "targetMuscle": "Pectorals, Triceps, Anterior Delts",
+            "savageTip": "Plant your feet, arch your back slightly, explode up."
+        },
+        {
+            "id": "deadlift",
+            "name": "Deadlift",
+            "category": "Back",
+            "targetMuscle": "Lower Back, Glutes, Hamstrings",
+            "savageTip": "Keep the bar close to your shins. Drive through the floor."
+        },
+        {
+            "id": "squat",
+            "name": "Squats",
+            "category": "Legs",
+            "targetMuscle": "Quads, Glutes, Hamstrings",
+            "savageTip": "Drop low. If it doesn't burn, you're just stretching."
+        }
+    ]
+}
