@@ -2,18 +2,18 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, VolumeX, Users, Activity } from "lucide-react";
+import { Volume2, VolumeX, Users, Activity, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import WelcomeOverlay from "@/components/WelcomeOverlay";
 
 const OVERLAY_TEXTS = [
-    { text: "We'll build your plan.", time: 0.5 },
-    { text: "Your goal, your level, your schedule.", time: 3.0 },
-    { text: "Workouts that tell you exactly what to do.", time: 6.5 },
-    { text: "Targeting the right muscles, the right way.", time: 10.0 },
-    { text: "Track reps, calories, and streaks.", time: 14.0 },
-    { text: "No guessing. No wasted time.", time: 18.0 },
-    { text: "drop your email for early access", time: 22.0 }
+    { text: "We'll build your plan.", time: 0 },
+    { text: "Your goal, your level, your schedule.", time: 2.0 },
+    { text: "Workouts that tell you exactly what to do.", time: 5.0 },
+    { text: "Targeting the right muscles, the right way.", time: 8.0 },
+    { text: "Track reps, calories, and streaks.", time: 11.0 },
+    { text: "No guessing. No wasted time.", time: 14.0 },
+    { text: "Ready to transform?", time: 17.0 }
 ];
 
 export default function WaitlistPage() {
@@ -26,17 +26,23 @@ export default function WaitlistPage() {
     const [showTapOverlay, setShowTapOverlay] = useState(true);
     const [showWelcome, setShowWelcome] = useState(false);
     
+    // Media Ready States
+    const [videoReady, setVideoReady] = useState(false);
+    const [audioReady, setAudioReady] = useState(false);
+    const isMediaReady = videoReady && audioReady;
+
     const audioRef = useRef<HTMLAudioElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
     const emailInputRef = useRef<HTMLInputElement>(null);
 
+    // Caption Logic (Follow Video Time)
     useEffect(() => {
-        const audio = audioRef.current;
-        if (!audio) return;
+        const video = videoRef.current;
+        if (!video) return;
 
         const handleTimeUpdate = () => {
-            const currentTime = audio.currentTime;
+            const currentTime = video.currentTime;
             
-            // Find the active text based on time
             let activeIdx = -1;
             for (let i = 0; i < OVERLAY_TEXTS.length; i++) {
                 if (currentTime >= OVERLAY_TEXTS[i].time) {
@@ -47,7 +53,7 @@ export default function WaitlistPage() {
             if (activeIdx !== currentTextIdx) {
                 setCurrentTextIdx(activeIdx);
                 
-                // Final Action trigger
+                // Final Action trigger (Adjusted to new timestamps)
                 if (activeIdx === OVERLAY_TEXTS.length - 1) {
                     setIsFinalAction(true);
                     emailInputRef.current?.focus();
@@ -55,16 +61,44 @@ export default function WaitlistPage() {
             }
         };
 
-        audio.addEventListener("timeupdate", handleTimeUpdate);
-        return () => audio.removeEventListener("timeupdate", handleTimeUpdate);
+        video.addEventListener("timeupdate", handleTimeUpdate);
+        return () => video.removeEventListener("timeupdate", handleTimeUpdate);
     }, [currentTextIdx]);
 
+    // DRIFT CORRECTION - Every 2 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (videoRef.current && audioRef.current && !audioRef.current.muted) {
+                const diff = Math.abs(audioRef.current.currentTime - videoRef.current.currentTime);
+                if (diff > 0.1) {
+                    console.log(`[SYNC] Drift detected (${diff.toFixed(3)}s). Snapping audio to video.`);
+                    audioRef.current.currentTime = videoRef.current.currentTime;
+                }
+            }
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    const masterPlay = () => {
+        if (videoRef.current && audioRef.current) {
+            // Master Trigger: Reset both and play at the exact same time
+            videoRef.current.currentTime = 0;
+            audioRef.current.currentTime = 0;
+            
+            Promise.all([
+                videoRef.current.play(),
+                audioRef.current.play()
+            ]).catch(err => console.error("MasterPlay failed:", err));
+        }
+    };
+
     const handleEnableAudio = () => {
-        if (audioRef.current) {
+        if (audioRef.current && videoRef.current) {
             audioRef.current.muted = false;
             setIsMuted(false);
             setShowTapOverlay(false);
-            audioRef.current.play().catch(console.error);
+            masterPlay();
         }
     };
 
@@ -74,9 +108,7 @@ export default function WaitlistPage() {
             setIsMuted(audioRef.current.muted);
             if (!audioRef.current.muted) {
                 setShowTapOverlay(false);
-                if (audioRef.current.paused) {
-                    audioRef.current.play().catch(console.error);
-                }
+                masterPlay();
             }
         }
     };
@@ -96,11 +128,9 @@ export default function WaitlistPage() {
             if (res.ok) {
                 setStatus("success");
                 setEmail("");
-                // Haptic Feedback for mobile
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     navigator.vibrate([100, 30, 100]);
                 }
-                // Show Welcome Overlay after a short delay or immediately
                 setTimeout(() => setShowWelcome(true), 1500);
             } else {
                 setStatus("error");
@@ -127,18 +157,20 @@ export default function WaitlistPage() {
             {/* Left Panel: Video (Top on Mobile) */}
             <div className="relative w-full lg:w-1/2 h-1/2 lg:h-full bg-black flex items-center justify-center overflow-hidden border-b lg:border-b-0 lg:border-r border-white/5">
                 <video
+                    ref={videoRef}
                     autoPlay
                     loop
                     muted
                     playsInline
                     preload="auto"
+                    onCanPlayThrough={() => setVideoReady(true)}
                     {...({ fetchpriority: "high" } as any)}
                     className="w-full h-full object-contain"
                 >
                     <source src="/Workout_Preview.mp4" type="video/mp4" />
                 </video>
 
-                {/* Sub-caption Text Overlay (Synced with Audio) */}
+                {/* Sub-caption Text Overlay (Synced with Video Time) */}
                 <div className="absolute top-[10%] lg:top-[15%] w-full text-center px-8 z-20 pointer-events-none">
                     <AnimatePresence mode="wait">
                         {currentTextIdx !== -1 && (
@@ -168,12 +200,19 @@ export default function WaitlistPage() {
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 1.1 }}
                             onClick={handleEnableAudio}
-                            className="absolute z-30 group flex flex-col items-center gap-4 p-8 rounded-full transition-all"
+                            disabled={!isMediaReady}
+                            className={`absolute z-30 group flex flex-col items-center gap-4 p-8 rounded-full transition-all ${!isMediaReady ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             <div className="w-20 h-20 flex items-center justify-center rounded-full bg-[#00ffff]/10 border-2 border-[#00ffff] text-[#00ffff] backdrop-blur-md shadow-[0_0_30px_rgba(0,255,255,0.4)] group-hover:scale-110 transition-transform">
-                                <Volume2 size={32} />
+                                {!isMediaReady ? (
+                                    <Loader2 className="animate-spin" size={32} />
+                                ) : (
+                                    <Volume2 size={32} />
+                                )}
                             </div>
-                            <span className="font-black italic uppercase tracking-widest text-xs text-[#00ffff] drop-shadow-sm">Tap for Audio</span>
+                            <span className="font-black italic uppercase tracking-widest text-xs text-[#00ffff] drop-shadow-sm">
+                                {!isMediaReady ? 'Buffering HD Media...' : 'Tap for Audio'}
+                            </span>
                         </motion.button>
                     )}
                 </AnimatePresence>
@@ -311,7 +350,13 @@ export default function WaitlistPage() {
             </div>
 
             {/* Audio Experience */}
-            <audio ref={audioRef} src="/Savage_VO.mp3" autoPlay muted={isMuted} />
+            <audio 
+                ref={audioRef} 
+                src="/Savage_VO.mp3" 
+                preload="auto"
+                onCanPlayThrough={() => setAudioReady(true)}
+                muted={isMuted} 
+            />
 
             {/* Global Styles for the Font */}
             <style jsx global>{`
