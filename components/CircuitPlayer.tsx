@@ -111,10 +111,11 @@ export default function CircuitPlayer() {
                             <video
                                 ref={videoRef}
                                 src={currentExercise.videoUrl}
-                                className="w-full h-full object-cover lg:object-contain"
+                                className="w-full h-full object-cover"
                                 onTimeUpdate={handleTimeUpdate}
                                 onEnded={onVideoEnded}
                                 playsInline
+                                preload="auto"
                                 muted
                                 autoPlay
                             />

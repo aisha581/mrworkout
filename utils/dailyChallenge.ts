@@ -8,13 +8,13 @@ export interface DailyChallenge {
 }
 
 const QUOTES = [
-    "The only easy day was yesterday.",
-    "Pain is weakness leaving the body.",
-    "Don't stop when you're tired, stop when you're done.",
-    "No excuses. Just results.",
-    "Obsession beats talent every time.",
-    "Suffer the pain of discipline or the pain of regret.",
-    "Your mind is the primary weapon."
+    "Comfort is the slowest form of suicide. Get to work.",
+    "The gym doesn't care how your day was. Neither do your goals.",
+    "Discipline is doing what needs to be done, even if you hate it.",
+    "You don't find time. You make it. Or you make excuses.",
+    "Pain is just information. Process it and keep moving.",
+    "Be the person your 'past self' would be terrified of.",
+    "The only bad workout is the one that didn't happen."
 ];
 
 const SAVAGE_AVERAGES: Record<string, number> = {

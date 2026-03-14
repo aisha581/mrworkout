@@ -9,6 +9,7 @@ import RestTimer from "@/components/RestTimer";
 import PRCelebration from "@/components/PRCelebration";
 import MusicPlayer from "@/components/MusicPlayer";
 import CircuitPlayer from "@/components/CircuitPlayer";
+import WelcomeOverlay from "@/components/WelcomeOverlay";
 
 const inter = Inter({ subsets: ["latin"] });
 const archivoBlack = Archivo_Black({
@@ -38,6 +39,7 @@ export default function RootLayout({
                             <PRCelebration />
                             <MusicPlayer />
                             <CircuitPlayer />
+                            <WelcomeOverlay />
                             {children}
                         </CircuitProvider>
                     </WorkoutProvider>

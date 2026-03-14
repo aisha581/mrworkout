@@ -127,6 +127,7 @@ export default function VideoPlayer({ isOpen, onClose, exercise }: VideoPlayerPr
                                     onTimeUpdate={handleTimeUpdate}
                                     onEnded={handleVideoEnd}
                                     playsInline
+                                    preload="auto"
                                     muted // Force muted for video, rely on separate audio stream
                                 />
                             ) : (
