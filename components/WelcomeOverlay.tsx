@@ -6,33 +6,18 @@ import { useSavageSounds } from '@/hooks/useSavageSounds';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Zap, ChevronRight } from 'lucide-react';
 
-export default function WelcomeOverlay() {
-    const [isVisible, setIsVisible] = useState(false);
+interface WelcomeOverlayProps {
+    isVisible: boolean;
+    onEnter: () => void;
+}
+
+export default function WelcomeOverlay({ isVisible, onEnter }: WelcomeOverlayProps) {
     const { playEntryClang } = useSavageSounds();
     const { theme } = useTheme();
 
-    useEffect(() => {
-        const hasVisited = localStorage.getItem('savage_onboarded');
-        if (!hasVisited) {
-            setIsVisible(true);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (isVisible) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-        return () => {
-            document.body.style.overflow = 'unset';
-        };
-    }, [isVisible]);
-
     const handleEnter = () => {
         playEntryClang();
-        localStorage.setItem('savage_onboarded', 'true');
-        setIsVisible(false);
+        onEnter();
     };
 
     return (

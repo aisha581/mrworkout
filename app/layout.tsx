@@ -39,7 +39,6 @@ export default function RootLayout({
                             <PRCelebration />
                             <MusicPlayer />
                             <CircuitPlayer />
-                            <WelcomeOverlay />
                             {children}
                         </CircuitProvider>
                     </WorkoutProvider>
