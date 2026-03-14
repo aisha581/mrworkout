@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { sendWelcomeEmail } from '@/lib/resend';
 
 export async function POST(req: Request) {
     // 1. Re-build from scratch with complete fail-safe logic
@@ -26,6 +27,9 @@ export async function POST(req: Request) {
                 waitlist.push(email);
                 fs.writeFileSync(filePath, JSON.stringify(waitlist, null, 2));
                 console.log(`[DATABASE_SUCCESS] Athlete enroled: ${email}`);
+
+                // 2.5 Trigger Welcome Email (Non-blocking)
+                sendWelcomeEmail(email).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
             }
         } catch (dbError) {
             // LOG ERROR BUT DO NOT BREAK THE USER FLOW
