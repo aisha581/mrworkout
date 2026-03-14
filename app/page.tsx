@@ -29,19 +29,21 @@ export default function WaitlistPage() {
     // Media Ready States
     const [videoReady, setVideoReady] = useState(false);
     const [audioReady, setAudioReady] = useState(false);
-    const isMediaReady = videoReady && audioReady;
+    
+    // Hybrid Hero: Audio can start even if video is buffering, but button shows loading state
+    const isAudioReady = audioReady;
 
     const audioRef = useRef<HTMLAudioElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const emailInputRef = useRef<HTMLInputElement>(null);
 
-    // Caption Logic (Follow Video Time)
+    // Caption Logic
     useEffect(() => {
-        const video = videoRef.current;
-        if (!video) return;
+        const audio = audioRef.current;
+        if (!audio) return;
 
         const handleTimeUpdate = () => {
-            const currentTime = video.currentTime;
+            const currentTime = audio.currentTime;
             
             let activeIdx = -1;
             for (let i = 0; i < OVERLAY_TEXTS.length; i++) {
@@ -52,8 +54,6 @@ export default function WaitlistPage() {
             
             if (activeIdx !== currentTextIdx) {
                 setCurrentTextIdx(activeIdx);
-                
-                // Final Action trigger (Adjusted to new timestamps)
                 if (activeIdx === OVERLAY_TEXTS.length - 1) {
                     setIsFinalAction(true);
                     emailInputRef.current?.focus();
@@ -61,40 +61,36 @@ export default function WaitlistPage() {
             }
         };
 
-        video.addEventListener("timeupdate", handleTimeUpdate);
-        return () => video.removeEventListener("timeupdate", handleTimeUpdate);
+        audio.addEventListener("timeupdate", handleTimeUpdate);
+        return () => audio.removeEventListener("timeupdate", handleTimeUpdate);
     }, [currentTextIdx]);
 
-    // DRIFT CORRECTION - Every 2 seconds
+    // DRIFT CORRECTION
     useEffect(() => {
         const interval = setInterval(() => {
-            if (videoRef.current && audioRef.current && !audioRef.current.muted) {
+            if (videoRef.current && audioRef.current && !audioRef.current.muted && videoReady) {
                 const diff = Math.abs(audioRef.current.currentTime - videoRef.current.currentTime);
                 if (diff > 0.1) {
-                    console.log(`[SYNC] Drift detected (${diff.toFixed(3)}s). Snapping audio to video.`);
                     audioRef.current.currentTime = videoRef.current.currentTime;
                 }
             }
         }, 2000);
-
         return () => clearInterval(interval);
-    }, []);
+    }, [videoReady]);
 
     const masterPlay = () => {
-        if (videoRef.current && audioRef.current) {
-            // Master Trigger: Reset both and play at the exact same time
-            videoRef.current.currentTime = 0;
+        if (audioRef.current) {
             audioRef.current.currentTime = 0;
-            
-            Promise.all([
-                videoRef.current.play(),
-                audioRef.current.play()
-            ]).catch(err => console.error("MasterPlay failed:", err));
+            audioRef.current.play().catch(console.error);
+        }
+        if (videoRef.current) {
+            videoRef.current.currentTime = 0;
+            videoRef.current.play().catch(console.error);
         }
     };
 
     const handleEnableAudio = () => {
-        if (audioRef.current && videoRef.current) {
+        if (audioRef.current) {
             audioRef.current.muted = false;
             setIsMuted(false);
             setShowTapOverlay(false);
@@ -131,7 +127,7 @@ export default function WaitlistPage() {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     navigator.vibrate([100, 30, 100]);
                 }
-                setTimeout(() => setShowWelcome(true), 1500);
+                setTimeout(() => setShowWelcome(true), 2500);
             } else {
                 setStatus("error");
             }
@@ -148,13 +144,12 @@ export default function WaitlistPage() {
     return (
         <div className="flex flex-col lg:flex-row h-screen w-full overflow-hidden bg-[#121212] text-white font-sans">
             
-            {/* Welcome Overlay (Shown on success) */}
             <WelcomeOverlay 
                 isVisible={showWelcome} 
                 onEnter={handleEnterClinic} 
             />
 
-            {/* Left Panel: Video (Top on Mobile) */}
+            {/* Left Panel: Video */}
             <div className="relative w-full lg:w-1/2 h-1/2 lg:h-full bg-black flex items-center justify-center overflow-hidden border-b lg:border-b-0 lg:border-r border-white/5">
                 <video
                     ref={videoRef}
@@ -162,7 +157,8 @@ export default function WaitlistPage() {
                     loop
                     muted
                     playsInline
-                    preload="auto"
+                    preload="metadata"
+                    poster="/video_poster.png"
                     onCanPlayThrough={() => setVideoReady(true)}
                     {...({ fetchpriority: "high" } as any)}
                     className="w-full h-full object-contain"
@@ -170,7 +166,7 @@ export default function WaitlistPage() {
                     <source src="/Workout_Preview.mp4" type="video/mp4" />
                 </video>
 
-                {/* Sub-caption Text Overlay (Synced with Video Time) */}
+                {/* Sub-caption Text Overlay */}
                 <div className="absolute top-[10%] lg:top-[15%] w-full text-center px-8 z-20 pointer-events-none">
                     <AnimatePresence mode="wait">
                         {currentTextIdx !== -1 && (
@@ -200,18 +196,18 @@ export default function WaitlistPage() {
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 1.1 }}
                             onClick={handleEnableAudio}
-                            disabled={!isMediaReady}
-                            className={`absolute z-30 group flex flex-col items-center gap-4 p-8 rounded-full transition-all ${!isMediaReady ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={!isAudioReady}
+                            className={`absolute z-30 group flex flex-col items-center gap-4 p-8 rounded-full transition-all ${!isAudioReady ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             <div className="w-20 h-20 flex items-center justify-center rounded-full bg-[#00ffff]/10 border-2 border-[#00ffff] text-[#00ffff] backdrop-blur-md shadow-[0_0_30px_rgba(0,255,255,0.4)] group-hover:scale-110 transition-transform">
-                                {!isMediaReady ? (
+                                {!isAudioReady ? (
                                     <Loader2 className="animate-spin" size={32} />
                                 ) : (
                                     <Volume2 size={32} />
                                 )}
                             </div>
                             <span className="font-black italic uppercase tracking-widest text-xs text-[#00ffff] drop-shadow-sm">
-                                {!isMediaReady ? 'Buffering HD Media...' : 'Tap for Audio'}
+                                {!isAudioReady ? 'Initializing Audio...' : 'Tap for Audio'}
                             </span>
                         </motion.button>
                     )}
@@ -228,10 +224,9 @@ export default function WaitlistPage() {
                 )}
             </div>
 
-            {/* Right Panel: Form (Bottom on Mobile) */}
+            {/* Right Panel: Form */}
             <div className="relative w-full lg:w-1/2 h-1/2 lg:h-full bg-[#121212] flex flex-col items-center justify-center px-8 lg:px-24">
                 
-                {/* Subtle Cyan Edge Glow (Right Edge) */}
                 <div className="absolute inset-y-0 right-0 w-1 bg-gradient-to-l from-[#00ffff]/10 to-transparent pointer-events-none" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#00ffff]/5 blur-[80px] pointer-events-none" />
                 <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#00ffff]/5 blur-[80px] pointer-events-none" />
@@ -257,77 +252,105 @@ export default function WaitlistPage() {
                         </div>
                     </div>
 
-                    {/* Main Form Content */}
-                    <div className="space-y-8">
-                        <div>
-                            <h1 className="text-4xl lg:text-6xl font-black uppercase italic leading-[0.9] tracking-tighter mb-4" style={{ fontFamily: 'var(--font-archivo-black), sans-serif' }}>
-                                DROP YOUR EMAIL <br />
-                                <span className="text-[#00ffff]" style={{ textShadow: '0 0 30px rgba(0,255,255,0.4)' }}>FOR EARLY ACCESS</span>
-                            </h1>
-                            <p className="text-white/40 font-medium uppercase tracking-[0.1em] text-sm lg:text-base max-w-sm mx-auto lg:mx-0">
-                                Be the first to build with Savage coaching. Limited spots for Phase O release.
-                            </p>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="relative group">
-                                <input
-                                    ref={emailInputRef}
-                                    type="email"
-                                    placeholder="ATHLETE@DOMAIN.COM"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    disabled={status === "success"}
-                                    className="w-full bg-white/[0.03] backdrop-blur-xl border-2 border-white/10 rounded-2xl py-6 px-8 outline-none transition-all focus:border-[#00ffff]/40 focus:bg-white/[0.08] text-xl font-bold tracking-widest placeholder:text-white/10 uppercase"
-                                />
-                                <div className="absolute inset-0 rounded-2xl bg-[#00ffff]/5 blur-2xl group-focus-within:opacity-100 opacity-0 transition-opacity pointer-events-none" />
-                            </div>
-
-                            <motion.button
-                                type="submit"
-                                disabled={status === "submitting" || status === "success"}
-                                animate={isFinalAction && status !== "success" ? {
-                                    boxShadow: [
-                                        "0 0 10px rgba(0, 255, 255, 0.3)",
-                                        "0 0 40px rgba(0, 255, 255, 0.6)",
-                                        "0 0 10px rgba(0, 255, 255, 0.3)"
-                                    ],
-                                    scale: [1, 1.02, 1]
-                                } : {}}
-                                transition={isFinalAction ? {
-                                    repeat: Infinity,
-                                    duration: 1.5
-                                } : {}}
-                                className={`w-full py-6 rounded-2xl font-black text-2xl tracking-tighter uppercase transition-all shadow-xl
-                                    ${status === "success" 
-                                        ? "bg-green-500/20 text-green-400 border border-green-500/50" 
-                                        : "bg-[#00ffff] text-black hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_0_50px_rgba(0,255,255,0.5)]"
-                                    }
-                                `}
+                    <AnimatePresence mode="wait">
+                        {status === "success" ? (
+                            <motion.div 
+                                key="success"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex flex-col items-center lg:items-start gap-6"
                             >
-                                {status === "submitting" ? "PROCESSING..." : status === "success" ? "ENTRY GRANTED" : "JOIN THE CLINIC"}
-                            </motion.button>
-
-                            <AnimatePresence>
-                                {status === "success" && (
-                                    <motion.p 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="text-[#00ffff] text-center font-bold text-xs uppercase tracking-widest bg-[#00ffff]/10 py-3 rounded-lg border border-[#00ffff]/20"
+                                <div className="w-24 h-24 rounded-full bg-[#00ffff]/20 border-4 border-[#00ffff] flex items-center justify-center shadow-[0_0_50px_rgba(0,255,255,0.3)]">
+                                    <motion.div
+                                        initial={{ pathLength: 0 }}
+                                        animate={{ pathLength: 1 }}
+                                        transition={{ duration: 0.5, delay: 0.2 }}
                                     >
-                                        Check your inbox for your Clinic credentials shortly.
-                                    </motion.p>
-                                )}
-                            </AnimatePresence>
+                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00ffff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </motion.div>
+                                </div>
+                                <div className="text-center lg:text-left">
+                                    <h2 className="text-4xl lg:text-6xl font-black uppercase italic tracking-tighter mb-2" style={{ fontFamily: 'var(--font-archivo-black), sans-serif' }}>
+                                        YOU'RE IN <br />
+                                        <span className="text-[#00ffff]">THE CLINIC</span>
+                                    </h2>
+                                    <p className="text-[#00ffff] font-bold uppercase tracking-widest text-sm opacity-80">
+                                        Check your inbox for your credentials shortly.
+                                    </p>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div 
+                                key="form"
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="space-y-8"
+                            >
+                                <div>
+                                    <h1 className="text-4xl lg:text-6xl font-black uppercase italic leading-[0.9] tracking-tighter mb-4" style={{ fontFamily: 'var(--font-archivo-black), sans-serif' }}>
+                                        DROP YOUR EMAIL <br />
+                                        <span className="text-[#00ffff]" style={{ textShadow: '0 0 30px rgba(0,255,255,0.4)' }}>FOR EARLY ACCESS</span>
+                                    </h1>
+                                    <p className="text-white/40 font-medium uppercase tracking-[0.1em] text-sm lg:text-base max-w-sm mx-auto lg:mx-0">
+                                        Be the first to build with Savage coaching. Limited spots for Phase O release.
+                                    </p>
+                                </div>
 
-                            {status === "error" && (
-                                <p className="text-red-500 text-center font-bold text-xs uppercase tracking-widest">
-                                    ERROR SUBMITTING. DATABASE BUSY.
-                                </p>
-                            )}
-                        </form>
-                    </div>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div className="relative group">
+                                        <input
+                                            ref={emailInputRef}
+                                            type="email"
+                                            placeholder="ATHLETE@DOMAIN.COM"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                            className="w-full bg-white/[0.03] backdrop-blur-xl border-2 border-white/10 rounded-2xl py-6 px-8 outline-none transition-all focus:border-[#00ffff]/40 focus:bg-white/[0.08] text-xl font-bold tracking-widest placeholder:text-white/10 uppercase"
+                                        />
+                                        <div className="absolute inset-0 rounded-2xl bg-[#00ffff]/5 blur-2xl group-focus-within:opacity-100 opacity-0 transition-opacity pointer-events-none" />
+                                    </div>
+
+                                    <motion.button
+                                        type="submit"
+                                        disabled={status === "submitting"}
+                                        animate={isFinalAction ? {
+                                            boxShadow: [
+                                                "0 0 10px rgba(0, 255, 255, 0.3)",
+                                                "0 0 40px rgba(0, 255, 255, 0.6)",
+                                                "0 0 10px rgba(0, 255, 255, 0.3)"
+                                            ],
+                                            scale: [1, 1.02, 1]
+                                        } : {}}
+                                        transition={isFinalAction ? {
+                                            repeat: Infinity,
+                                            duration: 1.5
+                                        } : {}}
+                                        className="w-full py-6 rounded-2xl font-black text-2xl tracking-tighter uppercase transition-all shadow-xl bg-[#00ffff] text-black hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_0_50px_rgba(0,255,255,0.5)] flex items-center justify-center gap-3"
+                                    >
+                                        {status === "submitting" ? (
+                                            <>
+                                                <Loader2 className="animate-spin" />
+                                                ENROLLING...
+                                            </>
+                                        ) : "JOIN THE CLINIC"}
+                                    </motion.button>
+
+                                    <AnimatePresence>
+                                        {status === "error" && (
+                                            <motion.p 
+                                                initial={{ opacity: 0, y: -10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="text-red-500 text-center font-bold text-xs uppercase tracking-widest bg-red-500/10 py-3 rounded-lg border border-red-500/20"
+                                            >
+                                                Connection lost. Try again, Athlete.
+                                            </motion.p>
+                                        )}
+                                    </AnimatePresence>
+                                </form>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* Savage Quote Footer */}
                     <div className="pt-8 border-t border-white/5 opacity-30 mx-auto lg:mx-0">
@@ -358,7 +381,6 @@ export default function WaitlistPage() {
                 muted={isMuted} 
             />
 
-            {/* Global Styles for the Font */}
             <style jsx global>{`
                 @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap');
                 :root {
