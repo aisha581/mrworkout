@@ -109,6 +109,9 @@ export default function WaitlistPage() {
         }
     };
 
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const referredBy = searchParams?.get('ref');
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email || status === "submitting") return;
@@ -118,8 +121,10 @@ export default function WaitlistPage() {
             const res = await fetch("/api/waitlist", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ email, referredBy })
             });
+
+            const data = await res.json();
 
             // Fail-safe: Even if we get an error, if it's not a 400 (validation), we consider it a success for the user
             if (res.ok || res.status !== 400) {
@@ -128,7 +133,7 @@ export default function WaitlistPage() {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     navigator.vibrate([100, 30, 100]);
                 }
-                setTimeout(() => router.push('/welcome'), 2000);
+                setTimeout(() => router.push(`/welcome${data.code ? `?code=${data.code}` : ''}`), 2000);
             } else {
                 setStatus("error");
             }
