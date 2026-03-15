@@ -118,3 +118,55 @@ export async function sendFollowupEmail(email: string) {
         return { success: false, error };
     }
 }
+
+/**
+ * Sends a personalized Influencer Outreach email with Founder Equity offer.
+ */
+export async function sendInfluencerOutreachEmail(email: string, influencerName: string, topic: string) {
+    try {
+        if (!process.env.RESEND_API_KEY) {
+            console.warn('[RESEND] API Key missing. Skipping outreach sent to:', email);
+            return { success: false, error: 'API Key missing' };
+        }
+
+        const { data, error } = await resend.emails.send({
+            from: 'Mr. Workout <coach@mrworkout.pro>',
+            to: [email],
+            replyTo: 'thebillion9@gmail.com',
+            subject: 'PROPOSAL: Mr. Workout Founder Equity Status',
+            html: `
+                <div style="font-family: sans-serif; background: #060606; color: #ffffff; padding: 40px; border-radius: 20px; border: 1px solid #333;">
+                    <div style="background: linear-gradient(135deg, #00ffff, #39ff14); padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                        <h1 style="color: #000; margin: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 2px;">Founder Equity Protocol</h1>
+                    </div>
+                    <div style="padding: 30px;">
+                        <p style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #39ff14; margin-bottom: 20px;">Priority: Level Alpha</p>
+                        <p style="font-weight: bold;">Athlete ${influencerName},</p>
+                        <p>We've been tracking your impact in the biomechanics and mobility space. Your recent insights on <strong>${topic}</strong> align perfectly with the mission we're building at Mr. Workout.</p>
+                        <p>We are officially extending a <span style="color: #00ffff; font-weight: bold;">Founder Equity Status</span> offer for you to join our inner circle.</p>
+                        <p>This isn't a sponsorship—it's an initiation into the Alpha Squad that will define the future of 3D Movement training.</p>
+                        <center>
+                            <a href="https://www.mrworkout.pro/welcome" style="display: inline-block; background: #39ff14; color: #000; padding: 15px 30px; text-decoration: none; border-radius: 10px; font-weight: 900; text-transform: uppercase; margin: 20px 0;">Claim Access</a>
+                        </center>
+                        <p>Your Day 01 Directive is ready. The 3D revolution doesn't wait for late adopters.</p>
+                        <p>Stay Savage,<br /><strong>MR. WORKOUT</strong></p>
+                    </div>
+                    <div style="text-align: center; font-size: 10px; color: #666; padding-top: 20px; border-top: 1px solid #333;">
+                        Savage Protocol v.1 | Confidential Outreach | 3D Movement Clinic
+                    </div>
+                </div>
+            `,
+        });
+
+        if (error) {
+            console.error('[OUTREACH_ERROR]', JSON.stringify(error, null, 2));
+            return { success: false, error };
+        }
+
+        console.log('[RESEND] Outreach email dispatched successfully:', data);
+        return { success: true, data };
+    } catch (error) {
+        console.error('[RESEND] Failed to send outreach email:', error);
+        return { success: false, error };
+    }
+}
