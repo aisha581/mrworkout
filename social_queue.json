@@ -1,0 +1,49 @@
+{
+    "social_queue": [
+        {
+            "day": 1,
+            "post": "The fitness industry is flat. We're training in 3D. The Alpha Squad is now forming. #MrWorkout #3DMovement",
+            "platforms": ["X", "Threads"]
+        },
+        {
+            "day": 2,
+            "post": "Knee pain isn't a life sentence. It's a system failure. Fix your biomechanics. Phase 2 starts soon.",
+            "platforms": ["X", "Threads"]
+        },
+        {
+            "day": 3,
+            "post": "Founder #001 locked in. Only 149 slots remaining before the vault seals. Are you in or are you an observer?",
+            "platforms": ["X", "Threads"]
+        },
+        {
+            "day": 4,
+            "post": "Stop training for aesthetics and start training for kinetic efficiency. The 3D Clinic is coming.",
+            "platforms": ["X", "Threads"]
+        },
+        {
+            "day": 5,
+            "post": "Your mobility audit is overdue. Day 01 Directive is waiting for the brave on the dashboard.",
+            "platforms": ["X", "Threads"]
+        },
+        {
+            "day": 6,
+            "post": "3D Biomechanics > Generic Hypertrophy. Learn the difference at the Mr. Workout Clinic.",
+            "platforms": ["X", "Threads"]
+        },
+        {
+            "day": 7,
+            "post": "Phase 2: 3D Module Activation is T-minus 12 days. Founding Athletes get the first look.",
+            "platforms": ["X", "Threads"]
+        },
+        {
+            "day": 15,
+            "post": "The 3D revolution is half-way calibrated. Don't be the one asking for an invite on launch day.",
+            "platforms": ["X", "Threads"]
+        },
+        {
+            "day": 30,
+            "post": "SYSTEM ACTIVATED. Phase 2 is live for Founders. The observer class can stay in 2D.",
+            "platforms": ["X", "Threads"]
+        }
+    ]
+}
