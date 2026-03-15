@@ -61,3 +61,60 @@ export async function sendWelcomeEmail(email: string, founderNumber?: string) {
         return { success: false, error };
     }
 }
+
+/**
+ * Sends a 24-hour follow-up email for the Day 01 Directive.
+ */
+export async function sendFollowupEmail(email: string) {
+    try {
+        if (!process.env.RESEND_API_KEY) {
+            console.warn('[RESEND] API Key missing. Skipping follow-up email sent to:', email);
+            return { success: false, error: 'API Key missing' };
+        }
+
+        const { data, error } = await resend.emails.send({
+            from: 'Mr. Workout <coach@mrworkout.pro>',
+            to: [email],
+            replyTo: 'thebillion9@gmail.com',
+            subject: 'FOUNDER STATUS: Your Day 01 Directive is live.',
+            html: `
+                <div style="font-family: sans-serif; background: #121212; color: #ffffff; padding: 40px; border-radius: 20px;">
+                    <h1 style="color: #39ff14; font-style: italic; text-transform: uppercase;">Directive Dispatched</h1>
+                    <p style="font-size: 18px; line-height: 1.6; font-weight: bold;">
+                        Athlete,
+                    </p>
+                    <p style="font-size: 16px; line-height: 1.6;">
+                        Your spot in the Alpha Squad is secured, but the work has already begun.
+                    </p>
+                    <div style="background: rgba(57, 255, 20, 0.1); border-left: 4px solid #39ff14; padding: 20px; margin: 20px 0;">
+                        <p style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #39ff14; margin: 0;">24-Hour Reminder</p>
+                        <h2 style="font-size: 24px; font-weight: 900; margin: 10px 0; color: #ffffff;">YOUR DAY 01 DIRECTIVE IS LIVE.</h2>
+                    </div>
+                    <p style="font-size: 16px; line-height: 1.6;">
+                        Your Day 01 Directive is now waiting for you on the Clinic Dashboard. Log in to see your mission and check the Phase 2 countdown.
+                    </p>
+                    <a href="https://www.mrworkout.pro/welcome" style="display: inline-block; background: #00ffff; color: #000; padding: 15px 30px; text-decoration: none; border-radius: 10px; font-weight: 900; text-transform: uppercase; margin: 20px 0;">Access the Clinic</a>
+                    <p style="font-size: 16px; line-height: 1.6;">
+                        Stay Savage,<br />
+                        <strong>MR. WORKOUT</strong>
+                    </p>
+                    <hr style="border: none; border-top: 1px solid #333; margin: 40px 0;" />
+                    <p style="font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 2px;">
+                        Savage Protocol v.1 | Alpha Squad
+                    </p>
+                </div>
+            `,
+        });
+
+        if (error) {
+            console.error('[RESEND_FOLLOWUP_ERROR]', JSON.stringify(error, null, 2));
+            return { success: false, error };
+        }
+
+        console.log('[RESEND] Follow-up email dispatched successfully:', data);
+        return { success: true, data };
+    } catch (error) {
+        console.error('[RESEND] Failed to send follow-up email:', error);
+        return { success: false, error };
+    }
+}
