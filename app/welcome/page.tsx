@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Share2, Instagram, ChevronRight, Target, Zap, Twitter, Lock, Copy, Check, Users, ShieldCheck } from "lucide-react";
+import { Share2, Instagram, ChevronRight, Target, Zap, Twitter, Lock, Copy, Check, Users, ShieldCheck, Download, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import "./welcome.css";
@@ -45,7 +45,7 @@ function useCountdown(targetDate: Date) {
 function WelcomeContent() {
     const searchParams = useSearchParams();
     const userCode = searchParams.get('code');
-    const [stats, setStats] = useState<{ referrals: number; isFounder: boolean } | null>(null);
+    const [stats, setStats] = useState<{ referrals: number; isFounder: boolean; email: string; founderId: string } | null>(null);
     const [copySuccess, setCopySuccess] = useState(false);
 
     const targetDate = new Date();
@@ -56,12 +56,19 @@ function WelcomeContent() {
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
     const referralLink = userCode ? `mrworkout.pro?ref=${userCode}` : "mrworkout.pro";
 
+    const founderCardUrl = stats?.isFounder ? `/api/generate-founder-card?email=${encodeURIComponent(stats.email)}&id=${stats.founderId}` : null;
+
     useEffect(() => {
         if (userCode) {
             fetch(`/api/user/stats?code=${userCode}`)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.referrals !== undefined) setStats({ referrals: data.referrals, isFounder: !!data.isFounder });
+                    if (data.referrals !== undefined) setStats({ 
+                        referrals: data.referrals, 
+                        isFounder: !!data.isFounder,
+                        email: data.email,
+                        founderId: data.founderId 
+                    });
                 })
                 .catch(console.error);
         }
@@ -71,6 +78,24 @@ function WelcomeContent() {
         navigator.clipboard.writeText(referralLink);
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
+    };
+
+    const handleDownloadCard = async () => {
+        if (!founderCardUrl) return;
+        try {
+            const response = await fetch(founderCardUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `MrWorkout_FounderCard_${stats?.founderId}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download failed:', error);
+        }
     };
 
     const formatNum = (num: number) => num.toString().padStart(2, '0');
@@ -130,6 +155,59 @@ function WelcomeContent() {
                     )}
                 </div>
             </header>
+
+            {/* FOUNDER CARD PREVIEW & SHARE */}
+            {stats?.isFounder && (
+                <motion.section
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-8 rounded-[32px] border-2 border-[#FFD700]/20 bg-[#FFD700]/5 backdrop-blur-3xl space-y-8"
+                >
+                    <div className="flex flex-col items-center md:items-start gap-2">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FFD700]">FOUNDER VIRTUAL ASSET</h3>
+                        <p className="text-white/40 text-[10px] uppercase font-bold tracking-widest text-center md:text-left">Your unique identifier in the 3D revolution</p>
+                    </div>
+
+                    <div className="relative group mx-auto max-w-[500px] aspect-[1.6/1] rounded-2xl overflow-hidden border border-[#FFD700]/30 shadow-[0_0_50px_rgba(255,215,0,0.1)]">
+                        {founderCardUrl && (
+                            <img 
+                                src={founderCardUrl} 
+                                alt="Founder Card" 
+                                className="w-full h-full object-cover"
+                            />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-6">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-[#FFD700]">Digital Asset Verified</span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <button 
+                            onClick={handleDownloadCard}
+                            className="flex items-center justify-center gap-3 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-black uppercase tracking-widest text-xs"
+                        >
+                            <Download size={18} className="text-[#00ffff]" />
+                            Download Card
+                        </button>
+                        <Link 
+                            href="https://www.instagram.com" 
+                            target="_blank"
+                            className="flex items-center justify-center gap-3 p-5 rounded-2xl bg-[#FFD700]/10 border border-[#FFD700]/20 hover:bg-[#FFD700]/20 transition-all font-black uppercase tracking-widest text-xs text-[#FFD700]"
+                        >
+                            <Instagram size={18} />
+                            Share IG Story
+                        </Link>
+                        <Link 
+                            href="https://www.tiktok.com" 
+                            target="_blank"
+                            className="flex items-center justify-center gap-3 p-5 rounded-2xl bg-black border border-white/10 hover:bg-white/5 transition-all font-black uppercase tracking-widest text-xs text-white"
+                        >
+                            <Smartphone size={18} />
+                            TikTok Link
+                        </Link>
+                    </div>
+                </motion.section>
+            )}
 
             {/* VIRAL REFERRAL MODULE */}
             <motion.section 

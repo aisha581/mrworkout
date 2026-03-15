@@ -24,9 +24,26 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'Athlete data not found' }, { status: 404 });
         }
 
+        // 3. Determine Founder ID (index in waitlist_athletes list)
+        // Note: LPOS is not directly available in @vercel/kv yet, so we get the list and find index
+        // Correct approach: When we saved the user, we should have saved their index.
+        // Let's fallback to list retrieval if index isn't in userData.
+        let founderId = userData.founderId as string || "???";
+        
+        if (userData.founder === "true" && (!userData.founderId)) {
+            const list = await kv.lrange('waitlist_athletes', 0, -1);
+            const index = list.indexOf(email);
+            founderId = index !== -1 ? (index + 1).toString().padStart(3, '0') : "???";
+            
+            // Persist it for future calls
+            await kv.hset(`user:${email}`, { founderId });
+        }
+
         return NextResponse.json({
+            email,
             referrals: parseInt((userData.referrals as string) || "0"),
             isFounder: userData.founder === "true" || userData.founder === true,
+            founderId: founderId,
             status: "active"
         });
 
