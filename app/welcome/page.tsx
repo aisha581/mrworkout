@@ -1,11 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Share2, Instagram, MessageSquare, ChevronRight, Target, Zap } from "lucide-react";
+import { Share2, Instagram, ChevronRight, Target, Zap, Twitter } from "lucide-react";
 import Link from "next/link";
 import "./welcome.css";
 
 export default function WelcomeDashboard() {
+    const shareText = "I just gained entry to the @MrWorkout Clinic. The 3D revolution is coming. #MrWorkout";
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+
     return (
         <div className="min-h-screen bg-[#060606] text-white flex flex-col items-center px-4 py-12 md:py-24 overflow-x-hidden relative">
             {/* HUD Grid Effect */}
@@ -16,7 +19,7 @@ export default function WelcomeDashboard() {
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#00ffff]/5 blur-[120px] rounded-full pointer-events-none" />
 
             <div className="w-full max-w-4xl z-10 flex flex-col gap-12">
-                {/* Header: Entry Status */}
+                {/* Header: Initiation Status */}
                 <header className="flex flex-col items-center md:items-start gap-4">
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
@@ -35,8 +38,8 @@ export default function WelcomeDashboard() {
                         className="text-5xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.9] text-glow"
                         style={{ fontFamily: 'Archivo Black, sans-serif' }}
                     >
-                        STATUS: <br className="md:hidden" />
-                        <span className="text-[#00ffff]">ENTRY GRANTED</span>
+                        PHASE 1: <br className="md:hidden" />
+                        <span className="text-[#00ffff]">THE INITIATION</span>
                     </motion.h1>
                 </header>
 
@@ -129,19 +132,19 @@ export default function WelcomeDashboard() {
                             className="p-8 rounded-[32px] bg-[#00ffff]/5 border border-[#00ffff]/10 backdrop-blur-2xl relative"
                         >
                             <h3 className="text-[#00ffff] text-xs font-black uppercase tracking-[0.4em] mb-4">
-                                Daily Directive
+                                Daily Directive: 001
                             </h3>
                             <div className="space-y-4">
                                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">
                                     The 10-Minute Baseline
                                 </h2>
                                 <p className="text-white/60 text-sm leading-relaxed">
-                                    Before the 3D modules drop, master your sleep. Zero screens 30 minutes before bed tonight. No excuses.
+                                    Before the 3D modules drop, master your sleep. Zero screens 30 minutes before bed tonight. No excuses. Eliminate the noise. Prepare for the revolutionary shift in your training.
                                 </p>
                             </div>
                             <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-white/30">
-                                    Directive: 01
+                                    Directive: 001
                                 </span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-[#00ffff]">
                                     Awaiting Completion
@@ -172,15 +175,17 @@ export default function WelcomeDashboard() {
                                     <ChevronRight size={16} className="text-white/20 group-hover:text-[#00ffff] transition-colors" />
                                 </Link>
                                 
-                                <button
-                                    onClick={() => alert("Registration URL copied! Share to your Story.")}
-                                    className="flex items-center justify-between p-6 rounded-2xl bg-[#00ffff] text-black hover:scale-[1.02] transition-all"
+                                <Link
+                                    href={twitterUrl}
+                                    target="_blank"
+                                    className="flex items-center justify-between p-6 rounded-2xl bg-[#00ffff] text-black hover:scale-[1.02] transition-all group"
                                 >
                                     <div className="flex items-center gap-4">
-                                        <Share2 size={20} />
-                                        <span className="font-black italic uppercase tracking-tight text-sm">Share to Story</span>
+                                        <Twitter size={20} />
+                                        <span className="font-black italic uppercase tracking-tight text-sm">Share to X</span>
                                     </div>
-                                </button>
+                                    <Share2 size={16} className="group-hover:rotate-12 transition-transform" />
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -189,7 +194,7 @@ export default function WelcomeDashboard() {
                 {/* Footer Ticker */}
                 <footer className="pt-12 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 opacity-30">
                     <span className="text-[10px] uppercase font-black tracking-[0.3em]">
-                        Clinic Onboarding // Athlete-90210
+                        Clinic Onboarding // Athlete-Initiated
                     </span>
                     <Link href="/" className="text-[10px] uppercase font-black tracking-[0.3em] hover:text-[#00ffff] transition-colors">
                         Return to Hub
