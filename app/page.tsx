@@ -128,7 +128,7 @@ export default function WaitlistPage() {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     navigator.vibrate([100, 30, 100]);
                 }
-                setTimeout(() => setShowWelcome(true), 2500);
+                setTimeout(() => router.push('/welcome'), 2000);
             } else {
                 setStatus("error");
             }
@@ -137,7 +137,7 @@ export default function WaitlistPage() {
             // If the network drops, we show success anyway to prevent user frustration.
             setStatus("success");
             setEmail("");
-            setTimeout(() => setShowWelcome(true), 2500);
+            setTimeout(() => router.push('/welcome'), 2000);
             console.warn("Emergency Frontend Fail-Safe Triggered: Showed success despite network error.");
         }
     };
