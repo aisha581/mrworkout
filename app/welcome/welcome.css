@@ -1,7 +1,7 @@
 .hud-grid {
     background-image: 
-        linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+        linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
     background-size: 50px 50px;
 }
 
@@ -12,23 +12,6 @@
 @keyframes scan-line {
     0% { transform: translateY(-100%); }
     100% { transform: translateY(100%); }
-}
-
-.aspect-video::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-        to bottom,
-        transparent 0%,
-        rgba(0, 255, 255, 0.05) 50%,
-        transparent 100%
-    );
-    height: 10px;
-    width: 100%;
-    animation: scan-line 3s linear infinite;
-    pointer-events: none;
-    z-index: 30;
 }
 
 /* Custom Scrollbar for tactical feel */
@@ -47,4 +30,15 @@
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 255, 255, 0.4);
+}
+
+/* Mobile Optimizations for iPhone */
+@media (max-width: 640px) {
+    .text-glow {
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+    }
+    
+    .hud-grid {
+        background-size: 30px 30px;
+    }
 }
