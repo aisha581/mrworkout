@@ -5,7 +5,7 @@ export async function GET() {
     try {
         // 1. Primary Source: Vercel KV
         // Retrieve all emails from the list
-        const waitlist = await kv.lrange('waitlist_emails', 0, -1);
+        const waitlist = await kv.lrange('waitlist_athletes', 0, -1);
 
         if (!waitlist || waitlist.length === 0) {
             return NextResponse.json({ error: 'No athletes found.' }, { status: 404 });

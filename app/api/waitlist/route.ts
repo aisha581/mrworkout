@@ -12,9 +12,9 @@ export async function POST(req: Request) {
         }
 
         // 1. Permanent Storage: Vercel KV (Redis)
-        // We use lpush to add the email to a list named "waitlist_emails"
+        // We use lpush to add the email to a list named "waitlist_athletes"
         try {
-            await kv.lpush('waitlist_emails', email);
+            await kv.lpush('waitlist_athletes', email);
             console.log(`[KV_SUCCESS] Athlete persisted: ${email}`);
         } catch (kvError: any) {
             console.error('KV_ERROR: ' + kvError.message);
