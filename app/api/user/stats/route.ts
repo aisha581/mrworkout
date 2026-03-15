@@ -26,6 +26,7 @@ export async function GET(req: Request) {
 
         return NextResponse.json({
             referrals: parseInt((userData.referrals as string) || "0"),
+            isFounder: userData.founder === "true" || userData.founder === true,
             status: "active"
         });
 

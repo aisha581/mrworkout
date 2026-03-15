@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Share2, Instagram, ChevronRight, Target, Zap, Twitter, Lock, Copy, Check, Users } from "lucide-react";
+import { Share2, Instagram, ChevronRight, Target, Zap, Twitter, Lock, Copy, Check, Users, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import "./welcome.css";
@@ -45,7 +45,7 @@ function useCountdown(targetDate: Date) {
 function WelcomeContent() {
     const searchParams = useSearchParams();
     const userCode = searchParams.get('code');
-    const [recruitsCount, setRecruitsCount] = useState<number | null>(null);
+    const [stats, setStats] = useState<{ referrals: number; isFounder: boolean } | null>(null);
     const [copySuccess, setCopySuccess] = useState(false);
 
     const targetDate = new Date();
@@ -61,7 +61,7 @@ function WelcomeContent() {
             fetch(`/api/user/stats?code=${userCode}`)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.referrals !== undefined) setRecruitsCount(data.referrals);
+                    if (data.referrals !== undefined) setStats({ referrals: data.referrals, isFounder: !!data.isFounder });
                 })
                 .catch(console.error);
         }
@@ -79,27 +79,56 @@ function WelcomeContent() {
         <div className="w-full max-w-4xl z-10 flex flex-col gap-10 md:gap-14">
             
             {/* Header: Initiation Status */}
-            <header className="flex flex-col items-center md:items-start gap-4 text-center md:text-left">
-                <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/10"
-                >
-                    <span className="w-2 h-2 rounded-full bg-[#00ffff] animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00ffff]/80">
-                        Protocol Alpha-01 Activated
-                    </span>
-                </motion.div>
+            <header className="flex flex-col items-center md:items-start gap-6 text-center md:text-left">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/10"
+                    >
+                        <span className="w-2 h-2 rounded-full bg-[#00ffff] animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00ffff]/80">
+                            Protocol Alpha-01 Activated
+                        </span>
+                    </motion.div>
+
+                    {/* FOUNDER BADGE */}
+                    {stats?.isFounder && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30 shadow-[0_0_15px_rgba(255,215,0,0.2)]"
+                        >
+                            <ShieldCheck size={12} className="text-[#FFD700]" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#FFD700]">
+                                FOUNDER STATUS: ACTIVE
+                            </span>
+                        </motion.div>
+                    )}
+                </div>
                 
-                <motion.h1
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-4xl sm:text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.9] text-glow"
-                    style={{ fontFamily: 'Archivo Black, sans-serif' }}
-                >
-                    PHASE 1: <br className="md:hidden" />
-                    <span className="text-[#00ffff]">THE INITIATION</span>
-                </motion.h1>
+                <div className="space-y-4">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-4xl sm:text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.9] text-glow"
+                        style={{ fontFamily: 'Archivo Black, sans-serif' }}
+                    >
+                        PHASE 1: <br className="md:hidden" />
+                        <span className="text-[#00ffff]">THE INITIATION</span>
+                    </motion.h1>
+
+                    {stats?.isFounder && (
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 0.6 }}
+                            transition={{ delay: 0.5 }}
+                            className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#FFD700] italic"
+                        >
+                            You are one of the Founding Athletes. This status is permanent and unlocks elite access in Phase 2.
+                        </motion.p>
+                    )}
+                </div>
             </header>
 
             {/* VIRAL REFERRAL MODULE */}
@@ -139,18 +168,18 @@ function WelcomeContent() {
                     
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#00ffff]/60">RECRUITS JOINED</span>
                     <motion.span 
-                        key={recruitsCount}
+                        key={stats?.referrals}
                         initial={{ scale: 0.8 }}
                         animate={{ scale: 1 }}
                         className="text-7xl font-black italic tracking-tighter text-[#00ffff]"
                     >
-                        {recruitsCount ?? "..."}
+                        {stats?.referrals ?? "..."}
                     </motion.span>
                     
                     <div className="w-full h-1.5 bg-white/5 rounded-full mt-4 overflow-hidden max-w-[200px]">
                         <motion.div 
                             initial={{ width: 0 }}
-                            animate={{ width: `${Math.min(((recruitsCount ?? 0) / 3) * 100, 100)}%` }}
+                            animate={{ width: `${Math.min(((stats?.referrals ?? 0) / 3) * 100, 100)}%` }}
                             className="h-full bg-[#00ffff] shadow-[0_0_15px_rgba(0,255,255,0.5)]"
                         />
                     </div>

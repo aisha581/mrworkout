@@ -20,24 +20,29 @@ export async function POST(req: Request) {
             let userData = await kv.hgetall(`user:${email}`);
             
             if (!userData) {
-                // 2. Generate new referral code for new user
+                // 2. Check current waitlist length for Founder Status (first 500)
+                const currentCount = await kv.llen('waitlist_athletes');
+                const isFounder = currentCount < 500;
+
+                // 3. Generate new referral code for new user
                 const userCode = generateCode();
                 
                 userData = {
                     email,
                     code: userCode,
                     referrals: "0",
-                    referredBy: referredBy || ""
+                    referredBy: referredBy || "",
+                    founder: isFounder ? "true" : "false"
                 };
 
-                // 3. Save User Data and Code Lookup
+                // 4. Save User Data and Code Lookup
                 await kv.hset(`user:${email}`, userData);
                 await kv.set(`code:${userCode}`, email);
                 
-                // 4. Record in general waitlist list (for backward compatibility/export)
+                // 5. Record in general waitlist list (for backward compatibility/export)
                 await kv.lpush('waitlist_athletes', email);
 
-                // 5. Handle Referral Logic (Increment Recruiter's Count)
+                // 6. Handle Referral Logic (Increment Recruiter's Count)
                 if (referredBy) {
                     const recruiterEmail = await kv.get(`code:${referredBy.toUpperCase()}`);
                     if (recruiterEmail && recruiterEmail !== email) {
@@ -46,15 +51,15 @@ export async function POST(req: Request) {
                     }
                 }
 
-                console.log(`[ATHLETE_JOINED] ${email} joined. Code: ${userCode}`);
+                console.log(`[ATHLETE_JOINED] ${email} joined. Code: ${userCode} | Founder: ${isFounder}`);
             }
 
-            // 6. Trigger Welcome Email (Non-blocking)
+            // 7. Trigger Welcome Email (Non-blocking)
             sendWelcomeEmail(email).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
 
             return NextResponse.json({ 
                 success: true, 
-                code: userData.code,
+                code: (userData.code as string),
                 message: "ENTRY GRANTED. Referral link activated."
             });
 
