@@ -379,48 +379,23 @@ function WelcomeContent() {
                 
                 {/* Manifesto Section */}
                 <motion.section
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="p-10 rounded-[40px] border border-white/5 bg-white/[0.02] backdrop-blur-3xl flex flex-col gap-8"
+                    className="p-10 rounded-[40px] border border-white/5 bg-white/[0.02] backdrop-blur-3xl flex flex-col gap-8 md:col-span-2"
                 >
                     <div className="space-y-4">
-                        <h3 className="text-[#00ffff] text-xs font-black uppercase tracking-[0.6em]">FOUNDER'S MANIFESTO</h3>
-                        <p className="text-lg font-black italic uppercase italic text-white leading-tight">
+                        <div className="flex items-center gap-4">
+                            <Target className="text-[#00ffff]" size={24} />
+                            <h3 className="text-[#00ffff] text-xs font-black uppercase tracking-[0.6em]">FOUNDER'S MANIFESTO</h3>
+                        </div>
+                        <p className="text-2xl sm:text-3xl font-black italic uppercase text-white leading-tight">
                             "WE DO NOT TRAIN TO MAINTAIN. WE TRAIN TO OVERTAKE."
                         </p>
-                        <p className="text-white/60 text-sm leading-relaxed font-medium">
+                        <p className="text-white/60 text-base leading-relaxed font-medium max-w-2xl">
                             The 3D revolution is not about pixels. It is about perspective. 
                             You are no longer an observer. You are the architect of your own evolution.
                         </p>
-                    </div>
-                </motion.section>
-
-                {/* Daily Directive Section */}
-                <motion.section
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="p-10 rounded-[40px] border border-white/5 bg-white/[0.02] backdrop-blur-3xl flex flex-col justify-between"
-                >
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                            <h3 className="text-[#00ffff] text-xs font-black uppercase tracking-[0.6em]">DAILY DIRECTIVE</h3>
-                            <Zap className="text-[#00ffff] opacity-30" size={20} />
-                        </div>
-                        <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">BASELINE MOBILITY</h2>
-                        <p className="text-white/60 text-sm leading-relaxed font-medium">
-                            Implement the 90/90 stretch for 3 minutes per side. 
-                            Unlock your hips for the 3D engine calibration.
-                            Stiffness is a system failure.
-                        </p>
-                    </div>
-                    <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-white/20 whitespace-nowrap">PROTOCOL: DM-001</span>
-                        <div className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#00ffff] animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00ffff]">INITIATED</span>
-                        </div>
                     </div>
                 </motion.section>
 
