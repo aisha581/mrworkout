@@ -60,11 +60,11 @@ function FoundersClosedContent() {
                 transition={{ delay: 0.5 }}
                 className="max-w-2xl space-y-6"
             >
-                <p className="text-xl md:text-2xl font-bold uppercase tracking-wide leading-relaxed">
-                    The initial 150 Founder Slots have been claimed. <br className="hidden md:block" />
-                    Entry to the Inner Circle is now <span className="text-[#ff3b3b]">LOCKED</span>.
+                <p className="text-xl md:text-2xl font-medium leading-relaxed">
+                    The initial 150 founder slots have been claimed. <br className="hidden md:block" />
+                    Entry to the inner circle is now <span className="text-[#ff3b3b]">LOCKED</span>.
                 </p>
-                <p className="text-sm md:text-base text-white/40 font-bold uppercase tracking-widest">
+                <p className="text-sm md:text-base text-white/40 font-medium tracking-wide">
                     These athletes will define the future of Mr. Workout. 
                     Your focus must now shift to Phase 2.
                 </p>

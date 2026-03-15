@@ -15,55 +15,63 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Valid email and name are required' }, { status: 400 });
         }
 
+        // Data Normalization: All inputs to lowercase for cleaner DB
+        const normalizedEmail = email.toLowerCase().trim();
+        const normalizedName = name.toLowerCase().trim();
+        const normalizedReferredBy = referredBy ? referredBy.toUpperCase().trim() : "";
+
         try {
-            // 1. Check if user already exists
-            let userData = await kv.hgetall(`user:${email}`);
+            // 1. Check if user already exists (Re-entry Logic)
+            let userData = await kv.hgetall(`user:${normalizedEmail}`);
             
             if (!userData) {
                 // 2. Check current waitlist length for Founder Status (first 150)
                 const currentCount = await kv.llen('waitlist_athletes');
                 const isFounder = currentCount < 150;
 
-                // 3. Generate new referral code for new user
+                // 3. Generate unique referral code
+                // Use Name as base if possible, otherwise random
                 const userCode = generateCode();
                 
                 userData = {
-                    email,
-                    name,
+                    email: normalizedEmail,
+                    name: normalizedName,
                     code: userCode,
                     referrals: "0",
-                    referredBy: referredBy || "",
+                    referredBy: normalizedReferredBy,
                     founder: isFounder ? "true" : "false",
                     founderId: isFounder ? (currentCount + 1).toString().padStart(3, '0') : ""
                 };
 
                 // 4. Save User Data and Code Lookup
-                await kv.hset(`user:${email}`, userData);
-                await kv.set(`code:${userCode}`, email);
+                await kv.hset(`user:${normalizedEmail}`, userData);
+                await kv.set(`code:${userCode}`, normalizedEmail);
                 
-                // 5. Record in general waitlist list (for backward compatibility/export)
-                await kv.lpush('waitlist_athletes', email);
+                // 5. Record in general waitlist list
+                await kv.lpush('waitlist_athletes', normalizedEmail);
 
-                // 6. Handle Referral Logic (Increment Recruiter's Count)
-                if (referredBy) {
-                    const recruiterEmail = await kv.get(`code:${referredBy.toUpperCase()}`);
-                    if (recruiterEmail && recruiterEmail !== email) {
+                // 6. Handle Referral Logic
+                if (normalizedReferredBy) {
+                    const recruiterEmail = (await kv.get(`code:${normalizedReferredBy}`)) as string;
+                    if (recruiterEmail && recruiterEmail !== normalizedEmail) {
                         await kv.hincrby(`user:${recruiterEmail}`, 'referrals', 1);
-                        console.log(`[REFERRAL_TRACKED] Recruiter ${recruiterEmail} gained a point via ${email}`);
+                        console.log(`[REFERRAL_TRACKED] Recruiter ${recruiterEmail} gained a point via ${normalizedEmail}`);
                     }
                 }
 
-                console.log(`[ATHLETE_JOINED] ${email} joined. Code: ${userCode} | Founder: ${isFounder}`);
+                console.log(`[ATHLETE_JOINED] ${normalizedEmail} joined. Code: ${userCode} | Founder: ${isFounder}`);
+                
+                // 7. Trigger Welcome Email (only for NEW signups)
+                sendWelcomeEmail(normalizedEmail).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
+            } else {
+                console.log(`[ATHLETE_REENTRY] ${normalizedEmail} recognized. Redirecting...`);
             }
 
-            // 7. Trigger Welcome Email (Non-blocking)
-            sendWelcomeEmail(email).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
-
-            // 7. Success response with dynamic redirect
+            // 8. Success response with dynamic redirect (Works for new and re-entry)
             const isFounder = userData.founder === "true";
             const redirectUrl = isFounder 
-                ? `/welcome?code=${userData.code}&name=${encodeURIComponent(name)}` 
-                : `/founders-closed?email=${encodeURIComponent(email)}`;
+                ? `/welcome?code=${userData.code}&name=${encodeURIComponent(userData.name as string)}` 
+                : `/founders-closed?email=${encodeURIComponent(normalizedEmail)}`;
 
             return NextResponse.json({ 
                 success: true, 

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, Check, ShieldCheck, Download, Instagram, Smartphone, Lock, Target, Zap, ChevronRight, Users, Loader2, Volume2, VolumeX } from "lucide-react";
+import { Copy, Check, ShieldCheck, Download, Share2, Instagram, Smartphone, Lock, Target, Zap, ChevronRight, Users, Loader2, Volume2, VolumeX, Medal } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import html2canvas from "html2canvas";
 import "./welcome.css";
 
 // Countdown Logic
@@ -40,13 +41,10 @@ function WelcomeContent() {
     const userCode = searchParams.get('code');
     const [stats, setStats] = useState<{ referrals: number; isFounder: boolean; email: string; name: string; founderId: string } | null>(null);
     const [copySuccess, setCopySuccess] = useState(false);
+    const [isSharing, setIsSharing] = useState(false);
+    const cardRef = useRef<HTMLDivElement>(null);
 
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + 7);
-    const countdown = useCountdown(targetDate);
-
-    const referralLink = userCode ? `mrworkout.pro?ref=${userCode}` : "mrworkout.pro";
-    const founderCardUrl = stats?.isFounder ? `/api/generate-founder-card?email=${encodeURIComponent(stats.email)}&id=${stats.founderId}&name=${encodeURIComponent(stats.name)}` : null;
+    const referralLink = `https://mrworkout.pro?ref=${userCode}`;
 
     useEffect(() => {
         if (userCode) {
@@ -72,229 +70,233 @@ function WelcomeContent() {
     };
 
     const handleDownloadCard = async () => {
-        if (!founderCardUrl) return;
+        if (!cardRef.current) return;
         try {
-            const response = await fetch(founderCardUrl);
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `MrWorkout_FounderCard_${stats?.founderId}.png`;
-            document.body.appendChild(link);
+            const canvas = await html2canvas(cardRef.current, {
+                scale: 3, // High-res
+                backgroundColor: "#000",
+                logging: false,
+                useCORS: true
+            });
+            const image = canvas.toDataURL("image/png");
+            const link = document.createElement("a");
+            link.href = image;
+            link.download = `FOUNDER_${stats?.founderId}_${stats?.name.toUpperCase()}.png`;
             link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Download failed:', error);
+        } catch (err) {
+            console.error("Capture failed:", err);
         }
     };
 
-    const formatNum = (num: number) => num.toString().padStart(2, '0');
+    const handleShare = async () => {
+        if (!navigator.share) {
+            alert("Sharing not supported on this browser. Copy the link instead.");
+            return;
+        }
+        setIsSharing(true);
+        try {
+            await navigator.share({
+                title: "MR. WORKOUT | FOUNDER",
+                text: "I just secured my Founder Status at the Mr. Workout Clinic. The 3D revolution has begun. join the squad.",
+                url: referralLink,
+            });
+        } catch (err) {
+            console.warn("Share cancelled or failed:", err);
+        } finally {
+            setIsSharing(false);
+        }
+    };
 
     return (
-        <div className="w-full max-w-5xl z-10 flex flex-col items-center gap-12 md:gap-20 py-10">
+        <div className="w-full max-w-5xl z-10 flex flex-col items-center gap-12 md:gap-20 py-10 pb-32">
             
-            {/* TOP CENTER: FOUNDER BADGE */}
+            {/* Header section */}
             <div className="flex flex-col items-center gap-6 text-center w-full">
-                {stats?.isFounder && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="relative group"
-                    >
-                        {/* Shimmer Effect */}
-                        <motion.div 
-                            initial={{ x: '-100%' }}
-                            animate={{ x: '100%' }}
-                            transition={{ repeat: Infinity, duration: 2, ease: "linear", delay: 1 }}
-                            className="absolute inset-0 z-10 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none rounded-2xl"
-                        />
-                        
-                        <div className="flex flex-col items-center gap-4 px-10 py-8 rounded-3xl bg-[#FFD700]/5 border-2 border-[#FFD700]/30 shadow-[0_0_50px_rgba(255,215,0,0.15)] backdrop-blur-3xl">
-                            <ShieldCheck size={48} className="text-[#FFD700] drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]" />
-                            <div className="space-y-1">
-                                <h3 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-[#FFD700]">
-                                    FOUNDER #{stats.founderId} / 150
-                                </h3>
-                                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40">Status: Secured & Locked</p>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
                     className="space-y-4"
                 >
                     <h1 className="text-4xl sm:text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.9] text-white text-glow"
                         style={{ fontFamily: 'Archivo Black, sans-serif' }}>
-                        WELCOME, <span className="text-[#00ffff]">{stats?.name || "INITIATE"}</span>
+                        WELCOME, <span className="text-[#00ffff]">{stats?.name || "ATHLETE"}</span>
                     </h1>
                     <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.4em] text-[#00ffff]/60">
-                        {stats?.isFounder ? "YOU ARE AMONG THE FIRST 150. YOUR STATUS IS ABSOLUTE." : "WAITLIST STATUS: ACTIVE. FOUNDER SLOTS CLOSED."}
+                        {stats?.isFounder ? "Your status is secured among the first 150 athletes." : "Waitlist status: Active. Founder slots are closed."}
                     </p>
                 </motion.div>
             </div>
 
-            {/* MIDDLE: FOUNDER'S MANIFESTO */}
-            <motion.section
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="w-full max-w-3xl p-10 md:p-16 rounded-[40px] border border-white/10 bg-white/[0.03] backdrop-blur-2xl shadow-2xl relative overflow-hidden"
-            >
-                <div className="absolute top-0 right-0 p-10 opacity-5">
-                    <Target size={120} />
-                </div>
-                
-                <div className="flex flex-col gap-10 relative z-10">
-                    <div className="space-y-2">
-                        <h3 className="text-[#00ffff] text-xs font-black uppercase tracking-[0.6em] mb-4">FOUNDER'S MANIFESTO</h3>
-                        <div className="h-1 w-20 bg-[#00ffff]/40" />
+            {/* FOUNDER CARD AREA (The Hero Asset) */}
+            {stats?.isFounder && (
+                <motion.div 
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full flex flex-col items-center gap-8"
+                >
+                    {/* The Actual Card DOM for html2canvas */}
+                    <div className="relative group p-1 shadow-[0_0_100px_rgba(255,215,0,0.1)] rounded-[40px] bg-gradient-to-br from-[#FFD700]/40 via-transparent to-[#FFD700]/20">
+                        <div 
+                            ref={cardRef}
+                            className="relative w-[340px] sm:w-[500px] md:w-[600px] aspect-[1.6/1] rounded-[38px] overflow-hidden bg-black flex flex-col p-8 sm:p-12 border border-white/10"
+                            style={{ backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.05) 0%, transparent 40%)' }}
+                        >
+                            {/* Card Decorative Elements */}
+                            <div className="absolute top-0 right-0 p-10 opacity-10">
+                                <Medal size={120} className="text-[#FFD700]" />
+                            </div>
+                            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-[#FFD700]/5 to-transparent pointer-events-none" />
+
+                            <div className="relative z-10 flex flex-col justify-between h-full uppercase italic">
+                                <div>
+                                    <h4 className="text-[10px] font-black tracking-[0.5em] text-[#FFD700] mb-2">MR. WORKOUT // CLINIC</h4>
+                                    <div className="h-[2px] w-12 bg-[#FFD700]" />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <h2 className="text-3xl sm:text-5xl font-black tracking-tighter text-white leading-none">
+                                        {stats.name}
+                                    </h2>
+                                    <p className="text-lg sm:text-2xl font-black text-[#FFD700] tracking-tight">
+                                        FOUNDING ATHLETE #{stats.founderId}
+                                    </p>
+                                </div>
+
+                                <div className="flex justify-between items-end border-t border-white/20 pt-6">
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] font-bold tracking-[0.3em] text-white/40">TIER STATUS</p>
+                                        <p className="text-xs font-black text-white">ALPHA SQUAD (01/150)</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[8px] font-bold tracking-[0.3em] text-white/40">ACCESS KEY</p>
+                                        <p className="text-xs font-black text-white px-3 py-1 bg-white/10 rounded-md">{stats.founderId}-{stats.name.slice(0,3)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="space-y-8">
-                        <p className="text-xl md:text-3xl font-black italic uppercase tracking-tight text-white leading-tight">
-                            "WE DO NOT TRAIN TO MAINTAIN. WE TRAIN TO OVERTAKE. THE 3D REVOLUTION IS NOT ABOUT PIXELS—IT IS ABOUT PERSPECTIVE."
-                        </p>
-                        <ul className="space-y-4 text-sm md:text-base font-bold uppercase tracking-wide text-white/70">
-                            <li className="flex gap-4">
-                                <span className="text-[#00ffff]">01</span>
-                                <span>Discipline over motivation. Always.</span>
-                            </li>
-                            <li className="flex gap-4">
-                                <span className="text-[#00ffff]">02</span>
-                                <span>The clinic is the arena. The modules are your weapons.</span>
-                            </li>
-                            <li className="flex gap-4">
-                                <span className="text-[#00ffff]">03</span>
-                                <span>You are no longer an observer. You are the architect of your own evolution.</span>
-                            </li>
-                        </ul>
+                    {/* Action Panel */}
+                    <div className="flex flex-wrap justify-center gap-4">
+                        <button 
+                            onClick={handleDownloadCard}
+                            className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-[#FFD700] text-black font-black uppercase tracking-widest text-sm hover:scale-105 transition-all shadow-xl hover:shadow-[#FFD700]/20"
+                        >
+                            <Download size={20} />
+                            DOWNLOAD CARD
+                        </button>
+                        <button 
+                            onClick={handleShare}
+                            disabled={isSharing}
+                            className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-sm hover:scale-105 transition-all shadow-xl"
+                        >
+                            {isSharing ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+                            SHARE STATUS
+                        </button>
                     </div>
-                </div>
-            </motion.section>
+                </motion.div>
+            )}
 
-            {/* LOWER: DAILY DIRECTIVE & REFERRAL */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
+            {/* Content sections unified on one page */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
                 
-                {/* Daily Directive Habit */}
+                {/* Manifesto Section */}
                 <motion.section
-                    initial={{ opacity: 0, x: -30 }}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="p-10 rounded-[40px] border border-white/5 bg-white/[0.02] backdrop-blur-3xl flex flex-col gap-8"
+                >
+                    <div className="space-y-4">
+                        <h3 className="text-[#00ffff] text-xs font-black uppercase tracking-[0.6em]">FOUNDER'S MANIFESTO</h3>
+                        <p className="text-lg font-black italic uppercase italic text-white leading-tight">
+                            "WE DO NOT TRAIN TO MAINTAIN. WE TRAIN TO OVERTAKE."
+                        </p>
+                        <p className="text-white/60 text-sm leading-relaxed font-medium">
+                            The 3D revolution is not about pixels. It is about perspective. 
+                            You are no longer an observer. You are the architect of your own evolution.
+                        </p>
+                    </div>
+                </motion.section>
+
+                {/* Daily Directive Section */}
+                <motion.section
+                    initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="p-10 rounded-[32px] bg-white/[0.03] border border-white/5 backdrop-blur-xl flex flex-col justify-between h-full group"
+                    className="p-10 rounded-[40px] border border-white/5 bg-white/[0.02] backdrop-blur-3xl flex flex-col justify-between"
                 >
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         <div className="flex justify-between items-start">
-                            <div className="space-y-1">
-                                <h3 className="text-[#00ffff] text-[10px] font-black uppercase tracking-[0.4em]">DAILY DIRECTIVE</h3>
-                                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">BASELINE MOBILITY</h2>
-                            </div>
-                            <Zap className="text-[#00ffff] opacity-30 group-hover:opacity-100 transition-opacity" size={24} />
+                            <h3 className="text-[#00ffff] text-xs font-black uppercase tracking-[0.6em]">DAILY DIRECTIVE</h3>
+                            <Zap className="text-[#00ffff] opacity-30" size={20} />
                         </div>
-                        <p className="text-white/60 text-sm leading-relaxed font-bold uppercase tracking-wide">
-                            IMPLEMENT THE 90/90 STRETCH FOR 3 MINUTES PER SIDE. UNLOCK YOUR HIPS FOR THE 3D ENGINE CALIBRATION. STIFFNESS IS A SYSTEM FAILURE.
+                        <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">BASELINE MOBILITY</h2>
+                        <p className="text-white/60 text-sm leading-relaxed font-medium">
+                            Implement the 90/90 stretch for 3 minutes per side. 
+                            Unlock your hips for the 3D engine calibration.
+                            Stiffness is a system failure.
                         </p>
                     </div>
                     <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-                        <span className="text-[10px] font-black tracking-widest text-white/20">PROTOCOL ID: DM-001</span>
+                        <span className="text-[10px] font-bold text-white/20 whitespace-nowrap">PROTOCOL: DM-001</span>
                         <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#00ffff] animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-[#00ffff]">INITIATED</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#00ffff] animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00ffff]">INITIATED</span>
                         </div>
                     </div>
                 </motion.section>
 
-                {/* Recruitment Action */}
+                {/* Recruitment Section */}
                 <motion.section
-                    initial={{ opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
-                    className="p-10 rounded-[32px] bg-[#00ffff]/5 border border-[#00ffff]/20 backdrop-blur-xl flex flex-col gap-8 h-full"
+                    className="md:col-span-2 p-10 rounded-[40px] bg-[#00ffff]/5 border border-[#00ffff]/10 backdrop-blur-3xl flex flex-col md:flex-row items-center justify-between gap-10"
                 >
-                    <div className="space-y-2">
-                        <h3 className="text-[#00ffff] text-[10px] font-black uppercase tracking-[0.4em]">RECRUITMENT LINK</h3>
-                        <p className="text-white/40 text-[10px] uppercase font-bold tracking-widest">INVITE ATHLETES TO CLAIM REMAINING SLOTS</p>
+                    <div className="space-y-4 text-center md:text-left">
+                        <h3 className="text-[#00ffff] text-xs font-black uppercase tracking-[0.6em]">RECRUITMENT PROTOCOL</h3>
+                        <p className="text-white/80 font-medium">
+                            Recruit 3 athletes to unlock Phase 2 early. Grab the remaining founder slots before they are sealed.
+                        </p>
+                        <div className="flex items-center justify-center md:justify-start gap-4">
+                            <div className="px-4 py-2 bg-black/40 rounded-full border border-white/10 flex items-center gap-2">
+                                <Users size={14} className="text-[#00ffff]" />
+                                <span className="text-xs font-black text-white">{stats?.referrals ?? 0} RECRUITS</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="relative group">
-                        <div className="w-full bg-black/40 border-2 border-white/10 rounded-2xl py-5 px-6 font-mono text-sm text-white/80 flex items-center justify-between overflow-hidden">
-                            <span className="truncate mr-4">{referralLink}</span>
-                            <button 
-                                onClick={handleCopyLink}
-                                className="shrink-0 p-3 rounded-xl bg-[#00ffff] text-black hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,255,255,0.3)]"
-                            >
-                                {copySuccess ? <Check size={20} /> : <Copy size={20} />}
+                    <div className="w-full md:w-auto flex flex-col sm:flex-row gap-4">
+                        <div className="bg-black border-2 border-white/5 rounded-2xl py-4 px-6 font-mono text-xs text-white/40 flex items-center gap-4">
+                            <span className="truncate max-w-[150px]">{referralLink}</span>
+                            <button onClick={handleCopyLink} className="text-[#00ffff] hover:scale-110 transition-transform">
+                                {copySuccess ? <Check size={18} /> : <Copy size={18} />}
                             </button>
                         </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
-                        <Users className="text-[#00ffff]/60" size={24} />
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Recruits Enlisted</span>
-                            <span className="text-2xl font-black italic text-[#00ffff] tracking-tighter">{stats?.referrals ?? 0}</span>
-                        </div>
+                        <button 
+                            onClick={handleCopyLink}
+                            className="bg-[#00ffff] text-black px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] transition-all"
+                        >
+                            COPY LINK
+                        </button>
                     </div>
                 </motion.section>
             </div>
 
-            {/* FOUNDER CARD ASSET */}
-            {stats?.isFounder && (
-                <motion.section
-                    initial={{ opacity: 0, y: 40 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 }}
-                    className="w-full flex flex-col items-center gap-10"
-                >
-                    <div className="flex flex-col items-center text-center gap-2">
-                        <div className="h-[1px] w-24 bg-white/10" />
-                        <h3 className="text-xs font-black uppercase tracking-[0.6em] text-white/30">VIRTUAL ASSET PREVIEW</h3>
-                    </div>
-
-                    <div className="relative group max-w-[600px] w-full aspect-[1.6/1] rounded-3xl overflow-hidden border-4 border-[#FFD700]/30 shadow-[0_0_80px_rgba(255,215,0,0.1)]">
-                        {founderCardUrl && (
-                            <img src={founderCardUrl} alt="Founder Card" className="w-full h-full object-cover" />
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-center pb-8">
-                            <button 
-                                onClick={handleDownloadCard}
-                                className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-[#FFD700] text-black font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,215,0,0.5)]"
-                            >
-                                <Download size={18} />
-                                Download Master Card
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Social CTAs */}
-                    <div className="flex flex-wrap justify-center gap-6 opacity-40 hover:opacity-100 transition-opacity">
-                        <Link href="https://www.instagram.com" target="_blank" className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.3em] hover:text-[#00ffff] transition-colors">
-                            <Instagram size={16} /> Share IG Story
-                        </Link>
-                        <Link href="https://www.tiktok.com" target="_blank" className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.3em] hover:text-[#00ffff] transition-colors">
-                            <Smartphone size={16} /> TikTok Signal
-                        </Link>
-                    </div>
-                </motion.section>
-            )}
-
-            {/* HUD Status Bar */}
+            {/* HUD Status Footer */}
             <motion.footer 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.4 }}
                 className="w-full pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6"
             >
-                <div className="flex items-center gap-6">
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em]">INITIATION STATUS: SECURED</span>
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em]">VAULT: ONLINE</span>
+                <div className="flex flex-wrap justify-center gap-6">
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em]">INITIATION STATUS: SECURED</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em]">VAULT: ONLINE</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Lock size={12} />
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em]">ENCRYPTED HUD</span>
+                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.4em]">
+                    <Lock size={10} />
+                    <span>ENCRYPTED HUD v.1.0</span>
                 </div>
             </motion.footer>
 
@@ -302,6 +304,12 @@ function WelcomeContent() {
                 @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@700;800&display=swap');
                 .font-mono { font-family: 'JetBrains Mono', monospace; }
                 .text-glow { text-shadow: 0 0 30px rgba(255, 255, 255, 0.2); }
+                .hud-grid {
+                    background-image: 
+                        linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+                    background-size: 40px 40px;
+                }
             `}</style>
         </div>
     );
@@ -314,7 +322,7 @@ export default function WelcomeDashboard() {
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none hud-grid" />
             <div className="absolute top-0 w-full h-40 bg-gradient-to-b from-[#00ffff]/5 to-transparent pointer-events-none" />
             
-            <Suspense fallback={<div className="text-[#00ffff] font-black animate-pulse py-20">CALIBRATING HUD...</div>}>
+            <Suspense fallback={<div className="text-[#00ffff] font-black animate-pulse py-20 uppercase tracking-[0.3em]">CALIBRATING HUD...</div>}>
                 <WelcomeContent />
             </Suspense>
         </div>
