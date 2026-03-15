@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Copy, Check, ShieldCheck, Download, Share2, Instagram, Smartphone, Lock, Target, Zap, ChevronRight, Users, Loader2, Volume2, VolumeX, Medal } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { toPng } from "html-to-image";
+import { toPng, toBlob } from "html-to-image";
+import { saveAs } from "file-saver";
 import "./welcome.css";
 
 // Countdown Logic
@@ -49,7 +50,6 @@ function WelcomeContent() {
     const [copySuccess, setCopySuccess] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
-    const [mobileImage, setMobileImage] = useState<string | null>(null);
     const cardRef = useRef<HTMLDivElement>(null);
     const captureRef = useRef<HTMLDivElement>(null);
 
@@ -86,7 +86,7 @@ function WelcomeContent() {
             // Give extra time for fonts to settle
             await new Promise(r => setTimeout(r, 800));
             
-            const dataUrl = await toPng(captureRef.current, {
+            const blob = await toBlob(captureRef.current, {
                 quality: 1.0,
                 pixelRatio: 2, // Double resolution for crisp social sharing
                 skipAutoScale: true,
@@ -98,20 +98,8 @@ function WelcomeContent() {
                 }
             });
             
-            // Mobile Detection
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-            if (isMobile) {
-                // Open result in modal for manual save
-                setMobileImage(dataUrl);
-            } else {
-                // Standard desktop download
-                const link = document.createElement("a");
-                link.href = dataUrl;
-                link.download = `MrWorkout_Founder_Badge_${stats?.founderId}.png`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+            if (blob) {
+                saveAs(blob, `MR_WORKOUT_FOUNDER_CARD_${stats?.founderId || 'ATHLETE'}.png`);
             }
         } catch (err) {
             console.error("Capture failed:", err);
@@ -217,7 +205,7 @@ function WelcomeContent() {
                             className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-[#FFD700] text-black font-black uppercase tracking-widest text-sm hover:scale-105 transition-all shadow-xl hover:shadow-[#FFD700]/20 min-w-[220px] justify-center"
                         >
                             {isDownloading ? <Loader2 size={20} className="animate-spin" /> : <Download size={20} />}
-                            {isDownloading ? "GENERATING..." : (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? "GENERATE IMAGE" : "DOWNLOAD CARD")}
+                            {isDownloading ? "GENERATING..." : "DOWNLOAD FOUNDER CARD"}
                         </button>
                         <button 
                             onClick={handleShare}
@@ -283,45 +271,6 @@ function WelcomeContent() {
                     </div>
                 </motion.div>
             )}
-
-            {/* MOBILE SAVE OVERLAY */}
-            <AnimatePresence>
-                {mobileImage && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6"
-                    >
-                        <div className="absolute top-6 right-6">
-                            <button 
-                                onClick={() => setMobileImage(null)}
-                                className="p-4 bg-white/10 rounded-full text-white/60 hover:text-white transition-colors"
-                            >
-                                <Lock className="rotate-45" size={24} />
-                            </button>
-                        </div>
-
-                        <div className="w-full max-w-[400px] flex flex-col items-center gap-8">
-                            <div className="text-center space-y-2">
-                                <h3 className="text-[#FFD700] text-xl font-black italic uppercase tracking-tighter">PHASE 1 SECURED</h3>
-                                <p className="text-white/60 text-xs font-bold uppercase tracking-[0.2em]">Long press image below to save to photos</p>
-                            </div>
-
-                            <div className="relative w-full aspect-[9/16] rounded-2xl overflow-hidden shadow-[0_0_100px_rgba(255,215,0,0.2)] border-2 border-white/20">
-                                <img src={mobileImage} alt="Founder Card" className="w-full h-full object-contain" />
-                            </div>
-
-                            <button 
-                                onClick={() => setMobileImage(null)}
-                                className="w-full py-5 bg-white/10 border border-white/20 rounded-2xl text-white font-black uppercase tracking-widest text-xs"
-                            >
-                                CLOSE PREVIEW
-                            </button>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
 
             {/* Content sections unified on one page */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">

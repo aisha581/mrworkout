@@ -62,9 +62,12 @@ export async function POST(req: Request) {
                 console.log(`[ATHLETE_JOINED] ${normalizedEmail} joined. Code: ${userCode} | Founder: ${isFounder}`);
                 
                 // 7. Trigger Welcome Email (only for NEW signups)
-                sendWelcomeEmail(normalizedEmail).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
+                // Pass founderId if they are a founder
+                sendWelcomeEmail(normalizedEmail, isFounder ? (userData as any).founderId : undefined).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
             } else {
                 console.log(`[ATHLETE_REENTRY] ${normalizedEmail} recognized. Redirecting...`);
+                // Trigger email on re-entry just in case they missed it, or at least log it
+                // sendWelcomeEmail(normalizedEmail, userData.founder === "true" ? userData.founderId : undefined).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
             }
 
             // 8. Success response with dynamic redirect (Works for new and re-entry)

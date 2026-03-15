@@ -8,7 +8,7 @@ export default resend;
 /**
  * Sends a "Savage" welcome email to newly enrolled athletes.
  */
-export async function sendWelcomeEmail(email: string) {
+export async function sendWelcomeEmail(email: string, founderNumber?: string) {
     try {
         if (!process.env.RESEND_API_KEY) {
             console.warn('[RESEND] API Key missing. Skipping email sent to:', email);
@@ -26,6 +26,12 @@ export async function sendWelcomeEmail(email: string) {
                     <p style="font-size: 16px; line-height: 1.6;">
                         Athlete, you're on the list.
                     </p>
+                    ${founderNumber ? `
+                    <div style="background: rgba(0, 255, 255, 0.1); border-left: 4px solid #00ffff; padding: 20px; margin: 20px 0;">
+                        <p style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #00ffff; margin: 0;">Status Secured</p>
+                        <h2 style="font-size: 32px; font-weight: 900; margin: 10px 0; color: #ffffff;">FOUNDING ATHLETE #${founderNumber}</h2>
+                    </div>
+                    ` : ''}
                     <p style="font-size: 16px; line-height: 1.6;">
                         The 3D coaching modules are being calibrated. You'll be the first to know when we go live.
                     </p>
