@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Copy, Check, ShieldCheck, Download, Share2, Instagram, Smartphone, Lock, Target, Zap, ChevronRight, Users, Loader2, Volume2, VolumeX, Medal } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 import "./welcome.css";
 
 // Countdown Logic
@@ -39,10 +39,19 @@ function useCountdown(targetDate: Date) {
 function WelcomeContent() {
     const searchParams = useSearchParams();
     const userCode = searchParams.get('code');
-    const [stats, setStats] = useState<{ referrals: number; isFounder: boolean; email: string; name: string; founderId: string } | null>(null);
+    const paramName = searchParams.get('name');
+    const paramEmail = searchParams.get('email');
+    
+    // Fallback data for optimistic redirect
+    const [stats, setStats] = useState<{ referrals: number; isFounder: boolean; email: string; name: string; founderId: string } | null>(
+        paramName ? { referrals: 0, isFounder: true, email: paramEmail || "", name: paramName, founderId: "???" } : null
+    );
     const [copySuccess, setCopySuccess] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [mobileImage, setMobileImage] = useState<string | null>(null);
     const cardRef = useRef<HTMLDivElement>(null);
+    const captureRef = useRef<HTMLDivElement>(null);
 
     const referralLink = `https://mrworkout.pro?ref=${userCode}`;
 
@@ -70,21 +79,45 @@ function WelcomeContent() {
     };
 
     const handleDownloadCard = async () => {
-        if (!cardRef.current) return;
+        if (!captureRef.current) return;
+        setIsDownloading(true);
+        
         try {
-            const canvas = await html2canvas(cardRef.current, {
-                scale: 3, // High-res
+            // Give extra time for fonts to settle
+            await new Promise(r => setTimeout(r, 800));
+            
+            const dataUrl = await toPng(captureRef.current, {
+                quality: 1.0,
+                pixelRatio: 2, // Double resolution for crisp social sharing
+                skipAutoScale: true,
+                cacheBust: true,
                 backgroundColor: "#000",
-                logging: false,
-                useCORS: true
+                style: {
+                    transform: 'scale(1)',
+                    transformOrigin: 'top left'
+                }
             });
-            const image = canvas.toDataURL("image/png");
-            const link = document.createElement("a");
-            link.href = image;
-            link.download = `FOUNDER_${stats?.founderId}_${stats?.name.toUpperCase()}.png`;
-            link.click();
+            
+            // Mobile Detection
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+            if (isMobile) {
+                // Open result in modal for manual save
+                setMobileImage(dataUrl);
+            } else {
+                // Standard desktop download
+                const link = document.createElement("a");
+                link.href = dataUrl;
+                link.download = `MrWorkout_Founder_Badge_${stats?.founderId}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
         } catch (err) {
             console.error("Capture failed:", err);
+            alert("Capture failed. Try taking a screenshot or use a desktop browser.");
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -180,22 +213,115 @@ function WelcomeContent() {
                     <div className="flex flex-wrap justify-center gap-4">
                         <button 
                             onClick={handleDownloadCard}
-                            className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-[#FFD700] text-black font-black uppercase tracking-widest text-sm hover:scale-105 transition-all shadow-xl hover:shadow-[#FFD700]/20"
+                            disabled={isDownloading}
+                            className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-[#FFD700] text-black font-black uppercase tracking-widest text-sm hover:scale-105 transition-all shadow-xl hover:shadow-[#FFD700]/20 min-w-[220px] justify-center"
                         >
-                            <Download size={20} />
-                            DOWNLOAD CARD
+                            {isDownloading ? <Loader2 size={20} className="animate-spin" /> : <Download size={20} />}
+                            {isDownloading ? "GENERATING..." : (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? "GENERATE IMAGE" : "DOWNLOAD CARD")}
                         </button>
                         <button 
                             onClick={handleShare}
                             disabled={isSharing}
-                            className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-sm hover:scale-105 transition-all shadow-xl"
+                            className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-sm hover:scale-105 transition-all shadow-xl min-w-[220px] justify-center"
                         >
                             {isSharing ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
-                            SHARE STATUS
+                            {isSharing ? "SHARING..." : "SHARE STATUS"}
                         </button>
+                    </div>
+
+                    {/* HIDDEN CAPTURE TARGET: 1080x1920 (Instagram Story Optimized) */}
+                    <div className="fixed -left-[2000px] top-0 pointer-events-none">
+                        <div 
+                            ref={captureRef}
+                            id="founder-card-capture"
+                            className="w-[1080px] h-[1920px] bg-black flex flex-col items-center justify-between p-24 font-archivo"
+                            style={{ 
+                                backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.1) 0%, transparent 70%)',
+                                fontFamily: 'Archivo Black, sans-serif'
+                            }}
+                        >
+                            {/* Top Branding */}
+                            <div className="w-full flex flex-col items-center gap-8 mt-12">
+                                <Medal size={240} className="text-[#FFD700]" />
+                                <div className="h-[4px] w-40 bg-[#FFD700]" />
+                                <h4 className="text-2xl font-black tracking-[0.8em] text-[#FFD700] uppercase italic">MR. WORKOUT // CLINIC</h4>
+                            </div>
+
+                            {/* Center Name & ID */}
+                            <div className="w-full flex flex-col items-center text-center gap-4">
+                                <p className="text-3xl font-black text-white/40 tracking-[0.5em] uppercase">INITIATED ATHLETE</p>
+                                <h2 className="text-9xl font-black tracking-tighter text-white uppercase italic leading-none truncate max-w-full">
+                                    {stats?.name || "ATHLETE"}
+                                </h2>
+                                <div className="mt-8 px-12 py-6 border-4 border-[#FFD700] rounded-3xl">
+                                    <p className="text-5xl font-black text-[#FFD700] tracking-tight uppercase italic">
+                                        FOUNDING ATHLETE #{stats?.founderId || "000"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Bottom Stats & QR Placeholder */}
+                            <div className="w-full flex flex-col items-center gap-12 mb-12">
+                                <div className="grid grid-cols-2 w-full border-t border-white/20 pt-16 gap-12">
+                                    <div className="space-y-4">
+                                        <p className="text-xl font-bold tracking-[0.4em] text-white/40 uppercase">TIER STATUS</p>
+                                        <p className="text-3xl font-black text-white uppercase italic">ALPHA SQUAD</p>
+                                    </div>
+                                    <div className="text-right space-y-4">
+                                        <p className="text-xl font-bold tracking-[0.4em] text-white/40 uppercase">ACCESS KEY</p>
+                                        <p className="text-3xl font-black text-white uppercase italic">
+                                            {stats?.founderId || "000"}-{(stats?.name || "ATHLETE").slice(0,3).toUpperCase()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="space-y-4 text-center">
+                                    <p className="text-xl font-black text-[#FFD700] tracking-[1em] uppercase">PHASE 1 SECURED</p>
+                                    <p className="text-white/30 text-lg font-bold">WWW.MRWORKOUT.PRO</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </motion.div>
             )}
+
+            {/* MOBILE SAVE OVERLAY */}
+            <AnimatePresence>
+                {mobileImage && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6"
+                    >
+                        <div className="absolute top-6 right-6">
+                            <button 
+                                onClick={() => setMobileImage(null)}
+                                className="p-4 bg-white/10 rounded-full text-white/60 hover:text-white transition-colors"
+                            >
+                                <Lock className="rotate-45" size={24} />
+                            </button>
+                        </div>
+
+                        <div className="w-full max-w-[400px] flex flex-col items-center gap-8">
+                            <div className="text-center space-y-2">
+                                <h3 className="text-[#FFD700] text-xl font-black italic uppercase tracking-tighter">PHASE 1 SECURED</h3>
+                                <p className="text-white/60 text-xs font-bold uppercase tracking-[0.2em]">Long press image below to save to photos</p>
+                            </div>
+
+                            <div className="relative w-full aspect-[9/16] rounded-2xl overflow-hidden shadow-[0_0_100px_rgba(255,215,0,0.2)] border-2 border-white/20">
+                                <img src={mobileImage} alt="Founder Card" className="w-full h-full object-contain" />
+                            </div>
+
+                            <button 
+                                onClick={() => setMobileImage(null)}
+                                className="w-full py-5 bg-white/10 border border-white/20 rounded-2xl text-white font-black uppercase tracking-widest text-xs"
+                            >
+                                CLOSE PREVIEW
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Content sections unified on one page */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">

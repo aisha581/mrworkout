@@ -25,6 +25,7 @@
         "autoprefixer": "^10.4.24",
         "canvas-confetti": "^1.9.4",
         "framer-motion": "^12.34.0",
+        "html-to-image": "^1.11.13",
         "html2canvas": "^1.4.1",
         "lucide-react": "^0.564.0",
         "nanoid": "^5.1.6",

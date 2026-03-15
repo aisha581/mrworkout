@@ -38,8 +38,11 @@ export default function WaitlistPage() {
     const videoRef = useRef<HTMLVideoElement>(null);
     const emailInputRef = useRef<HTMLInputElement>(null);
 
-    // Caption Logic
+    // Caption Logic + Pre-fetching
     useEffect(() => {
+        // Pre-fetch welcome page early for zero-latency redirect
+        router.prefetch("/welcome");
+        
         const audio = audioRef.current;
         if (!audio) return;
 
@@ -118,32 +121,25 @@ export default function WaitlistPage() {
         if (!email || status === "submitting") return;
 
         setStatus("submitting");
+        
+        // SPEED FIX: Instant Optimistic Redirect
+        // Encode data for the welcome page to use while the DB update happens in background
+        const welcomeUrl = `/welcome?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
+        router.push(welcomeUrl);
+
         try {
-            const res = await fetch("/api/waitlist", {
+            // Send request in background
+            fetch("/api/waitlist", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, name, referredBy })
-            });
-
-            const data = await res.json();
-
-            // Fail-safe: Even if we get an error, if it's not a 400 (validation), we consider it a success for the user
-            if (res.ok || res.status !== 400) {
-                setStatus("success");
-                setEmail("");
-                if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    navigator.vibrate([100, 30, 100]);
-                }
-                setTimeout(() => router.push(data.redirect || `/welcome${data.code ? `?code=${data.code}` : ''}`), 2000);
-            } else {
-                setStatus("error");
+            }).catch(err => console.error("Background DB update failed:", err));
+            
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                navigator.vibrate([50, 20, 50]);
             }
         } catch (err) {
-            // EMERGENCY FRONTEND FAIL-SAFE:
-            setStatus("success");
-            setEmail("");
-            setTimeout(() => router.push('/welcome'), 2000);
-            console.warn("Emergency Frontend Fail-Safe Triggered.");
+            console.warn("Optimistic redirect initiated, background task handled.");
         }
     };
 
