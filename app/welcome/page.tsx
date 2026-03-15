@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toPng, toBlob } from "html-to-image";
 import { saveAs } from "file-saver";
+import { getFounderCount } from "../actions";
 import "./welcome.css";
 
 // Countdown Logic
@@ -50,6 +51,7 @@ function WelcomeContent() {
     const [copySuccess, setCopySuccess] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [mobileImage, setMobileImage] = useState<string | null>(null);
     const cardRef = useRef<HTMLDivElement>(null);
     const captureRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +74,22 @@ function WelcomeContent() {
         }
     }, [userCode]);
 
+    // DB Fix: Ensure we have a founder number, even if re-entry or optimistic
+    useEffect(() => {
+        if (!stats || stats.founderId === "???") {
+            getFounderCount().then(count => {
+                const formattedCount = count.toString().padStart(3, '0');
+                setStats(prev => prev ? { ...prev, founderId: formattedCount } : {
+                    referrals: 0,
+                    isFounder: true,
+                    email: paramEmail || "",
+                    name: paramName || "ATHLETE",
+                    founderId: formattedCount
+                });
+            });
+        }
+    }, [paramName, paramEmail, stats]);
+
     const handleCopyLink = () => {
         navigator.clipboard.writeText(referralLink);
         setCopySuccess(true);
@@ -86,9 +104,9 @@ function WelcomeContent() {
             // Give extra time for fonts to settle
             await new Promise(r => setTimeout(r, 800));
             
-            const blob = await toBlob(captureRef.current, {
+            const options = {
                 quality: 1.0,
-                pixelRatio: 2, // Double resolution for crisp social sharing
+                pixelRatio: 2,
                 skipAutoScale: true,
                 cacheBust: true,
                 backgroundColor: "#000",
@@ -96,10 +114,18 @@ function WelcomeContent() {
                     transform: 'scale(1)',
                     transformOrigin: 'top left'
                 }
-            });
-            
-            if (blob) {
-                saveAs(blob, `MR_WORKOUT_FOUNDER_CARD_${stats?.founderId || 'ATHLETE'}.png`);
+            };
+
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(typeof navigator !== 'undefined' ? navigator.userAgent : "");
+
+            if (isMobile) {
+                const dataUrl = await toPng(captureRef.current, options);
+                setMobileImage(dataUrl);
+            } else {
+                const blob = await toBlob(captureRef.current, options);
+                if (blob) {
+                    saveAs(blob, `MR_WORKOUT_FOUNDER_CARD_${stats?.founderId || 'ATHLETE'}.png`);
+                }
             }
         } catch (err) {
             console.error("Capture failed:", err);
@@ -218,59 +244,117 @@ function WelcomeContent() {
                     </div>
 
                     {/* HIDDEN CAPTURE TARGET: 1080x1920 (Instagram Story Optimized) */}
-                    <div className="fixed -left-[2000px] top-0 pointer-events-none">
+                    <div className="fixed -left-[4000px] top-0 pointer-events-none">
                         <div 
                             ref={captureRef}
                             id="founder-card-capture"
-                            className="w-[1080px] h-[1920px] bg-black flex flex-col items-center justify-between p-24 font-archivo"
+                            className="w-[1080px] h-[1920px] bg-black flex flex-col items-center justify-between p-24 font-archivo overflow-hidden"
                             style={{ 
-                                backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.1) 0%, transparent 70%)',
+                                backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.15) 0%, transparent 80%)',
                                 fontFamily: 'Archivo Black, sans-serif'
                             }}
                         >
                             {/* Top Branding */}
-                            <div className="w-full flex flex-col items-center gap-8 mt-12">
-                                <Medal size={240} className="text-[#FFD700]" />
-                                <div className="h-[4px] w-40 bg-[#FFD700]" />
-                                <h4 className="text-2xl font-black tracking-[0.8em] text-[#FFD700] uppercase italic">MR. WORKOUT // CLINIC</h4>
+                            <div className="w-full flex flex-col items-center gap-10 mt-20">
+                                <Medal size={280} className="text-[#FFD700] drop-shadow-[0_0_50px_rgba(255,215,0,0.3)]" />
+                                <div className="h-[6px] w-64 bg-[#FFD700]" />
+                                <h4 className="text-3xl font-black tracking-[1em] text-[#FFD700] uppercase italic">MR. WORKOUT // CLINIC</h4>
                             </div>
 
-                            {/* Center Name & ID */}
-                            <div className="w-full flex flex-col items-center text-center gap-4">
-                                <p className="text-3xl font-black text-white/40 tracking-[0.5em] uppercase">INITIATED ATHLETE</p>
-                                <h2 className="text-9xl font-black tracking-tighter text-white uppercase italic leading-none truncate max-w-full">
-                                    {stats?.name || "ATHLETE"}
-                                </h2>
-                                <div className="mt-8 px-12 py-6 border-4 border-[#FFD700] rounded-3xl">
-                                    <p className="text-5xl font-black text-[#FFD700] tracking-tight uppercase italic">
-                                        FOUNDING ATHLETE #{stats?.founderId || "000"}
-                                    </p>
+                            {/* Center Name & ID: HIGH QUALITY BLACK/GOLD */}
+                            <div className="w-full flex flex-col items-center text-center gap-12">
+                                <p className="text-4xl font-black text-white/40 tracking-[0.8em] uppercase">INITIATION STATUS: ENROLLED</p>
+                                
+                                <div className="space-y-6">
+                                    <h2 className="text-[170px] font-black tracking-tighter text-white uppercase italic leading-[0.85] text-glow">
+                                        FOUNDER<br/>#{stats?.founderId || "001"}
+                                    </h2>
                                 </div>
+
+                                <div className="mt-12 w-80 h-[2px] bg-white/20" />
+                                
+                                <h3 className="text-7xl font-black tracking-widest text-[#FFD700] uppercase italic">
+                                    {stats?.name || "ATHLETE"}
+                                </h3>
                             </div>
 
                             {/* Bottom Stats & QR Placeholder */}
-                            <div className="w-full flex flex-col items-center gap-12 mb-12">
-                                <div className="grid grid-cols-2 w-full border-t border-white/20 pt-16 gap-12">
+                            <div className="w-full flex flex-col items-center gap-16 mb-20">
+                                <div className="grid grid-cols-2 w-full border-t-2 border-white/10 pt-20 gap-12">
                                     <div className="space-y-4">
-                                        <p className="text-xl font-bold tracking-[0.4em] text-white/40 uppercase">TIER STATUS</p>
-                                        <p className="text-3xl font-black text-white uppercase italic">ALPHA SQUAD</p>
+                                        <p className="text-2xl font-bold tracking-[0.5em] text-white/40 uppercase">TIER STATUS</p>
+                                        <p className="text-4xl font-black text-white uppercase italic">GOLD TIER ACCESS</p>
                                     </div>
                                     <div className="text-right space-y-4">
-                                        <p className="text-xl font-bold tracking-[0.4em] text-white/40 uppercase">ACCESS KEY</p>
-                                        <p className="text-3xl font-black text-white uppercase italic">
-                                            {stats?.founderId || "000"}-{(stats?.name || "ATHLETE").slice(0,3).toUpperCase()}
+                                        <p className="text-2xl font-bold tracking-[0.5em] text-white/40 uppercase">SECURED KEY</p>
+                                        <p className="text-4xl font-black text-[#FFD700] uppercase italic">
+                                            {stats?.founderId || "001"}-{(stats?.name || "ATHLETE").slice(0,3).toUpperCase()}
                                         </p>
                                     </div>
                                 </div>
                                 <div className="space-y-4 text-center">
-                                    <p className="text-xl font-black text-[#FFD700] tracking-[1em] uppercase">PHASE 1 SECURED</p>
-                                    <p className="text-white/30 text-lg font-bold">WWW.MRWORKOUT.PRO</p>
+                                    <p className="text-2xl font-black text-[#FFD700] tracking-[1.2em] uppercase">PHASE 1 DEPLOYED</p>
+                                    <p className="text-white/20 text-xl font-bold tracking-widest">WWW.MRWORKOUT.PRO</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </motion.div>
             )}
+
+            {/* FULL SCREEN MOBILE PREVIEW OVERLAY */}
+            <AnimatePresence>
+                {mobileImage && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-0 m-0"
+                    >
+                        {/* Close Button Top Right */}
+                        <div className="absolute top-8 right-8 z-50">
+                            <button 
+                                onClick={() => setMobileImage(null)}
+                                className="p-5 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-xl transition-all border border-white/20"
+                            >
+                                <Lock className="rotate-45" size={28} />
+                            </button>
+                        </div>
+
+                        {/* Instruction Top */}
+                        <div className="absolute top-10 left-10 z-50 pointer-events-none">
+                            <span className="text-[#FFD700] text-[10px] font-black uppercase tracking-[0.5em] bg-black/40 px-4 py-2 rounded-full backdrop-blur-md border border-[#FFD700]/20">
+                                CARD PREVIEW
+                            </span>
+                        </div>
+
+                        {/* THE IMAGE (Hold to Save) */}
+                        <div className="w-full h-full flex flex-col items-center justify-center relative bg-[#060606]">
+                            <img 
+                                src={mobileImage} 
+                                alt="Founder Card" 
+                                className="h-full w-full object-contain shadow-[0_0_100px_rgba(255,215,0,0.2)]"
+                            />
+                            
+                            {/* Instruction Bottom */}
+                            <div className="absolute bottom-12 w-full flex flex-col items-center gap-4 pointer-events-none">
+                                <motion.p 
+                                    animate={{ opacity: [0.4, 1, 0.4] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                    className="text-white text-xs font-black uppercase tracking-[0.6em] text-center bg-black/60 backdrop-blur-2xl px-10 py-5 rounded-3xl border border-white/10"
+                                >
+                                    HOLD TO SAVE TO PHOTOS
+                                </motion.p>
+                                <div className="flex items-center gap-6 opacity-40">
+                                    <ShieldCheck size={16} className="text-[#00ffff]" />
+                                    <div className="h-[1px] w-12 bg-white/20" />
+                                    <Zap size={16} className="text-[#00ffff]" />
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Content sections unified on one page */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
