@@ -20,9 +20,9 @@ export async function POST(req: Request) {
             let userData = await kv.hgetall(`user:${email}`);
             
             if (!userData) {
-                // 2. Check current waitlist length for Founder Status (first 500)
+                // 2. Check current waitlist length for Founder Status (first 150)
                 const currentCount = await kv.llen('waitlist_athletes');
-                const isFounder = currentCount < 500;
+                const isFounder = currentCount < 150;
 
                 // 3. Generate new referral code for new user
                 const userCode = generateCode();

@@ -29,13 +29,16 @@ export async function GET(req: Request) {
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        backgroundColor: '#060606',
+                        backgroundColor: '#0a0a0a',
                         fontFamily: 'sans-serif',
                         padding: '40px',
-                        border: '2px solid rgba(0, 255, 255, 0.2)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        border: '8px solid #FFD700', // Gold Glowing Border
+                        boxShadow: '0 0 50px rgba(255, 215, 0, 0.4)',
                     }}
                 >
-                    {/* Background Grid Pattern */}
+                    {/* Brushed Metal Background Effect */}
                     <div
                         style={{
                             position: 'absolute',
@@ -43,23 +46,34 @@ export async function GET(req: Request) {
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0, 255, 255, 0.05) 1px, transparent 0)',
-                            backgroundSize: '24px 24px',
+                            background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 50%, #1a1a1a 100%)',
+                            opacity: 0.9,
+                        }}
+                    />
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255,255,255,0.03) 1px, rgba(255,255,255,0.03) 2px)',
+                            backgroundSize: '100% 2px',
                         }}
                     />
 
                     {/* Card Content Row */}
-                    <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'flex-start', flex: 1 }}>
+                    <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'flex-start', flex: 1, zIndex: 10 }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.4em', color: '#00ffff' }}>
+                            <div style={{ fontSize: '14px', fontWeight: 'bold', letterSpacing: '0.5em', color: '#FFD700' }}>
                                 MR. WORKOUT
                             </div>
                             <div style={{ fontSize: '10px', fontWeight: 'bold', letterSpacing: '0.2em', color: 'rgba(255, 255, 255, 0.4)' }}>
-                                THE CLINIC // PH1
+                                ELITE FOUNDER // PH1
                             </div>
                         </div>
                         
-                        <div style={{ padding: '8px', backgroundColor: 'rgba(0, 255, 255, 0.1)', border: '1px solid rgba(0, 255, 255, 0.3)', borderRadius: '4px' }}>
+                        <div style={{ padding: '8px', backgroundColor: 'rgba(255, 215, 0, 0.05)', border: '1px solid rgba(255, 215, 0, 0.3)', borderRadius: '4px' }}>
                           <img src={qrCodeDataUrl} width="60" height="60" />
                         </div>
                     </div>
@@ -71,16 +85,17 @@ export async function GET(req: Request) {
                             flexDirection: 'column',
                             alignItems: 'center',
                             marginBottom: '40px',
+                            zIndex: 10,
                         }}
                     >
-                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#00ffff', letterSpacing: '0.4em', marginBottom: '8px', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#FFD700', letterSpacing: '0.5em', marginBottom: '12px', textTransform: 'uppercase' }}>
                             {name}
                         </div>
-                        <div style={{ fontSize: '48px', fontWeight: '900', color: 'white', fontStyle: 'italic', letterSpacing: '-0.05em', display: 'flex' }}>
-                          FOUNDING <span style={{ color: '#00ffff', marginLeft: '12px' }}>ATHLETE</span>
+                        <div style={{ fontSize: '44px', fontWeight: '900', color: 'white', fontStyle: 'italic', letterSpacing: '-0.05em', display: 'flex' }}>
+                          FOUNDER <span style={{ color: '#FFD700', marginLeft: '12px' }}>STATUS</span>
                         </div>
-                        <div style={{ fontSize: '80px', fontWeight: '900', color: '#FFD700', marginTop: '-10px', textShadow: '0 0 20px rgba(255, 215, 0, 0.3)' }}>
-                            #{founderId}
+                        <div style={{ fontSize: '90px', fontWeight: '900', color: 'white', marginTop: '-15px', textShadow: '0 0 30px rgba(255, 215, 0, 0.5)' }}>
+                            #{founderId} <span style={{ fontSize: '24px', color: 'rgba(255, 215, 0, 0.5)', marginLeft: '10px' }}>/ 150</span>
                         </div>
                     </div>
 
@@ -91,24 +106,25 @@ export async function GET(req: Request) {
                             width: '100%',
                             justifyContent: 'space-between',
                             alignItems: 'flex-end',
-                            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderTop: '1px solid rgba(255, 215, 0, 0.2)',
                             paddingTop: '20px',
+                            zIndex: 10,
                         }}
                     >
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'rgba(255, 255, 255, 0.3)', letterSpacing: '0.2em' }}>
-                                ATHLETE IDENTIFIER
+                            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'rgba(255, 215, 0, 0.4)', letterSpacing: '0.2em' }}>
+                                ATHLETE CREDENTIALS
                             </div>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'white' }}>
                                 {email}
                             </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'rgba(255, 255, 255, 0.3)', letterSpacing: '0.2em' }}>
-                                STATUS
+                            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'rgba(255, 215, 0, 0.4)', letterSpacing: '0.2em' }}>
+                                VERIFICATION
                             </div>
-                            <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#00ffff' }}>
-                                ELITE ACCESS GRANTED
+                            <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#FFD700' }}>
+                                STATUS: SECURED
                             </div>
                         </div>
                     </div>

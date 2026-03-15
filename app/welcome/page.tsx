@@ -45,7 +45,7 @@ function useCountdown(targetDate: Date) {
 function WelcomeContent() {
     const searchParams = useSearchParams();
     const userCode = searchParams.get('code');
-    const [stats, setStats] = useState<{ referrals: number; isFounder: boolean; email: string; founderId: string } | null>(null);
+    const [stats, setStats] = useState<{ referrals: number; isFounder: boolean; email: string; name: string; founderId: string } | null>(null);
     const [copySuccess, setCopySuccess] = useState(false);
 
     const targetDate = new Date();
@@ -144,14 +144,23 @@ function WelcomeContent() {
                         <span className="text-[#00ffff]">{stats?.name || "INITIATE"}</span>
                     </motion.h1>
 
-                    {stats?.isFounder && (
+                    {stats?.isFounder ? (
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 0.8 }}
+                            transition={{ delay: 0.5 }}
+                            className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-[#FFD700] italic bg-[#FFD700]/10 px-4 py-2 rounded-lg border border-[#FFD700]/20 inline-block mt-4"
+                        >
+                            YOU ARE AMONG THE FIRST 150. YOUR STATUS IS LOCKED.
+                        </motion.p>
+                    ) : (
                         <motion.p
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 0.6 }}
                             transition={{ delay: 0.5 }}
-                            className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#FFD700] italic"
+                            className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#00ffff] italic"
                         >
-                            You are one of the Founding Athletes. This status is permanent and unlocks elite access in Phase 2.
+                            WAITLIST STATUS: ACTIVE. FOUNDER SLOTS CLOSED.
                         </motion.p>
                     )}
                 </div>
@@ -166,10 +175,18 @@ function WelcomeContent() {
                 >
                     <div className="flex flex-col items-center md:items-start gap-2">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FFD700]">FOUNDER VIRTUAL ASSET</h3>
-                        <p className="text-white/40 text-[10px] uppercase font-bold tracking-widest text-center md:text-left">Your unique identifier in the 3D revolution</p>
+                        <p className="text-white/40 text-[10px] uppercase font-bold tracking-widest text-center md:text-left">IDENTIFIER: FOUNDER #{stats?.founderId} / 150</p>
                     </div>
 
                     <div className="relative group mx-auto max-w-[500px] aspect-[1.6/1] rounded-2xl overflow-hidden border border-[#FFD700]/30 shadow-[0_0_50px_rgba(255,215,0,0.1)]">
+                        {/* Shimmer Effect */}
+                        <motion.div 
+                            initial={{ x: '-100%' }}
+                            animate={{ x: '100%' }}
+                            transition={{ repeat: Infinity, duration: 2, ease: "linear", delay: 1 }}
+                            className="absolute inset-0 z-10 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none"
+                        />
+                        
                         {founderCardUrl && (
                             <img 
                                 src={founderCardUrl} 
