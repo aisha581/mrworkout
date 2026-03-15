@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendWelcomeEmail } from '@/lib/resend';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export async function POST(req: Request) {
     try {
@@ -11,6 +11,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
         }
 
+        const supabase = getSupabaseClient();
         // 1. Permanent Storage: Supabase Only
         const { error: supabaseError } = await supabase
             .from('waitlist')

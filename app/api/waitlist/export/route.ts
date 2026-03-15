@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export async function GET() {
     try {
+        const supabase = getSupabaseClient();
         // A. Primary Source: Supabase
         const { data: supabaseWaitlist, error: supabaseError } = await supabase
             .from('waitlist')
