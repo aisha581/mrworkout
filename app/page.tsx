@@ -21,6 +21,7 @@ export default function WaitlistPage() {
     const [isMuted, setIsMuted] = useState(true);
     const [currentTextIdx, setCurrentTextIdx] = useState(-1);
     const [email, setEmail] = useState("");
+    const [name, setName] = useState("");
     const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
     const [isFinalAction, setIsFinalAction] = useState(false);
     const [showTapOverlay, setShowTapOverlay] = useState(true);
@@ -121,7 +122,7 @@ export default function WaitlistPage() {
             const res = await fetch("/api/waitlist", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, referredBy })
+                body: JSON.stringify({ email, name, referredBy })
             });
 
             const data = await res.json();
@@ -309,17 +310,31 @@ export default function WaitlistPage() {
                                 </div>
 
                                 <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div className="relative group">
-                                        <input
-                                            ref={emailInputRef}
-                                            type="email"
-                                            placeholder="ATHLETE@DOMAIN.COM"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            required
-                                            className="w-full bg-white/[0.03] backdrop-blur-xl border-2 border-white/10 rounded-2xl py-6 px-8 outline-none transition-all focus:border-[#00ffff]/40 focus:bg-white/[0.08] text-xl font-bold tracking-widest placeholder:text-white/10 uppercase"
-                                        />
-                                        <div className="absolute inset-0 rounded-2xl bg-[#00ffff]/5 blur-2xl group-focus-within:opacity-100 opacity-0 transition-opacity pointer-events-none" />
+                                    <div className="space-y-4">
+                                        <div className="relative group">
+                                            <input
+                                                type="text"
+                                                placeholder="FULL NAME"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                required
+                                                className="w-full bg-white/[0.03] backdrop-blur-xl border-2 border-white/10 rounded-2xl py-6 px-8 outline-none transition-all focus:border-[#00ffff]/40 focus:bg-white/[0.08] text-xl font-bold tracking-widest placeholder:text-white/10 uppercase"
+                                            />
+                                            <div className="absolute inset-0 rounded-2xl bg-[#00ffff]/5 blur-2xl group-focus-within:opacity-100 opacity-0 transition-opacity pointer-events-none" />
+                                        </div>
+
+                                        <div className="relative group">
+                                            <input
+                                                ref={emailInputRef}
+                                                type="email"
+                                                placeholder="ATHLETE@DOMAIN.COM"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                required
+                                                className="w-full bg-white/[0.03] backdrop-blur-xl border-2 border-white/10 rounded-2xl py-6 px-8 outline-none transition-all focus:border-[#00ffff]/40 focus:bg-white/[0.08] text-xl font-bold tracking-widest placeholder:text-white/10 uppercase"
+                                            />
+                                            <div className="absolute inset-0 rounded-2xl bg-[#00ffff]/5 blur-2xl group-focus-within:opacity-100 opacity-0 transition-opacity pointer-events-none" />
+                                        </div>
                                     </div>
 
                                     <motion.button

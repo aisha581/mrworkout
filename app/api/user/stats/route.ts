@@ -11,7 +11,7 @@ export async function GET(req: Request) {
         }
 
         // 1. Resolve code to email
-        const email = await kv.get(`code:${code.toUpperCase()}`);
+        const email = (await kv.get(`code:${code.toUpperCase()}`)) as string;
         
         if (!email) {
             return NextResponse.json({ error: 'Invalid referral code' }, { status: 404 });
@@ -41,6 +41,7 @@ export async function GET(req: Request) {
 
         return NextResponse.json({
             email,
+            name: (userData.name as string) || "ATHLETE",
             referrals: parseInt((userData.referrals as string) || "0"),
             isFounder: userData.founder === "true" || userData.founder === true,
             founderId: founderId,

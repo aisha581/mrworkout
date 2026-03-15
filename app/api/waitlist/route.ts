@@ -8,11 +8,11 @@ const generateCode = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6);
 
 export async function POST(req: Request) {
     try {
-        const { email, referredBy } = await req.json();
+        const { email, name, referredBy } = await req.json();
 
         // Basic validation
-        if (!email || !email.includes('@')) {
-            return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+        if (!email || !email.includes('@') || !name) {
+            return NextResponse.json({ error: 'Valid email and name are required' }, { status: 400 });
         }
 
         try {
@@ -29,10 +29,12 @@ export async function POST(req: Request) {
                 
                 userData = {
                     email,
+                    name,
                     code: userCode,
                     referrals: "0",
                     referredBy: referredBy || "",
-                    founder: isFounder ? "true" : "false"
+                    founder: isFounder ? "true" : "false",
+                    founderId: isFounder ? (currentCount + 1).toString().padStart(3, '0') : ""
                 };
 
                 // 4. Save User Data and Code Lookup

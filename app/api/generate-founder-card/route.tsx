@@ -8,6 +8,7 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const email = searchParams.get('email') || 'athlete@mrworkout.pro';
         const founderId = searchParams.get('id') || '001';
+        const name = searchParams.get('name') || 'FOUNDING ATHLETE';
 
         // Generate QR Code data URL
         const qrCodeDataUrl = await QRCode.toDataURL('https://mrworkout.pro', {
@@ -72,6 +73,9 @@ export async function GET(req: Request) {
                             marginBottom: '40px',
                         }}
                     >
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#00ffff', letterSpacing: '0.4em', marginBottom: '8px', textTransform: 'uppercase' }}>
+                            {name}
+                        </div>
                         <div style={{ fontSize: '48px', fontWeight: '900', color: 'white', fontStyle: 'italic', letterSpacing: '-0.05em', display: 'flex' }}>
                           FOUNDING <span style={{ color: '#00ffff', marginLeft: '12px' }}>ATHLETE</span>
                         </div>

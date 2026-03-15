@@ -56,7 +56,7 @@ function WelcomeContent() {
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
     const referralLink = userCode ? `mrworkout.pro?ref=${userCode}` : "mrworkout.pro";
 
-    const founderCardUrl = stats?.isFounder ? `/api/generate-founder-card?email=${encodeURIComponent(stats.email)}&id=${stats.founderId}` : null;
+    const founderCardUrl = stats?.isFounder ? `/api/generate-founder-card?email=${encodeURIComponent(stats.email)}&id=${stats.founderId}&name=${encodeURIComponent(stats.name)}` : null;
 
     useEffect(() => {
         if (userCode) {
@@ -67,6 +67,7 @@ function WelcomeContent() {
                         referrals: data.referrals, 
                         isFounder: !!data.isFounder,
                         email: data.email,
+                        name: data.name,
                         founderId: data.founderId 
                     });
                 })
@@ -139,8 +140,8 @@ function WelcomeContent() {
                         className="text-4xl sm:text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.9] text-glow"
                         style={{ fontFamily: 'Archivo Black, sans-serif' }}
                     >
-                        PHASE 1: <br className="md:hidden" />
-                        <span className="text-[#00ffff]">THE INITIATION</span>
+                        WELCOME TO THE CLINIC, <br className="md:hidden" />
+                        <span className="text-[#00ffff]">{stats?.name || "INITIATE"}</span>
                     </motion.h1>
 
                     {stats?.isFounder && (
