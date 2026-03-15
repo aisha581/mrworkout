@@ -63,7 +63,7 @@ export async function POST(req: Request) {
                 
                 // 7. Trigger Welcome Email (only for NEW signups)
                 // Pass founderId if they are a founder
-                sendWelcomeEmail(normalizedEmail, isFounder ? (userData as any).founderId : undefined).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
+                await sendWelcomeEmail(normalizedEmail, isFounder ? (userData as any).founderId : undefined);
             } else {
                 console.log(`[ATHLETE_REENTRY] ${normalizedEmail} recognized. Redirecting...`);
                 // Trigger email on re-entry just in case they missed it, or at least log it
