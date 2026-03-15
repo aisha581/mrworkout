@@ -73,6 +73,9 @@ function WelcomeContent() {
     const currentDay = Math.min(Math.max(daysSinceJoined, 0), 6); // Cap at 7 days (0-6)
     const currentDirective = DAILY_DIRECTIVES[currentDay];
 
+    const phase2Target = new Date('2026-03-29T00:00:00');
+    const countdown = useCountdown(phase2Target);
+
     useEffect(() => {
         if (userCode) {
             fetch(`/api/user/stats?code=${userCode}`)
@@ -487,10 +490,10 @@ function WelcomeContent() {
 
                 <div className="flex items-center gap-4 sm:gap-8 font-mono">
                     {[
-                        { label: 'DAYS', value: useCountdown(new Date('2026-03-29T00:00:00')).days },
-                        { label: 'HOURS', value: useCountdown(new Date('2026-03-29T00:00:00')).hours },
-                        { label: 'MINS', value: useCountdown(new Date('2026-03-29T00:00:00')).minutes },
-                        { label: 'SECS', value: useCountdown(new Date('2026-03-29T00:00:00')).seconds }
+                        { label: 'DAYS', value: countdown.days },
+                        { label: 'HOURS', value: countdown.hours },
+                        { label: 'MINS', value: countdown.minutes },
+                        { label: 'SECS', value: countdown.seconds }
                     ].map((unit, i) => (
                         <div key={unit.label} className="flex items-center gap-4 sm:gap-8">
                             <div className="flex flex-col items-center">
