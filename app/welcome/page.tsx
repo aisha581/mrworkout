@@ -443,6 +443,44 @@ function WelcomeContent() {
                 </motion.section>
             </div>
 
+            {/* PHASE 2 COUNTDOWN TIMER */}
+            <motion.section
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="w-full p-10 rounded-[40px] border border-[#00ffff]/10 bg-[#00ffff]/[0.02] backdrop-blur-3xl flex flex-col items-center gap-8"
+            >
+                <div className="flex flex-col items-center gap-2 text-center">
+                    <h3 className="text-[#00ffff] text-xs font-black uppercase tracking-[0.6em]">PHASE 2: 3D MODULE ACTIVATION</h3>
+                    <div className="h-[2px] w-24 bg-[#00ffff]/20" />
+                </div>
+
+                <div className="flex items-center gap-4 sm:gap-8 font-mono">
+                    {[
+                        { label: 'DAYS', value: useCountdown(new Date('2026-03-29T00:00:00')).days },
+                        { label: 'HOURS', value: useCountdown(new Date('2026-03-29T00:00:00')).hours },
+                        { label: 'MINS', value: useCountdown(new Date('2026-03-29T00:00:00')).minutes },
+                        { label: 'SECS', value: useCountdown(new Date('2026-03-29T00:00:00')).seconds }
+                    ].map((unit, i) => (
+                        <div key={unit.label} className="flex items-center gap-4 sm:gap-8">
+                            <div className="flex flex-col items-center">
+                                <span className="text-4xl sm:text-6xl font-black text-[#00ffff] text-glow leading-none">
+                                    {unit.value.toString().padStart(2, '0')}
+                                </span>
+                                <span className="text-[10px] font-bold text-white/30 tracking-widest mt-2">{unit.label}</span>
+                            </div>
+                            {i < 3 && (
+                                <span className="text-2xl sm:text-4xl font-black text-white/10 mb-6">:</span>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                <p className="text-white/40 text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] text-center max-w-md leading-relaxed">
+                    Founding Athletes receive <span className="text-[#00ffff]">24-hour early access</span> to the 3D Movement Clinic.
+                </p>
+            </motion.section>
+
             {/* HUD Status Footer */}
             <motion.footer 
                 initial={{ opacity: 0 }}
