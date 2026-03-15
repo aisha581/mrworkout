@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendWelcomeEmail } from '@/lib/resend';
-import { getSupabaseClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
     try {
@@ -11,8 +11,12 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
         }
 
-        const supabase = getSupabaseClient();
-        // 1. Permanent Storage: Supabase Only
+        // 1. Initialize Supabase directly inside handler (Runtime Only)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+        // 2. Permanent Storage: Supabase Only
         const { error: supabaseError } = await supabase
             .from('waitlist')
             .insert([{ email }]);
@@ -30,7 +34,7 @@ export async function POST(req: Request) {
         console.log(`[SUPABASE_SUCCESS] Athlete persisted: ${email}`);
         console.log("WAITLIST_ENTRY:", email); // For log scanning backup
 
-        // 2. Trigger Welcome Email (Non-blocking)
+        // 3. Trigger Welcome Email (Non-blocking)
         sendWelcomeEmail(email).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
 
         return NextResponse.json({ 

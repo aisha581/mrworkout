@@ -1,29 +1,25 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { getSupabaseClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET() {
     try {
-        const supabase = getSupabaseClient();
-        // A. Primary Source: Supabase
+        // 1. Initialize Supabase directly inside handler (Runtime Only)
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+        // 2. Primary Source: Supabase
         const { data: supabaseWaitlist, error: supabaseError } = await supabase
             .from('waitlist')
             .select('email')
             .order('created_at', { ascending: true });
 
-        let waitlist = [];
-
-        if (!supabaseError && supabaseWaitlist) {
-            waitlist = supabaseWaitlist.map((row: { email: string }) => row.email);
-        } else {
-            // B. Fallback: Local JSON
-            const filePath = path.join(process.cwd(), 'waitlist.json');
-            if (fs.existsSync(filePath)) {
-                const fileData = fs.readFileSync(filePath, 'utf8');
-                waitlist = JSON.parse(fileData);
-            }
+        if (supabaseError || !supabaseWaitlist) {
+            console.log('SUPABASE_EXPORT_ERROR: ' + (supabaseError?.message || 'No data'));
+            return NextResponse.json({ error: 'No athletes found in database.' }, { status: 404 });
         }
+
+        const waitlist = supabaseWaitlist.map((row: { email: string }) => row.email);
 
         if (waitlist.length === 0) {
             return NextResponse.json({ error: 'No athletes found.' }, { status: 404 });
