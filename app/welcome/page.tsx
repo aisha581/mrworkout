@@ -38,6 +38,16 @@ function useCountdown(targetDate: Date) {
     return timeLeft;
 }
 
+const DAILY_DIRECTIVES = [
+    "MOBILITY AUDIT: 10 mins deep squat hold. Document the tightness. We fix it in Phase 2.",
+    "MINDSET SHIFT: Remove one 'ego lift' from your routine today. Focus on tempo and 3D control.",
+    "CORE CALIBRATION: 3 rounds of 60s dead bugs. Precision over speed. The 3D engine requires a stable axis.",
+    "RECOVERY PROTOCOL: 20 mins of nasal breathing during walking. Lower the system stress for activation.",
+    "POSTURE CHECK: Every 2 hours today, reset your scapula. Small adjustments lead to systemic change.",
+    "HYDRATION SECURED: Add electrolytes to 4L of water. Optimal conductivity for neuromuscular speed.",
+    "MISSION READY: Review Phase 1 progress. Tomorrow, we prepare for the 3D Module activation."
+];
+
 function WelcomeContent() {
     const searchParams = useSearchParams();
     const userCode = searchParams.get('code');
@@ -45,8 +55,8 @@ function WelcomeContent() {
     const paramEmail = searchParams.get('email');
     
     // Fallback data for optimistic redirect
-    const [stats, setStats] = useState<{ referrals: number; isFounder: boolean; email: string; name: string; founderId: string } | null>(
-        paramName ? { referrals: 0, isFounder: true, email: paramEmail || "", name: paramName, founderId: "???" } : null
+    const [stats, setStats] = useState<{ referrals: number; isFounder: boolean; email: string; name: string; founderId: string; joinedAt?: string } | null>(
+        paramName ? { referrals: 0, isFounder: true, email: paramEmail || "", name: paramName, founderId: "???", joinedAt: Date.now().toString() } : null
     );
     const [copySuccess, setCopySuccess] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
@@ -56,6 +66,12 @@ function WelcomeContent() {
     const captureRef = useRef<HTMLDivElement>(null);
 
     const referralLink = `https://mrworkout.pro?ref=${userCode}`;
+
+    // Calculate current directive day
+    const joinedDate = stats?.joinedAt ? new Date(parseInt(stats.joinedAt)) : new Date();
+    const daysSinceJoined = Math.floor((new Date().getTime() - joinedDate.getTime()) / (1000 * 60 * 60 * 24));
+    const currentDay = Math.min(Math.max(daysSinceJoined, 0), 6); // Cap at 7 days (0-6)
+    const currentDirective = DAILY_DIRECTIVES[currentDay];
 
     useEffect(() => {
         if (userCode) {
@@ -67,7 +83,8 @@ function WelcomeContent() {
                         isFounder: !!data.isFounder,
                         email: data.email,
                         name: data.name,
-                        founderId: data.founderId 
+                        founderId: data.founderId,
+                        joinedAt: data.joinedAt
                     });
                 })
                 .catch(console.error);
@@ -84,7 +101,8 @@ function WelcomeContent() {
                     isFounder: true,
                     email: paramEmail || "",
                     name: paramName || "ATHLETE",
-                    founderId: formattedCount
+                    founderId: formattedCount,
+                    joinedAt: Date.now().toString()
                 });
             });
         }
@@ -442,6 +460,43 @@ function WelcomeContent() {
                     </div>
                 </motion.section>
             </div>
+
+            {/* DAILY DIRECTIVE */}
+            <motion.section
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 }}
+                className="w-full p-10 rounded-[40px] border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent backdrop-blur-3xl overflow-hidden relative"
+            >
+                <div className="flex justify-between items-center mb-10">
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <div className="w-3 h-3 bg-[#39ff14] rounded-full shadow-[0_0_15px_#39ff14]" />
+                            <motion.div 
+                                animate={{ scale: [1, 1.8, 1], opacity: [0.8, 0, 0.8] }}
+                                transition={{ duration: 1.5, repeat: Infinity }}
+                                className="absolute inset-0 bg-[#39ff14] rounded-full"
+                            />
+                        </div>
+                        <h3 className="text-white text-xs font-black uppercase tracking-[0.6em] flex items-center gap-2">
+                            DAILY DIRECTIVE <span className="opacity-20">//</span> DAY {currentDay + 1}
+                        </h3>
+                    </div>
+                    <span className="text-[10px] font-bold text-white/20 tracking-widest uppercase">STATUS: ACTIVE</span>
+                </div>
+
+                <div className="space-y-6 relative z-10">
+                    <h2 className="text-4xl sm:text-5xl font-black italic uppercase tracking-tighter text-white leading-tight">
+                        {currentDirective.split(':')[0]}
+                    </h2>
+                    <p className="text-xl sm:text-2xl font-medium text-[#00ffff] leading-relaxed italic opacity-90">
+                        "{currentDirective.split(':').slice(1).join(':').trim()}"
+                    </p>
+                </div>
+
+                {/* Decorative background grid */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#39ff14]/5 blur-[80px] -z-10" />
+            </motion.section>
 
             {/* PHASE 2 COUNTDOWN TIMER */}
             <motion.section

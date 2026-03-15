@@ -45,6 +45,7 @@ export async function GET(req: Request) {
             referrals: parseInt((userData.referrals as string) || "0"),
             isFounder: userData.founder === "true" || userData.founder === true,
             founderId: founderId,
+            joinedAt: userData.joinedAt as string || Date.now().toString(),
             status: "active"
         });
 

@@ -40,7 +40,8 @@ export async function POST(req: Request) {
                     referrals: "0",
                     referredBy: normalizedReferredBy,
                     founder: isFounder ? "true" : "false",
-                    founderId: isFounder ? (currentCount + 1).toString().padStart(3, '0') : ""
+                    founderId: isFounder ? (currentCount + 1).toString().padStart(3, '0') : "",
+                    joinedAt: Date.now().toString()
                 };
 
                 // 4. Save User Data and Code Lookup
