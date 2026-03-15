@@ -134,7 +134,7 @@ export default function WaitlistPage() {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) {
                     navigator.vibrate([100, 30, 100]);
                 }
-                setTimeout(() => router.push(`/welcome${data.code ? `?code=${data.code}` : ''}`), 2000);
+                setTimeout(() => router.push(data.redirect || `/welcome${data.code ? `?code=${data.code}` : ''}`), 2000);
             } else {
                 setStatus("error");
             }

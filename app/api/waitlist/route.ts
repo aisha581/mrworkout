@@ -59,10 +59,17 @@ export async function POST(req: Request) {
             // 7. Trigger Welcome Email (Non-blocking)
             sendWelcomeEmail(email).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
 
+            // 7. Success response with dynamic redirect
+            const isFounder = userData.founder === "true";
+            const redirectUrl = isFounder 
+                ? `/welcome?code=${userData.code}&name=${encodeURIComponent(name)}` 
+                : `/founders-closed?email=${encodeURIComponent(email)}`;
+
             return NextResponse.json({ 
                 success: true, 
                 code: (userData.code as string),
-                message: "ENTRY GRANTED. Referral link activated."
+                redirect: redirectUrl,
+                message: "ENTRY GRANTED."
             });
 
         } catch (kvError: any) {
