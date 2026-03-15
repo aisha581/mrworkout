@@ -15,9 +15,10 @@ export async function sendWelcomeEmail(email: string) {
             return { success: false, error: 'API Key missing' };
         }
 
-        const data = await resend.emails.send({
-            from: 'Clinic <onboarding@resend.dev>', // Update this once a domain is verified
+        const { data, error } = await resend.emails.send({
+            from: 'Mr. Workout <coach@mrworkout.pro>',
             to: [email],
+            replyTo: 'thebillion9@gmail.com',
             subject: 'Entry Granted: Welcome to the Clinic',
             html: `
                 <div style="font-family: sans-serif; background: #121212; color: #ffffff; padding: 40px; border-radius: 20px;">
@@ -42,7 +43,12 @@ export async function sendWelcomeEmail(email: string) {
             `,
         });
 
-        console.log('[RESEND] Welcome email dispatched:', data);
+        if (error) {
+            console.error('[RESEND_ERROR] Detailed error response:', JSON.stringify(error, null, 2));
+            return { success: false, error };
+        }
+
+        console.log('[RESEND] Welcome email dispatched successfully:', data);
         return { success: true, data };
     } catch (error) {
         console.error('[RESEND] Failed to send welcome email:', error);

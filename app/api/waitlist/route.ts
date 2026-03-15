@@ -1,52 +1,47 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { sendWelcomeEmail } from '@/lib/resend';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(req: Request) {
-    // 1. Re-build from scratch with complete fail-safe logic
     try {
         const { email } = await req.json();
 
-        // Basic validation still matters
+        // Basic validation
         if (!email || !email.includes('@')) {
             return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
         }
 
-        // 2. Database Write with internal try-catch
-        try {
-            const filePath = path.join(process.cwd(), 'waitlist.json');
-            let waitlist = [];
+        // 1. Permanent Storage: Supabase Only
+        const { error: supabaseError } = await supabase
+            .from('waitlist')
+            .insert([{ email }]);
 
-            if (fs.existsSync(filePath)) {
-                const fileData = fs.readFileSync(filePath, 'utf8');
-                waitlist = JSON.parse(fileData);
-            }
-
-            if (!waitlist.includes(email)) {
-                waitlist.push(email);
-                fs.writeFileSync(filePath, JSON.stringify(waitlist, null, 2));
-                console.log(`[DATABASE_SUCCESS] Athlete enroled: ${email}`);
-
-                // 2.5 Trigger Welcome Email (Non-blocking)
-                sendWelcomeEmail(email).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
-            }
-        } catch (dbError) {
-            // LOG ERROR BUT DO NOT BREAK THE USER FLOW
-            console.error('[DATABASE_FAIL] Emergency Log:', dbError);
-            console.log(`[RECOVERY_SAVE] Manual recovery required for: ${email}`);
+        if (supabaseError) {
+            // Log EXACT error to Vercel console for troubleshooting
+            console.log('SUPABASE_ERROR: ' + supabaseError.message);
+            return NextResponse.json({ 
+                success: false, 
+                error: 'Database insertion failed.',
+                details: supabaseError.message 
+            }, { status: 500 });
         }
 
-        // 3. Always return success to the frontend
+        console.log(`[SUPABASE_SUCCESS] Athlete persisted: ${email}`);
+        console.log("WAITLIST_ENTRY:", email); // For log scanning backup
+
+        // 2. Trigger Welcome Email (Non-blocking)
+        sendWelcomeEmail(email).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
+
         return NextResponse.json({ 
             success: true, 
-            message: "ENTRY GRANTED. Check your inbox for your Clinic credentials shortly.",
-            failSafe: true 
+            message: "ENTRY GRANTED. Check your inbox for your Clinic credentials shortly."
         });
 
     } catch (globalError) {
         console.error('[API_CRITICAL_FAIL] Full System Error:', globalError);
-        // Even in a global crash, we want the user to see the success state
-        return NextResponse.json({ success: true, failSafe: true });
+        return NextResponse.json({ 
+            success: false, 
+            error: 'An unexpected error occurred.' 
+        }, { status: 500 });
     }
 }

@@ -1,19 +1,30 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
     try {
-        const filePath = path.join(process.cwd(), 'waitlist.json');
-        
-        if (!fs.existsSync(filePath)) {
-            return NextResponse.json({ error: 'Waitlist is empty.' }, { status: 404 });
+        // A. Primary Source: Supabase
+        const { data: supabaseWaitlist, error: supabaseError } = await supabase
+            .from('waitlist')
+            .select('email')
+            .order('created_at', { ascending: true });
+
+        let waitlist = [];
+
+        if (!supabaseError && supabaseWaitlist) {
+            waitlist = supabaseWaitlist.map((row: { email: string }) => row.email);
+        } else {
+            // B. Fallback: Local JSON
+            const filePath = path.join(process.cwd(), 'waitlist.json');
+            if (fs.existsSync(filePath)) {
+                const fileData = fs.readFileSync(filePath, 'utf8');
+                waitlist = JSON.parse(fileData);
+            }
         }
 
-        const fileData = fs.readFileSync(filePath, 'utf8');
-        const waitlist = JSON.parse(fileData);
-
-        if (!Array.isArray(waitlist) || waitlist.length === 0) {
+        if (waitlist.length === 0) {
             return NextResponse.json({ error: 'No athletes found.' }, { status: 404 });
         }
 
