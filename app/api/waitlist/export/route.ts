@@ -1,27 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { kv } from '@vercel/kv';
 
 export async function GET() {
     try {
-        // 1. Initialize Supabase directly inside handler (Runtime Only)
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        // 1. Primary Source: Vercel KV
+        // Retrieve all emails from the list
+        const waitlist = await kv.lrange('waitlist_emails', 0, -1);
 
-        // 2. Primary Source: Supabase
-        const { data: supabaseWaitlist, error: supabaseError } = await supabase
-            .from('waitlist')
-            .select('email')
-            .order('created_at', { ascending: true });
-
-        if (supabaseError || !supabaseWaitlist) {
-            console.log('SUPABASE_EXPORT_ERROR: ' + (supabaseError?.message || 'No data'));
-            return NextResponse.json({ error: 'No athletes found in database.' }, { status: 404 });
-        }
-
-        const waitlist = supabaseWaitlist.map((row: { email: string }) => row.email);
-
-        if (waitlist.length === 0) {
+        if (!waitlist || waitlist.length === 0) {
             return NextResponse.json({ error: 'No athletes found.' }, { status: 404 });
         }
 
@@ -39,8 +25,8 @@ export async function GET() {
             },
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('[EXPORT_FAIL]', error);
-        return NextResponse.json({ error: 'Failed to export list.' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to export list.', details: error.message }, { status: 500 });
     }
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendWelcomeEmail } from '@/lib/resend';
-import { createClient } from '@supabase/supabase-js';
+import { kv } from '@vercel/kv';
 
 export async function POST(req: Request) {
     try {
@@ -11,30 +11,23 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
         }
 
-        // 1. Initialize Supabase directly inside handler (Runtime Only)
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-        // 2. Permanent Storage: Supabase Only
-        const { error: supabaseError } = await supabase
-            .from('waitlist')
-            .insert([{ email }]);
-
-        if (supabaseError) {
-            // Log EXACT error to Vercel console for troubleshooting
-            console.log('SUPABASE_ERROR: ' + supabaseError.message);
+        // 1. Permanent Storage: Vercel KV (Redis)
+        // We use lpush to add the email to a list named "waitlist_emails"
+        try {
+            await kv.lpush('waitlist_emails', email);
+            console.log(`[KV_SUCCESS] Athlete persisted: ${email}`);
+        } catch (kvError: any) {
+            console.error('KV_ERROR: ' + kvError.message);
             return NextResponse.json({ 
                 success: false, 
-                error: 'Database insertion failed.',
-                details: supabaseError.message 
+                error: 'Database storage failed.',
+                details: kvError.message 
             }, { status: 500 });
         }
 
-        console.log(`[SUPABASE_SUCCESS] Athlete persisted: ${email}`);
         console.log("WAITLIST_ENTRY:", email); // For log scanning backup
 
-        // 3. Trigger Welcome Email (Non-blocking)
+        // 2. Trigger Welcome Email (Non-blocking)
         sendWelcomeEmail(email).catch(e => console.error('[RESEND_ASYNC_FAIL]', e));
 
         return NextResponse.json({ 
