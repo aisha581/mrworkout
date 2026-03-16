@@ -172,12 +172,25 @@ export async function sendInfluencerOutreachEmail(email: string, influencerName:
 }
 
 /**
+ * Formats/Sanitizes the athlete's name for premium outreach.
+ * Athlete_785 -> "Athlete"
+ * Scott_Runs -> "Scott"
+ */
+function formatAthleteName(name: string): string {
+    if (!name) return "Athlete";
+    if (name.startsWith('Athlete_')) return "Athlete";
+    if (name.includes('_')) return name.split('_')[0];
+    return name;
+}
+
+/**
  * Sends the high-equity "Godfather Offer" to segmented influencers.
  */
 export async function sendGodfatherOffer(email: string, name: string, platform: string, topic: string) {
     try {
         if (!process.env.RESEND_API_KEY) return { success: false, error: 'API Key missing' };
 
+        const sanitizedName = formatAthleteName(name);
         const { data, error } = await resend.emails.send({
             from: 'Mr. Workout <coach@mrworkout.pro>',
             to: [email],
@@ -189,11 +202,11 @@ export async function sendGodfatherOffer(email: string, name: string, platform: 
                         <h1 style="color: #000; margin: 0; font-size: 20px; text-transform: uppercase;">The Godfather Offer</h1>
                     </div>
                     <div style="padding: 30px;">
-                        <p><strong>Coach ${name},</strong></p>
+                        <p><strong>Coach ${sanitizedName},</strong></p>
                         <p>I've been monitoring your impact on <strong>${platform}</strong>. Your authority in ${topic} is exactly what we need for the next phase of Mr. Workout.</p>
                         <p>I’m making you an offer you can't refuse: <span style="color: #00ffff; font-weight: bold;">Direct Founder Equity Status.</span></p>
                         <center>
-                            <a href="https://www.mrworkout.pro/api/marketing/track?type=click&email=${email}&id=godfather" style="display: inline-block; background: #00ffff; color: #000; padding: 15px 30px; text-decoration: none; border-radius: 10px; font-weight: 900; text-transform: uppercase; margin: 20px 0;">Review the Deed</a>
+                            <a href="https://www.mrworkout.pro/api/marketing/track?type=click&email=${email}&id=godfather" style="display: inline-block; background: #00ffff; color: #000; padding: 15px 30_link; text-decoration: none; border-radius: 10px; font-weight: 900; text-transform: uppercase; margin: 20px 0;">Review the Deed</a>
                         </center>
                         <p>Stay Savage,<br /><strong>MR. WORKOUT</strong></p>
                     </div>
@@ -215,6 +228,7 @@ export async function sendEnlistmentEmail(email: string, name: string, topic: st
     try {
         if (!process.env.RESEND_API_KEY) return { success: false, error: 'API Key missing' };
 
+        const sanitizedName = formatAthleteName(name);
         const { data, error } = await resend.emails.send({
             from: 'Mr. Workout <coach@mrworkout.pro>',
             to: [email],
@@ -226,7 +240,7 @@ export async function sendEnlistmentEmail(email: string, name: string, topic: st
                         <h1 style="color: #000; margin: 0; font-size: 20px; text-transform: uppercase;">Phase 1: Enlistment</h1>
                     </div>
                     <div style="padding: 30px;">
-                        <p><strong>Athlete ${name},</strong></p>
+                        <p><strong>Athlete ${sanitizedName},</strong></p>
                         <p>The 2D era of training is over. We’ve seen your dedication to ${topic} and it’s time to level up.</p>
                         <p>You are officially being recruited for the <span style="color: #39ff14; font-weight: bold;">Mr. Workout Alpha Squad.</span></p>
                         <center>

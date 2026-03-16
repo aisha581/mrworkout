@@ -13,6 +13,13 @@ load_dotenv(".env")
 KV_REST_API_URL = os.getenv("KV_REST_API_URL")
 KV_REST_API_TOKEN = os.getenv("KV_REST_API_TOKEN")
 
+def normalize_name(name):
+    """Sanitizes username for premium greeting."""
+    if not name: return "Athlete"
+    if name.startswith("Athlete_"): return "Athlete"
+    if "_" in name: return name.split("_")[0]
+    return name
+
 def stage_mass_lead(lead_data):
     """Adds a lead to the MASS_OUTREACH_QUEUE in Upstash."""
     if not (KV_REST_API_URL and KV_REST_API_TOKEN):
@@ -67,6 +74,7 @@ def process_leads(source_file=None):
     for lead in leads_to_process:
         lead["id"] = f"MASS_{int(datetime.now().timestamp())}_{random.randint(1000, 9999)}"
         lead["staged_at"] = str(datetime.now())
+        lead["name"] = normalize_name(lead["name"])
         stage_mass_lead(lead)
 
 if __name__ == "__main__":

@@ -13,12 +13,20 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 KV_REST_API_URL = os.getenv("KV_REST_API_URL")
 KV_REST_API_TOKEN = os.getenv("KV_REST_API_TOKEN")
 
+def normalize_name(name):
+    """Sanitizes username for premium greeting."""
+    if not name: return "Athlete"
+    if name.startswith("Athlete_"): return "Athlete"
+    if "_" in name: return name.split("_")[0]
+    return name
+
 def send_outreach_email(email, name, topic):
     """Calls Resend API to send the personalized outreach email."""
     if not RESEND_API_KEY:
         print(f"[SKIP] Resend API Key missing. Simulating outreach to {name} ({email}).")
         return True
 
+    sanitized_name = normalize_name(name)
     url = "https://api.resend.com/emails"
     headers = {
         "Authorization": f"Bearer {RESEND_API_KEY}",
@@ -40,7 +48,7 @@ def send_outreach_email(email, name, topic):
                 </div>
                 <div style="padding: 30px;">
                     <p style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #39ff14; margin-bottom: 20px;">Priority: Level Alpha</p>
-                    <p style="font-weight: bold;">Athlete {name},</p>
+                    <p style="font-weight: bold;">Athlete {sanitized_name},</p>
                     <p>We've been tracking your impact in the biomechanics and mobility space. Your recent insights on <strong>{topic}</strong> align perfectly with the mission we're building at Mr. Workout.</p>
                     <p>I've been following your work in the <strong>{niche}</strong> vertical, and it's clear you understand the kinetic chain better than most.</p>
                     <p>We are officially extending a <span style="color: #00ffff; font-weight: bold;">Founder Equity Status</span> offer for you to join our inner circle.</p>

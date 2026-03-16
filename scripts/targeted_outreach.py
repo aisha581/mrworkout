@@ -11,12 +11,20 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 KV_REST_API_URL = os.getenv("KV_REST_API_URL")
 KV_REST_API_TOKEN = os.getenv("KV_REST_API_TOKEN")
 
+def normalize_name(name):
+    """Sanitizes username for premium greeting."""
+    if not name: return "Athlete"
+    if name.startswith("Athlete_"): return "Athlete"
+    if "_" in name: return name.split("_")[0]
+    return name
+
 def send_targeted_email(email, name, topic, template_name):
     """Sends a targeted email using a specific template."""
     if not RESEND_API_KEY:
         print(f"[SKIP] Resend API Key missing. Simulating outreach to {name} via {template_name}.")
         return True
 
+    sanitized_name = normalize_name(name)
     url = "https://api.resend.com/emails"
     headers = {
         "Authorization": f"Bearer {RESEND_API_KEY}",
@@ -28,7 +36,7 @@ def send_targeted_email(email, name, topic, template_name):
     try:
         with open(template_path, 'r') as f:
             html = f.read()
-            html = html.replace("{{name}}", name).replace("{{topic}}", topic).replace("{{niche}}", topic.split("|")[-1].strip() if "|" in topic else topic)
+            html = html.replace("{{name}}", sanitized_name).replace("{{topic}}", topic).replace("{{niche}}", topic.split("|")[-1].strip() if "|" in topic else topic)
     except Exception as e:
         print(f"[ERROR] Failed to load template {template_name}: {e}")
         return False
