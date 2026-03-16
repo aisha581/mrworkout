@@ -170,3 +170,77 @@ export async function sendInfluencerOutreachEmail(email: string, influencerName:
         return { success: false, error };
     }
 }
+
+/**
+ * Sends the high-equity "Godfather Offer" to segmented influencers.
+ */
+export async function sendGodfatherOffer(email: string, name: string, platform: string, topic: string) {
+    try {
+        if (!process.env.RESEND_API_KEY) return { success: false, error: 'API Key missing' };
+
+        const { data, error } = await resend.emails.send({
+            from: 'Mr. Workout <coach@mrworkout.pro>',
+            to: [email],
+            replyTo: 'thebillion9@gmail.com',
+            subject: 'PROPOSAL: The Godfather Offer',
+            html: `
+                <div style="font-family: sans-serif; background: #060606; color: #ffffff; padding: 40px; border-radius: 20px; border: 1px solid #00ffff;">
+                    <div style="background: #00ffff; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                        <h1 style="color: #000; margin: 0; font-size: 20px; text-transform: uppercase;">The Godfather Offer</h1>
+                    </div>
+                    <div style="padding: 30px;">
+                        <p><strong>Coach ${name},</strong></p>
+                        <p>I've been monitoring your impact on <strong>${platform}</strong>. Your authority in ${topic} is exactly what we need for the next phase of Mr. Workout.</p>
+                        <p>I’m making you an offer you can't refuse: <span style="color: #00ffff; font-weight: bold;">Direct Founder Equity Status.</span></p>
+                        <center>
+                            <a href="https://www.mrworkout.pro/api/marketing/track?type=click&email=${email}&id=godfather" style="display: inline-block; background: #00ffff; color: #000; padding: 15px 30px; text-decoration: none; border-radius: 10px; font-weight: 900; text-transform: uppercase; margin: 20px 0;">Review the Deed</a>
+                        </center>
+                        <p>Stay Savage,<br /><strong>MR. WORKOUT</strong></p>
+                    </div>
+                    <img src="https://www.mrworkout.pro/api/marketing/track?type=open&email=${email}&id=godfather" width="1" height="1" style="display:none;" />
+                </div>
+            `,
+        });
+
+        return error ? { success: false, error } : { success: true, data };
+    } catch (error) {
+        return { success: false, error };
+    }
+}
+
+/**
+ * Sends the "Enlistment" call to segmented athletes.
+ */
+export async function sendEnlistmentEmail(email: string, name: string, topic: string) {
+    try {
+        if (!process.env.RESEND_API_KEY) return { success: false, error: 'API Key missing' };
+
+        const { data, error } = await resend.emails.send({
+            from: 'Mr. Workout <coach@mrworkout.pro>',
+            to: [email],
+            replyTo: 'thebillion9@gmail.com',
+            subject: 'Phase 1: Enlistment Initialized',
+            html: `
+                <div style="font-family: sans-serif; background: #060606; color: #ffffff; padding: 40px; border-radius: 20px; border: 1px solid #39ff14;">
+                    <div style="background: #39ff14; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                        <h1 style="color: #000; margin: 0; font-size: 20px; text-transform: uppercase;">Phase 1: Enlistment</h1>
+                    </div>
+                    <div style="padding: 30px;">
+                        <p><strong>Athlete ${name},</strong></p>
+                        <p>The 2D era of training is over. We’ve seen your dedication to ${topic} and it’s time to level up.</p>
+                        <p>You are officially being recruited for the <span style="color: #39ff14; font-weight: bold;">Mr. Workout Alpha Squad.</span></p>
+                        <center>
+                            <a href="https://www.mrworkout.pro/api/marketing/track?type=click&email=${email}&id=enlist" style="display: inline-block; background: #39ff14; color: #000; padding: 15px 30px; text-decoration: none; border-radius: 10px; font-weight: 900; text-transform: uppercase; margin: 20px 0;">Enlist Now</a>
+                        </center>
+                        <p>Stay Savage,<br /><strong>MR. WORKOUT</strong></p>
+                    </div>
+                    <img src="https://www.mrworkout.pro/api/marketing/track?type=open&email=${email}&id=enlist" width="1" height="1" style="display:none;" />
+                </div>
+            `,
+        });
+
+        return error ? { success: false, error } : { success: true, data };
+    } catch (error) {
+        return { success: false, error };
+    }
+}

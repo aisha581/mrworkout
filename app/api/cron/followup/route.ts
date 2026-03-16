@@ -48,15 +48,45 @@ export async function GET(req: Request) {
                     sentCount++;
                 }
             }
-            processedCount++;
+        processedCount++;
         }
 
-        console.log(`[CRON] Task Complete. Processed: ${processedCount} | Sent: ${sentCount}`);
+        console.log(`[CRON] 24h follow-up complete. Processed: ${processedCount} | Sent: ${sentCount}`);
+
+        // --- NEW: MASS OUTREACH DRIP LOGIC (20 per hour) ---
+        console.log('[CRON] Starting Mass Outreach Drip (20/hr)...');
+        let massSentCount = 0;
+        
+        // Pop 20 leads from the queue
+        for (let i = 0; i < 20; i++) {
+            const leadStr = await kv.rpop('MASS_OUTREACH_QUEUE') as string | null;
+            if (!leadStr) break;
+
+            try {
+                const lead = JSON.parse(leadStr);
+                let dispatch;
+
+                if (lead.segment === 'influencer') {
+                    dispatch = await import('@/lib/resend').then(m => m.sendGodfatherOffer(lead.email, lead.name, lead.platform, lead.topic));
+                } else {
+                    dispatch = await import('@/lib/resend').then(m => m.sendEnlistmentEmail(lead.email, lead.name, lead.topic));
+                }
+
+                if (dispatch.success) {
+                    await kv.hincrby('marketing_metrics', 'total_sent', 1);
+                    massSentCount++;
+                }
+            } catch (e) {
+                console.error('[CRON_MASS_ERROR]', e);
+            }
+        }
+
+        console.log(`[CRON] Mass Drip Complete. Sent: ${massSentCount}`);
 
         return NextResponse.json({
             success: true,
-            processed: processedCount,
-            sent: sentCount
+            followups_sent: sentCount,
+            mass_drip_sent: massSentCount
         });
 
     } catch (error: any) {
