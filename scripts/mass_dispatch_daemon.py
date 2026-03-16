@@ -162,15 +162,27 @@ def run_daemon():
                 continue
 
             sanitized_name = normalize_name(name)
-            subject = "PROPOSAL: Mr. Workout Phase 1 Enlistment" if segment == "athlete" else "FOUNDER EQUITY: Mr. Workout Influencer Status"
+            
+            # Dynamic Template and Subject Selection
+            if segment == "partner" or segment == "godfather_partnership":
+                template_name = "godfather_partnership"
+                subject = "THE GODFATHER PARTNERSHIP: Mr. Workout Founder Status"
+            elif segment == "athlete":
+                template_name = "enlistment"
+                subject = "PROPOSAL: Mr. Workout Phase 1 Enlistment"
+            else:
+                template_name = "influencer_outreach"
+                subject = "FOUNDER EQUITY: Mr. Workout Influencer Status"
             
             # Load template
-            template_path = f"/Users/fs/Downloads/Mr. Workout/templates/influencer_outreach.html"
+            template_path = f"/Users/fs/Downloads/Mr. Workout/templates/{template_name}.html"
             try:
                 with open(template_path, 'r') as f:
                     html = f.read().replace("{{name}}", sanitized_name).replace("{{topic}}", topic)
+                    # Support for additional variables like platform if present in lead
+                    html = html.replace("{{platform}}", lead.get("platform", "Instagram"))
             except Exception as e:
-                log_status(f"TEMPLATE_ERROR: {e}")
+                log_status(f"TEMPLATE_ERROR: {e} | Path: {template_path}")
                 continue
 
             dispatched = False
