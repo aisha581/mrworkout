@@ -38,7 +38,7 @@ def stage_lead(lead_data):
     except Exception as e:
         print(f"[CRITICAL] Storage Failure: {e}")
 
-def run_ig_recon(target_count=50):
+def run_ig_recon(target_count=500):
     """
     Simulates targeted Instagram reconnaissance for a specific niche.
     In a live scenario, this would interface with an IG Scraping API (e.g., Apify).
@@ -60,6 +60,9 @@ def run_ig_recon(target_count=50):
             "username": handle,
             "followers": followers,
             "business_email": business_email,
+            "email": business_email,
+            "name": handle,
+            "segment": "influencer" if followers > 10000 else "athlete",
             "topic": f"{NICHE} | {random.choice(KEYWORDS)}",
             "confidence": f"{random.randint(90, 99)}%",
             "timestamp": str(datetime.now()),
@@ -67,9 +70,17 @@ def run_ig_recon(target_count=50):
             "outreach_template": "godfather_offer"
         }
         
-        stage_lead(lead)
-        time.sleep(random.uniform(0.05, 0.2))
+        # PUSH TO MASS_OUTREACH_QUEUE for the drip engine
+        if KV_REST_API_URL and KV_REST_API_TOKEN:
+            url = f"{KV_REST_API_URL}/lpush/MASS_OUTREACH_QUEUE"
+            requests.post(url, headers={"Authorization": f"Bearer {KV_REST_API_TOKEN}"}, data=json.dumps(lead))
+        else:
+            with open("mass_leads.log", "a") as f:
+                f.write(json.dumps(lead) + "\n")
+        
+        if i % 50 == 0: print(f"[SCALING] Ingested {i} leads...")
+        time.sleep(0.01)
 
 if __name__ == "__main__":
-    run_ig_recon(50)
-    print("\n[MISSION_REPORT] Instagram Recon Cycle Complete. 50 high-intent leads secured in STAGING_QUEUE.")
+    run_ig_recon(500)
+    print("\n[MISSION_REPORT] Instagram Recon Cycle Complete. 500 high-intent leads secured in MASS_OUTREACH_QUEUE.")

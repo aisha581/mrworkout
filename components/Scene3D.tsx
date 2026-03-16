@@ -60,9 +60,10 @@ function RotatingModel({ accentColor, mode }: Scene3DProps) {
 export default function Scene3D({ accentColor, mode }: Scene3DProps) {
     return (
         <>
-            <ambientLight intensity={0.5} />
-            <pointLight position={[10, 10, 10]} intensity={1} color={accentColor} />
-            <pointLight position={[-10, -10, -10]} intensity={0.5} />
+            <ambientLight intensity={0.1} />
+            <pointLight position={[10, 10, 10]} intensity={5} color={accentColor} />
+            <pointLight position={[-10, -10, -10]} intensity={2} color="#ffffff" />
+            <spotLight position={[0, 5, 0]} intensity={10} color={accentColor} angle={0.15} />
             <RotatingModel accentColor={accentColor} mode={mode} />
         </>
     );

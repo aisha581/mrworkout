@@ -42,6 +42,13 @@
             </div>
         </div>
 
+        <div class="campaign-hud" style="margin-bottom: 20px;">
+            <h3 style="margin-top: 0; text-transform: uppercase; letter-spacing: 2px; color: #f700ff;">Repair Hub Conversions</h3>
+            <div id="repair-list">
+                <!-- Repair conversions will be injected here -->
+            </div>
+        </div>
+
         <div class="campaign-hud">
             <h3 style="margin-top: 0; text-transform: uppercase; letter-spacing: 2px;">Campaign Performance</h3>
             <div id="campaign-list">
@@ -62,15 +69,28 @@
                 document.getElementById('last-update').innerText = 'Last Updated: ' + new Date().toLocaleTimeString();
 
                 const list = document.getElementById('campaign-list');
+                const repairList = document.getElementById('repair-list');
                 list.innerHTML = '';
+                repairList.innerHTML = '';
                 
+                // Generic Campaigns
                 for (const [id, stats] of Object.entries(data.campaigns)) {
-                    list.innerHTML += `
-                        <div class="campaign-row">
-                            <span class="campaign-name">${id.toUpperCase()}</span>
-                            <span>Opens: ${stats.opens} | Clicks: ${stats.clicks}</span>
-                        </div>
-                    `;
+                    const cleanId = id.toUpperCase();
+                    if (cleanId.startsWith('REPAIR_')) {
+                        repairList.innerHTML += `
+                            <div class="campaign-row">
+                                <span class="campaign-name" style="color: #f700ff;">${cleanId}</span>
+                                <span>Conversions: ${stats.clicks || stats.opens || 0}</span>
+                            </div>
+                        `;
+                    } else {
+                        list.innerHTML += `
+                            <div class="campaign-row">
+                                <span class="campaign-name">${cleanId}</span>
+                                <span>Opens: ${stats.opens} | Clicks: ${stats.clicks}</span>
+                            </div>
+                        `;
+                    }
                 }
             } catch (e) {
                 console.error('HUD Sync Failure', e);

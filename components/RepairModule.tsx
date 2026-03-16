@@ -85,40 +85,42 @@ export default function RepairModule({ issue, title, description, accentColor, s
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="w-full max-w-md bg-white text-black p-8 rounded-3xl shadow-[0_0_50px_rgba(255,255,255,0.1)]"
+                    className="w-full max-w-md bg-white text-black p-8 rounded-3xl shadow-[0_0_80px_rgba(255,255,255,0.2)] border-4 border-black"
                 >
                     {status === 'success' ? (
                         <div className="text-center py-4">
-                            <h3 className="text-2xl font-black uppercase mb-2">Access Granted</h3>
-                            <p className="text-gray-600">Your specific repair protocol is being generated. Check your inbox.</p>
+                            <div className="text-5xl mb-4">🛡️</div>
+                            <h3 className="text-2xl font-black uppercase mb-2">Leaks Sealed</h3>
+                            <p className="text-gray-600">Your custom 3D recovery protocol is being calculated. Stand by for dispatch.</p>
                         </div>
                     ) : (
                         <>
-                            <h3 className="text-2xl font-black uppercase mb-6 text-center">Join the Alpha Squad</h3>
+                            <h3 className="text-3xl font-black uppercase mb-2 text-center italic tracking-tighter">REPAIR THE LEAK</h3>
+                            <p className="text-center text-gray-500 text-xs font-bold uppercase tracking-widest mb-8">Secure Founding Athlete Status</p>
                             <form onSubmit={handleJoin} className="flex flex-col gap-4">
                                 <input 
                                     type="text" 
                                     placeholder="Full Name" 
                                     required
-                                    className="bg-gray-100 border-none p-4 rounded-xl font-bold focus:ring-2 focus:ring-black outline-none"
+                                    className="bg-gray-100 border-2 border-transparent p-4 rounded-xl font-bold focus:border-black outline-none transition-all"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                 />
                                 <input 
                                     type="email" 
-                                    placeholder="Enter your email" 
+                                    placeholder="Email Address" 
                                     required
-                                    className="bg-gray-100 border-none p-4 rounded-xl font-bold focus:ring-2 focus:ring-black outline-none"
+                                    className="bg-gray-100 border-2 border-transparent p-4 rounded-xl font-bold focus:border-black outline-none transition-all"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
                                 <button 
-                                    className="bg-black text-white p-4 rounded-xl font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-transform disabled:opacity-50"
+                                    className="bg-black text-white p-5 rounded-xl font-black uppercase tracking-widest hover:bg-gray-900 active:scale-95 transition-all shadow-xl"
                                     disabled={status === 'loading'}
                                 >
-                                    {status === 'loading' ? 'Encrypting...' : 'Secure Early Access'}
+                                    {status === 'loading' ? 'Encrypting...' : 'Initiate Repair Protocol'}
                                 </button>
-                                {status === 'error' && <p className="text-red-500 text-xs text-center mt-2">Error connecting to Alpha Core. Try again.</p>}
+                                {status === 'error' && <p className="text-red-500 text-xs text-center mt-2 font-bold uppercase">Critical Link Error. Retry.</p>}
                             </form>
                         </>
                     )}
