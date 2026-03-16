@@ -1,0 +1,652 @@
+[
+  {
+    "id": 1,
+    "slug": "powerlifting-3d-movement-1",
+    "title": "Mr. Workout Clinic | Powerlifting Optimized: Scapular Health & Squat Biomechanics",
+    "meta_description": "Join the Alpha Squad for elite Powerlifting 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/powerlifting-3d-movement-1",
+    "keywords": [
+      "Powerlifting workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 2,
+    "slug": "running-kinetic-chain-2",
+    "title": "Mr. Workout Clinic | Running Optimized: Gait Analysis & Knee Longevity",
+    "meta_description": "Join the Alpha Squad for elite Running 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/running-kinetic-chain-2",
+    "keywords": [
+      "Running workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 3,
+    "slug": "soccer-mobility-deficit-3",
+    "title": "Mr. Workout Clinic | Soccer Optimized: Agility & Hip Rotation Power",
+    "meta_description": "Join the Alpha Squad for elite Soccer 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/soccer-mobility-deficit-3",
+    "keywords": [
+      "Soccer workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 4,
+    "slug": "crossfit-acl-prevention-4",
+    "title": "Mr. Workout Clinic | CrossFit Optimized: Handstand Stability & Shoulder Health",
+    "meta_description": "Join the Alpha Squad for elite CrossFit 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/crossfit-acl-prevention-4",
+    "keywords": [
+      "CrossFit workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 5,
+    "slug": "basketball-3d-movement-5",
+    "title": "Mr. Workout Clinic | Basketball Optimized: Vertical Jump & Landing Stability",
+    "meta_description": "Join the Alpha Squad for elite Basketball 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/basketball-3d-movement-5",
+    "keywords": [
+      "Basketball workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 6,
+    "slug": "powerlifting-kinetic-chain-6",
+    "title": "Mr. Workout Clinic | Powerlifting Optimized: Scapular Health & Squat Biomechanics",
+    "meta_description": "Join the Alpha Squad for elite Powerlifting 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/powerlifting-kinetic-chain-6",
+    "keywords": [
+      "Powerlifting workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 7,
+    "slug": "running-mobility-deficit-7",
+    "title": "Mr. Workout Clinic | Running Optimized: Gait Analysis & Knee Longevity",
+    "meta_description": "Join the Alpha Squad for elite Running 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/running-mobility-deficit-7",
+    "keywords": [
+      "Running workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 8,
+    "slug": "soccer-acl-prevention-8",
+    "title": "Mr. Workout Clinic | Soccer Optimized: Agility & Hip Rotation Power",
+    "meta_description": "Join the Alpha Squad for elite Soccer 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/soccer-acl-prevention-8",
+    "keywords": [
+      "Soccer workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 9,
+    "slug": "crossfit-3d-movement-9",
+    "title": "Mr. Workout Clinic | CrossFit Optimized: Handstand Stability & Shoulder Health",
+    "meta_description": "Join the Alpha Squad for elite CrossFit 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/crossfit-3d-movement-9",
+    "keywords": [
+      "CrossFit workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 10,
+    "slug": "basketball-kinetic-chain-10",
+    "title": "Mr. Workout Clinic | Basketball Optimized: Vertical Jump & Landing Stability",
+    "meta_description": "Join the Alpha Squad for elite Basketball 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/basketball-kinetic-chain-10",
+    "keywords": [
+      "Basketball workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 11,
+    "slug": "powerlifting-mobility-deficit-11",
+    "title": "Mr. Workout Clinic | Powerlifting Optimized: Scapular Health & Squat Biomechanics",
+    "meta_description": "Join the Alpha Squad for elite Powerlifting 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/powerlifting-mobility-deficit-11",
+    "keywords": [
+      "Powerlifting workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 12,
+    "slug": "running-acl-prevention-12",
+    "title": "Mr. Workout Clinic | Running Optimized: Gait Analysis & Knee Longevity",
+    "meta_description": "Join the Alpha Squad for elite Running 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/running-acl-prevention-12",
+    "keywords": [
+      "Running workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 13,
+    "slug": "soccer-3d-movement-13",
+    "title": "Mr. Workout Clinic | Soccer Optimized: Agility & Hip Rotation Power",
+    "meta_description": "Join the Alpha Squad for elite Soccer 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/soccer-3d-movement-13",
+    "keywords": [
+      "Soccer workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 14,
+    "slug": "crossfit-kinetic-chain-14",
+    "title": "Mr. Workout Clinic | CrossFit Optimized: Handstand Stability & Shoulder Health",
+    "meta_description": "Join the Alpha Squad for elite CrossFit 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/crossfit-kinetic-chain-14",
+    "keywords": [
+      "CrossFit workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 15,
+    "slug": "basketball-mobility-deficit-15",
+    "title": "Mr. Workout Clinic | Basketball Optimized: Vertical Jump & Landing Stability",
+    "meta_description": "Join the Alpha Squad for elite Basketball 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/basketball-mobility-deficit-15",
+    "keywords": [
+      "Basketball workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 16,
+    "slug": "powerlifting-acl-prevention-16",
+    "title": "Mr. Workout Clinic | Powerlifting Optimized: Scapular Health & Squat Biomechanics",
+    "meta_description": "Join the Alpha Squad for elite Powerlifting 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/powerlifting-acl-prevention-16",
+    "keywords": [
+      "Powerlifting workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 17,
+    "slug": "running-3d-movement-17",
+    "title": "Mr. Workout Clinic | Running Optimized: Gait Analysis & Knee Longevity",
+    "meta_description": "Join the Alpha Squad for elite Running 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/running-3d-movement-17",
+    "keywords": [
+      "Running workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 18,
+    "slug": "soccer-kinetic-chain-18",
+    "title": "Mr. Workout Clinic | Soccer Optimized: Agility & Hip Rotation Power",
+    "meta_description": "Join the Alpha Squad for elite Soccer 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/soccer-kinetic-chain-18",
+    "keywords": [
+      "Soccer workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 19,
+    "slug": "crossfit-mobility-deficit-19",
+    "title": "Mr. Workout Clinic | CrossFit Optimized: Handstand Stability & Shoulder Health",
+    "meta_description": "Join the Alpha Squad for elite CrossFit 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/crossfit-mobility-deficit-19",
+    "keywords": [
+      "CrossFit workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 20,
+    "slug": "basketball-acl-prevention-20",
+    "title": "Mr. Workout Clinic | Basketball Optimized: Vertical Jump & Landing Stability",
+    "meta_description": "Join the Alpha Squad for elite Basketball 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/basketball-acl-prevention-20",
+    "keywords": [
+      "Basketball workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 21,
+    "slug": "powerlifting-3d-movement-21",
+    "title": "Mr. Workout Clinic | Powerlifting Optimized: Scapular Health & Squat Biomechanics",
+    "meta_description": "Join the Alpha Squad for elite Powerlifting 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/powerlifting-3d-movement-21",
+    "keywords": [
+      "Powerlifting workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 22,
+    "slug": "running-kinetic-chain-22",
+    "title": "Mr. Workout Clinic | Running Optimized: Gait Analysis & Knee Longevity",
+    "meta_description": "Join the Alpha Squad for elite Running 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/running-kinetic-chain-22",
+    "keywords": [
+      "Running workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 23,
+    "slug": "soccer-mobility-deficit-23",
+    "title": "Mr. Workout Clinic | Soccer Optimized: Agility & Hip Rotation Power",
+    "meta_description": "Join the Alpha Squad for elite Soccer 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/soccer-mobility-deficit-23",
+    "keywords": [
+      "Soccer workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 24,
+    "slug": "crossfit-acl-prevention-24",
+    "title": "Mr. Workout Clinic | CrossFit Optimized: Handstand Stability & Shoulder Health",
+    "meta_description": "Join the Alpha Squad for elite CrossFit 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/crossfit-acl-prevention-24",
+    "keywords": [
+      "CrossFit workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 25,
+    "slug": "basketball-3d-movement-25",
+    "title": "Mr. Workout Clinic | Basketball Optimized: Vertical Jump & Landing Stability",
+    "meta_description": "Join the Alpha Squad for elite Basketball 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/basketball-3d-movement-25",
+    "keywords": [
+      "Basketball workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 26,
+    "slug": "powerlifting-kinetic-chain-26",
+    "title": "Mr. Workout Clinic | Powerlifting Optimized: Scapular Health & Squat Biomechanics",
+    "meta_description": "Join the Alpha Squad for elite Powerlifting 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/powerlifting-kinetic-chain-26",
+    "keywords": [
+      "Powerlifting workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 27,
+    "slug": "running-mobility-deficit-27",
+    "title": "Mr. Workout Clinic | Running Optimized: Gait Analysis & Knee Longevity",
+    "meta_description": "Join the Alpha Squad for elite Running 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/running-mobility-deficit-27",
+    "keywords": [
+      "Running workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 28,
+    "slug": "soccer-acl-prevention-28",
+    "title": "Mr. Workout Clinic | Soccer Optimized: Agility & Hip Rotation Power",
+    "meta_description": "Join the Alpha Squad for elite Soccer 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/soccer-acl-prevention-28",
+    "keywords": [
+      "Soccer workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 29,
+    "slug": "crossfit-3d-movement-29",
+    "title": "Mr. Workout Clinic | CrossFit Optimized: Handstand Stability & Shoulder Health",
+    "meta_description": "Join the Alpha Squad for elite CrossFit 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/crossfit-3d-movement-29",
+    "keywords": [
+      "CrossFit workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 30,
+    "slug": "basketball-kinetic-chain-30",
+    "title": "Mr. Workout Clinic | Basketball Optimized: Vertical Jump & Landing Stability",
+    "meta_description": "Join the Alpha Squad for elite Basketball 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/basketball-kinetic-chain-30",
+    "keywords": [
+      "Basketball workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 31,
+    "slug": "powerlifting-mobility-deficit-31",
+    "title": "Mr. Workout Clinic | Powerlifting Optimized: Scapular Health & Squat Biomechanics",
+    "meta_description": "Join the Alpha Squad for elite Powerlifting 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/powerlifting-mobility-deficit-31",
+    "keywords": [
+      "Powerlifting workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 32,
+    "slug": "running-acl-prevention-32",
+    "title": "Mr. Workout Clinic | Running Optimized: Gait Analysis & Knee Longevity",
+    "meta_description": "Join the Alpha Squad for elite Running 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/running-acl-prevention-32",
+    "keywords": [
+      "Running workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 33,
+    "slug": "soccer-3d-movement-33",
+    "title": "Mr. Workout Clinic | Soccer Optimized: Agility & Hip Rotation Power",
+    "meta_description": "Join the Alpha Squad for elite Soccer 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/soccer-3d-movement-33",
+    "keywords": [
+      "Soccer workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 34,
+    "slug": "crossfit-kinetic-chain-34",
+    "title": "Mr. Workout Clinic | CrossFit Optimized: Handstand Stability & Shoulder Health",
+    "meta_description": "Join the Alpha Squad for elite CrossFit 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/crossfit-kinetic-chain-34",
+    "keywords": [
+      "CrossFit workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 35,
+    "slug": "basketball-mobility-deficit-35",
+    "title": "Mr. Workout Clinic | Basketball Optimized: Vertical Jump & Landing Stability",
+    "meta_description": "Join the Alpha Squad for elite Basketball 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/basketball-mobility-deficit-35",
+    "keywords": [
+      "Basketball workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 36,
+    "slug": "powerlifting-acl-prevention-36",
+    "title": "Mr. Workout Clinic | Powerlifting Optimized: Scapular Health & Squat Biomechanics",
+    "meta_description": "Join the Alpha Squad for elite Powerlifting 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/powerlifting-acl-prevention-36",
+    "keywords": [
+      "Powerlifting workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 37,
+    "slug": "running-3d-movement-37",
+    "title": "Mr. Workout Clinic | Running Optimized: Gait Analysis & Knee Longevity",
+    "meta_description": "Join the Alpha Squad for elite Running 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/running-3d-movement-37",
+    "keywords": [
+      "Running workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 38,
+    "slug": "soccer-kinetic-chain-38",
+    "title": "Mr. Workout Clinic | Soccer Optimized: Agility & Hip Rotation Power",
+    "meta_description": "Join the Alpha Squad for elite Soccer 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/soccer-kinetic-chain-38",
+    "keywords": [
+      "Soccer workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 39,
+    "slug": "crossfit-mobility-deficit-39",
+    "title": "Mr. Workout Clinic | CrossFit Optimized: Handstand Stability & Shoulder Health",
+    "meta_description": "Join the Alpha Squad for elite CrossFit 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/crossfit-mobility-deficit-39",
+    "keywords": [
+      "CrossFit workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 40,
+    "slug": "basketball-acl-prevention-40",
+    "title": "Mr. Workout Clinic | Basketball Optimized: Vertical Jump & Landing Stability",
+    "meta_description": "Join the Alpha Squad for elite Basketball 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/basketball-acl-prevention-40",
+    "keywords": [
+      "Basketball workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 41,
+    "slug": "powerlifting-3d-movement-41",
+    "title": "Mr. Workout Clinic | Powerlifting Optimized: Scapular Health & Squat Biomechanics",
+    "meta_description": "Join the Alpha Squad for elite Powerlifting 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/powerlifting-3d-movement-41",
+    "keywords": [
+      "Powerlifting workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 42,
+    "slug": "running-kinetic-chain-42",
+    "title": "Mr. Workout Clinic | Running Optimized: Gait Analysis & Knee Longevity",
+    "meta_description": "Join the Alpha Squad for elite Running 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/running-kinetic-chain-42",
+    "keywords": [
+      "Running workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 43,
+    "slug": "soccer-mobility-deficit-43",
+    "title": "Mr. Workout Clinic | Soccer Optimized: Agility & Hip Rotation Power",
+    "meta_description": "Join the Alpha Squad for elite Soccer 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/soccer-mobility-deficit-43",
+    "keywords": [
+      "Soccer workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 44,
+    "slug": "crossfit-acl-prevention-44",
+    "title": "Mr. Workout Clinic | CrossFit Optimized: Handstand Stability & Shoulder Health",
+    "meta_description": "Join the Alpha Squad for elite CrossFit 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/crossfit-acl-prevention-44",
+    "keywords": [
+      "CrossFit workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 45,
+    "slug": "basketball-3d-movement-45",
+    "title": "Mr. Workout Clinic | Basketball Optimized: Vertical Jump & Landing Stability",
+    "meta_description": "Join the Alpha Squad for elite Basketball 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/basketball-3d-movement-45",
+    "keywords": [
+      "Basketball workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 46,
+    "slug": "powerlifting-kinetic-chain-46",
+    "title": "Mr. Workout Clinic | Powerlifting Optimized: Scapular Health & Squat Biomechanics",
+    "meta_description": "Join the Alpha Squad for elite Powerlifting 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/powerlifting-kinetic-chain-46",
+    "keywords": [
+      "Powerlifting workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 47,
+    "slug": "running-mobility-deficit-47",
+    "title": "Mr. Workout Clinic | Running Optimized: Gait Analysis & Knee Longevity",
+    "meta_description": "Join the Alpha Squad for elite Running 3D biomechanics. Resolve Mobility deficit with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/running-mobility-deficit-47",
+    "keywords": [
+      "Running workout",
+      "3D movement",
+      "Mobility deficit",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 48,
+    "slug": "soccer-acl-prevention-48",
+    "title": "Mr. Workout Clinic | Soccer Optimized: Agility & Hip Rotation Power",
+    "meta_description": "Join the Alpha Squad for elite Soccer 3D biomechanics. Resolve ACL prevention with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/soccer-acl-prevention-48",
+    "keywords": [
+      "Soccer workout",
+      "3D movement",
+      "ACL prevention",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 49,
+    "slug": "crossfit-3d-movement-49",
+    "title": "Mr. Workout Clinic | CrossFit Optimized: Handstand Stability & Shoulder Health",
+    "meta_description": "Join the Alpha Squad for elite CrossFit 3D biomechanics. Resolve 3D movement with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/crossfit-3d-movement-49",
+    "keywords": [
+      "CrossFit workout",
+      "3D movement",
+      "3D movement",
+      "alpha squad clinic"
+    ]
+  },
+  {
+    "id": 50,
+    "slug": "basketball-kinetic-chain-50",
+    "title": "Mr. Workout Clinic | Basketball Optimized: Vertical Jump & Landing Stability",
+    "meta_description": "Join the Alpha Squad for elite Basketball 3D biomechanics. Resolve Kinetic chain with advanced clinic protocols.",
+    "canonical": "https://mrworkout.pro/lp/basketball-kinetic-chain-50",
+    "keywords": [
+      "Basketball workout",
+      "3D movement",
+      "Kinetic chain",
+      "alpha squad clinic"
+    ]
+  }
+]
