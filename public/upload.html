@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capture Portal | Mr. Workout</title>
+    <style>
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-green: #39ff14;
+            --dark-bg: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--dark-bg);
+            color: #ffffff;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            background-image: radial-gradient(circle at 50% 50%, #111 0%, #050505 100%);
+        }
+
+        .upload-card {
+            width: 100%;
+            max-width: 450px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 40px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+            position: relative;
+            z-index: 10;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff, #666);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            font-size: 10px;
+            color: var(--neon-cyan);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #888;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            color: #fff;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--neon-cyan);
+            background: rgba(255,255,255,0.08);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+
+        .file-upload {
+            border: 2px dashed var(--glass-border);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .file-upload:hover {
+            border-color: var(--neon-green);
+            background: rgba(57, 255, 20, 0.02);
+        }
+
+        .file-upload p {
+            font-size: 12px;
+            color: #666;
+            margin: 0;
+        }
+
+        .file-upload strong {
+            display: block;
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        #file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--neon-green);
+            color: #000;
+            border: none;
+            padding: 20px;
+            border-radius: 14px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(57, 255, 20, 0.2);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(57, 255, 20, 0.4);
+        }
+
+        .btn-submit:disabled {
+            background: #222;
+            color: #444;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .watermark {
+            position: absolute;
+            bottom: 40px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            color: rgba(255,255,255,0.1);
+            pointer-events: none;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 4px;
+            background: var(--neon-green);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            border-radius: 0 0 32px 32px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-card">
+        <div class="header">
+            <h1>Vector Input</h1>
+            <p>Institutional Intake Protocol</p>
+        </div>
+
+        <form id="upload-form">
+            <div class="form-group">
+                <label>Coach Name</label>
+                <input type="text" id="coach-name" name="coachName" placeholder="ENTER IDENTIFIER" required>
+            </div>
+
+            <div class="form-group">
+                <label>Athlete ID</label>
+                <input type="text" id="athlete-id" name="athleteId" placeholder="SUBJECT REF NO." required>
+            </div>
+
+            <div class="form-group">
+                <label>Capture File (.mp4 / .mov)</label>
+                <div class="file-upload">
+                    <strong>Drop Biomechanical Data</strong>
+                    <p id="file-name">Maximum payload 50MB</p>
+                    <input type="file" id="file-input" name="video" accept=".mp4,.mov" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="submit-btn">Execute Upload</button>
+        </form>
+        <div id="progress-bar"></div>
+    </div>
+
+    <div class="watermark">MRWORKOUT.PRO</div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const fileNameDisp = document.getElementById('file-name');
+        const form = document.getElementById('upload-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const progressBar = document.getElementById('progress-bar');
+
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length > 0) {
+                fileNameDisp.innerText = e.target.files[0].name;
+                fileNameDisp.style.color = '#39ff14';
+            }
+        });
+
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Analyzing Vectors...';
+
+            const formData = new FormData(form);
+            
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/upload', true);
+
+                xhr.upload.onprogress = e => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        progressBar.style.width = percent + '%';
+                    }
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        window.location.href = '/success.html';
+                    } else {
+                        alert('Intake Failure: ' + xhr.responseText);
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = 'Retry Upload';
+                    }
+                };
+
+                xhr.send(formData);
+            } catch (err) {
+                console.error(err);
+                alert('Critical System Error');
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
