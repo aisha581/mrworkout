@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Biomechanical Report | Mr. Workout</title>
+    <title>3D Biomechanical Report | Institutional Grade</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
             --neon-green: #39ff14;
             --neon-cyan: #00ffff;
-            --dark-bg: #0a0a0a;
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --pulse-red: #ff3131;
+            --dark-bg: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
         }
 
         body {
@@ -24,104 +25,116 @@
             display: flex;
         }
 
-        #dashboard {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 10;
-            pointer-events: none;
-        }
-
-        .header {
-            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-green));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-size: 24px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 30px;
-        }
-
         .sidebar {
-            width: 320px;
+            width: 340px;
             height: calc(100vh - 40px);
             margin: 20px;
             background: var(--glass-bg);
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(30px);
             border: 1px solid var(--glass-border);
-            border-radius: 20px;
+            border-radius: 24px;
             padding: 30px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             z-index: 20;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .header {
+            font-size: 20px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            color: #fff;
+            border-left: 3px solid var(--neon-cyan);
+            padding-left: 15px;
         }
 
         .metric-card {
-            margin-bottom: 25px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            border-left: 4px solid var(--neon-cyan);
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--neon-cyan);
         }
 
         .metric-label {
             font-size: 10px;
             text-transform: uppercase;
-            color: #888;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
+            color: #666;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            font-weight: bold;
         }
 
         .metric-value {
-            font-size: 32px;
+            font-size: 36px;
             font-weight: 900;
             color: #fff;
             display: flex;
             align-items: baseline;
+            text-shadow: 0 0 20px rgba(255,255,255,0.1);
         }
 
         .metric-unit {
             font-size: 14px;
-            margin-left: 5px;
+            margin-left: 8px;
             color: var(--neon-cyan);
+            font-weight: 400;
         }
 
-        .symmetry-circle {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: 8px solid var(--glass-border);
-            border-top: 8px solid var(--neon-green);
-            margin: 20px auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: 900;
-            box-shadow: 0 0 30px rgba(57, 255, 20, 0.2);
-        }
-
-        .cta-btn {
+        .action-container {
             margin-top: auto;
-            background: var(--neon-green);
-            color: #000;
-            border: none;
-            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 18px;
             border-radius: 12px;
             font-weight: 900;
             text-transform: uppercase;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             text-align: center;
             text-decoration: none;
-            box-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
+            font-size: 12px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
-        .cta-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 40px rgba(57, 255, 20, 0.6);
+        .btn-audit {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.2);
+        }
+
+        .btn-audit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(0, 255, 255, 0.4);
+        }
+
+        .btn-export {
+            background: transparent;
+            color: #fff;
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-export:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: #fff;
         }
 
         #canvas-container {
@@ -129,85 +142,176 @@
             position: relative;
         }
 
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            background: rgba(0, 255, 255, 0.1);
-            color: var(--neon-cyan);
-            border: 1px solid var(--neon-cyan);
+        #watermark {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            opacity: 0.3;
+            font-weight: 900;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: #fff;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .leak-status {
+            font-size: 11px;
+            color: var(--pulse-red);
+            font-weight: bold;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            animation: pulse-op 1s infinite alternate;
+        }
+
+        @keyframes pulse-op {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
+        }
+
+        #recording-overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--pulse-red);
+            padding: 8px 15px;
             border-radius: 50px;
             font-size: 10px;
-            font-weight: bold;
-            margin-bottom: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            z-index: 30;
         }
     </style>
 </head>
 <body>
     <div class="sidebar">
-        <div class="badge">Live Audit Sample</div>
-        <div class="header">3D ANALYTICS</div>
+        <div class="header">Movement Bio</div>
         
         <div class="metric-card">
-            <div class="metric-label">Knee Flexion Angle</div>
+            <div class="metric-label">Knee Flexion Max</div>
             <div class="metric-value">142<span class="metric-unit">°</span></div>
+            <div style="font-size: 10px; color: var(--neon-green); margin-top: 5px;">● OPTIMAL ALIGNMENT</div>
         </div>
 
-        <div class="metric-card" style="border-left-color: var(--neon-green);">
-            <div class="metric-label">Ground Reaction Force</div>
+        <div class="metric-card">
+            <div class="metric-label">Force Impact</div>
             <div class="metric-value">2.4<span class="metric-unit">x BW</span></div>
+            <div class="leak-status">⚠ HEEL STRIKE DETECTED</div>
         </div>
 
-        <div class="metric-label" style="text-align: center;">Symmetry Score</div>
-        <div class="symmetry-circle">94%</div>
+        <div class="metric-card">
+            <div class="metric-label">Efficiency Rank</div>
+            <div class="metric-value">94<span class="metric-unit">%</span></div>
+        </div>
 
-        <p style="font-size: 12px; color: #666; margin-top: 20px; line-height: 1.5;">
-            Skeletal mapping indicates a Level Alpha efficiency. Minimal energy leakage at the ankle joint detected.
-        </p>
-
-        <a href="https://mrworkout.pro/partner-onboarding" class="cta-btn">Get Your Free Audit</a>
+        <div class="action-container">
+            <a href="https://mrworkout.pro/partner-onboarding" class="btn btn-audit">Get Free Audit</a>
+            <div id="export-trigger" class="btn btn-export">
+                <span>Download for Instagram</span>
+            </div>
+        </div>
     </div>
 
-    <div id="canvas-container"></div>
+    <div id="canvas-container">
+        <div id="recording-overlay">● Recording Profile</div>
+        <div id="watermark">mrworkout.pro</div>
+    </div>
 
     <script>
-        let scene, camera, renderer, skeleton, bones = [];
+        let scene, camera, renderer, masterGroup, recording = false;
+        let skeletonGroup, bodyGroup;
+        const bones = [];
 
         function init() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth - 320, window.innerHeight);
+            camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 380) / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(window.innerWidth - 380, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            // Lighting
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
-            const pointLight = new THREE.PointLight(0x00ffff, 1);
-            pointLight.position.set(5, 5, 5);
-            scene.add(pointLight);
+            masterGroup = new THREE.Group();
+            scene.add(masterGroup);
 
-            // Create Skeleton
-            const material = new THREE.MeshPhongMaterial({ color: 0x39ff14, emissive: 0x39ff14, emissiveIntensity: 0.5 });
+            // Lighting
+            scene.add(new THREE.AmbientLight(0xffffff, 0.1));
+            const rimLight = new THREE.DirectionalLight(0x00ffff, 0.5);
+            rimLight.position.set(-5, 5, 5);
+            scene.add(rimLight);
             
-            // Simple procedural skeleton
-            const createBone = (width, height, x, y, z) => {
-                const geometry = new THREE.CylinderGeometry(width, width, height, 8);
-                const mesh = new THREE.Mesh(geometry, material);
-                mesh.position.set(x, y, z);
-                scene.add(mesh);
+            const spotLight = new THREE.SpotLight(0xffffff, 1);
+            spotLight.position.set(5, 10, 5);
+            scene.add(spotLight);
+
+            // Materials
+            const boneMat = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff, 
+                metalness: 1, 
+                roughness: 0.1,
+                emissive: 0xcccccc,
+                emissiveIntensity: 0.2
+            });
+            
+            const bodyMat = new THREE.MeshStandardMaterial({ 
+                color: 0x111111, 
+                transparent: true, 
+                opacity: 0.6,
+                roughness: 0
+            });
+
+            const leakMat = new THREE.MeshStandardMaterial({
+                color: 0xff3131,
+                emissive: 0xff3131,
+                emissiveIntensity: 1
+            });
+
+            const optimalMat = new THREE.MeshStandardMaterial({
+                color: 0x39ff14,
+                emissive: 0x39ff14,
+                emissiveIntensity: 1
+            });
+
+            // Build Silhouette Mannequin
+            const buildPart = (geom, mat, y, parent) => {
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.y = y;
+                parent.add(mesh);
                 return mesh;
             };
 
-            // Central spine
-            bones.push(createBone(0.1, 2, 0, 1, 0)); 
-            // Limbs
-            bones.push(createBone(0.08, 1, 0.5, 2.5, 0)); // Right arm
-            bones.push(createBone(0.08, 1, -0.5, 2.5, 0)); // Left arm
-            bones.push(createBone(0.1, 1.5, 0.3, -0.5, 0)); // Right leg
-            bones.push(createBone(0.1, 1.5, -0.3, -0.5, 0)); // Left leg
+            const torsoGeom = new THREE.CapsuleGeometry(0.5, 1.5, 4, 16);
+            buildPart(torsoGeom, bodyMat, 2, masterGroup);
+
+            // Bones
+            const createBone = (h, x, y, z, mat) => {
+                const geom = new THREE.CylinderGeometry(0.05, 0.05, h, 8);
+                const mesh = new THREE.Mesh(geom, mat || boneMat);
+                mesh.position.set(x, y, z);
+                masterGroup.add(mesh);
+                return mesh;
+            };
+
+            bones.push(createBone(1.5, 0.3, 0.5, 0)); // R Leg
+            bones.push(createBone(1.5, -0.3, 0.5, 0)); // L Leg
+            bones.push(createBone(1, 0.7, 2.5, 0, optimalMat)); // R Arm (Optimal)
+            bones.push(createBone(1, -0.7, 2.5, 0)); // L Arm
+            
+            // Highlight leak (Heel/Ankle)
+            const leakIndicator = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), leakMat);
+            leakIndicator.position.set(0.3, -0.25, 0.5);
+            masterGroup.add(leakIndicator);
+            bones.push(leakIndicator);
 
             camera.position.z = 5;
-            camera.position.y = 1;
+            camera.position.y = 1.5;
 
             animate();
         }
@@ -215,28 +319,70 @@
         function animate() {
             requestAnimationFrame(animate);
             
-            const time = Date.now() * 0.005;
+            const t = Date.now() * 0.005;
 
-            // Rotation and basic running motion simulation
-            bones.forEach((bone, i) => {
-                if (i === 0) { // Spine
-                    bone.rotation.y += 0.01;
-                } else if (i === 3 || i === 4) { // Legs
-                    const offset = i === 3 ? 0 : Math.PI;
-                    bone.rotation.x = Math.sin(time + offset) * 0.5;
-                } else if (i === 1 || i === 2) { // Arms
-                    const offset = i === 1 ? Math.PI : 0;
-                    bone.rotation.x = Math.sin(time + offset) * 0.8;
+            // Running simulation
+            bones.forEach((b, i) => {
+                if (i < 2) { // Legs
+                    const off = i === 0 ? 0 : Math.PI;
+                    b.rotation.x = Math.sin(t + off) * 0.6;
+                } else if (i < 4) { // Arms
+                    const off = i === 2 ? Math.PI : 0;
+                    b.rotation.x = Math.sin(t + off) * 0.8;
+                } else if (i === 4) { // Leak indicator
+                    b.scale.setScalar(1 + Math.sin(t * 2) * 0.3);
                 }
             });
+
+            if (recording) {
+                masterGroup.rotation.y += 0.063; // 10 sec spin logic (approx 2*PI / (10*60fps))
+            } else {
+                masterGroup.rotation.y += 0.01;
+            }
 
             renderer.render(scene, camera);
         }
 
+        // Export Engine
+        document.getElementById('export-trigger').addEventListener('click', async () => {
+            const btn = document.getElementById('export-trigger');
+            const overlay = document.getElementById('recording-overlay');
+            
+            if (recording) return;
+            
+            recording = true;
+            btn.style.opacity = '0.5';
+            btn.innerText = 'Capturing...';
+            overlay.style.display = 'flex';
+            masterGroup.rotation.y = 0; // Reset for spin
+
+            const stream = renderer.domElement.captureStream(60);
+            const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+            const chunks = [];
+
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'MrWorkout_Biomechanical_Report.webm';
+                a.click();
+                
+                recording = false;
+                btn.style.opacity = '1';
+                btn.innerText = 'Download for Instagram';
+                overlay.style.display = 'none';
+            };
+
+            recorder.start();
+            setTimeout(() => recorder.stop(), 10000); // 10 seconds
+        });
+
         window.addEventListener('resize', () => {
-            camera.aspect = (window.innerWidth - 320) / window.innerHeight;
+            camera.aspect = (window.innerWidth - 380) / window.innerHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth - 320, window.innerHeight);
+            renderer.setSize(window.innerWidth - 380, window.innerHeight);
         });
 
         init();
