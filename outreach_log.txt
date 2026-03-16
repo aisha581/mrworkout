@@ -1,2 +1,16 @@
 [2026-03-16 15:30:46] DAEMON_STARTED
 [2026-03-16 15:30:48] STATUS_SENT: Sent to Test (thebillion9+test@gmail.com)
+[2026-03-16 15:43:42] DAEMON_STARTED
+[2026-03-16 15:43:45] STATUS_SENT: Sent to Athlete (business@athlete94strength.com)
+[2026-03-16 15:47:06] STATUS_SENT: Sent to Pro (business@pro10performance.com)
+[2026-03-16 15:50:28] STATUS_SENT: Sent to Athlete (business@athlete27performance.com)
+[2026-03-16 15:53:30] STATUS_SENT: Sent to Speed (business@speed58performance.com)
+[2026-03-16 15:56:32] STATUS_SENT: Sent to Pro (business@pro14strength.com)
+[2026-03-16 15:59:33] STATUS_SENT: Sent to Coach (business@coach86lab.com)
+[2026-03-16 16:02:35] STATUS_SENT: Sent to Coach (business@coach94performance.com)
+[2026-03-16 16:05:37] STATUS_SENT: Sent to Coach (coach83strength@gmail.com)
+[2026-03-16 16:06:02] DAEMON_STARTED
+[2026-03-16 16:06:04] STATUS_SENT (RESEND): Sent via Resend to Failover
+[2026-03-16 16:06:31] DAEMON_STARTED
+[2026-03-16 16:06:31] PROVIDER_ERROR (BREVO): Brevo API Key missing
+[2026-03-16 16:06:31] STATUS_OVERFLOW: Staged to pending_tomorrow.csv | Brevo_User
