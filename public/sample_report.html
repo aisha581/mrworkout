@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Biomechanical Report | Mr. Workout</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --neon-green: #39ff14;
+            --neon-cyan: #00ffff;
+            --dark-bg: #0a0a0a;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--dark-bg);
+            color: #ffffff;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+        }
+
+        #dashboard {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 24px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+
+        .sidebar {
+            width: 320px;
+            height: calc(100vh - 40px);
+            margin: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+        }
+
+        .metric-card {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border-left: 4px solid var(--neon-cyan);
+        }
+
+        .metric-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #888;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: 900;
+            color: #fff;
+            display: flex;
+            align-items: baseline;
+        }
+
+        .metric-unit {
+            font-size: 14px;
+            margin-left: 5px;
+            color: var(--neon-cyan);
+        }
+
+        .symmetry-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 8px solid var(--glass-border);
+            border-top: 8px solid var(--neon-green);
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 900;
+            box-shadow: 0 0 30px rgba(57, 255, 20, 0.2);
+        }
+
+        .cta-btn {
+            margin-top: auto;
+            background: var(--neon-green);
+            color: #000;
+            border: none;
+            padding: 20px;
+            border-radius: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
+        }
+
+        .cta-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 40px rgba(57, 255, 20, 0.6);
+        }
+
+        #canvas-container {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(0, 255, 255, 0.1);
+            color: var(--neon-cyan);
+            border: 1px solid var(--neon-cyan);
+            border-radius: 50px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="badge">Live Audit Sample</div>
+        <div class="header">3D ANALYTICS</div>
+        
+        <div class="metric-card">
+            <div class="metric-label">Knee Flexion Angle</div>
+            <div class="metric-value">142<span class="metric-unit">°</span></div>
+        </div>
+
+        <div class="metric-card" style="border-left-color: var(--neon-green);">
+            <div class="metric-label">Ground Reaction Force</div>
+            <div class="metric-value">2.4<span class="metric-unit">x BW</span></div>
+        </div>
+
+        <div class="metric-label" style="text-align: center;">Symmetry Score</div>
+        <div class="symmetry-circle">94%</div>
+
+        <p style="font-size: 12px; color: #666; margin-top: 20px; line-height: 1.5;">
+            Skeletal mapping indicates a Level Alpha efficiency. Minimal energy leakage at the ankle joint detected.
+        </p>
+
+        <a href="https://mrworkout.pro/partner-onboarding" class="cta-btn">Get Your Free Audit</a>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        let scene, camera, renderer, skeleton, bones = [];
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth - 320, window.innerHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            const pointLight = new THREE.PointLight(0x00ffff, 1);
+            pointLight.position.set(5, 5, 5);
+            scene.add(pointLight);
+
+            // Create Skeleton
+            const material = new THREE.MeshPhongMaterial({ color: 0x39ff14, emissive: 0x39ff14, emissiveIntensity: 0.5 });
+            
+            // Simple procedural skeleton
+            const createBone = (width, height, x, y, z) => {
+                const geometry = new THREE.CylinderGeometry(width, width, height, 8);
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(x, y, z);
+                scene.add(mesh);
+                return mesh;
+            };
+
+            // Central spine
+            bones.push(createBone(0.1, 2, 0, 1, 0)); 
+            // Limbs
+            bones.push(createBone(0.08, 1, 0.5, 2.5, 0)); // Right arm
+            bones.push(createBone(0.08, 1, -0.5, 2.5, 0)); // Left arm
+            bones.push(createBone(0.1, 1.5, 0.3, -0.5, 0)); // Right leg
+            bones.push(createBone(0.1, 1.5, -0.3, -0.5, 0)); // Left leg
+
+            camera.position.z = 5;
+            camera.position.y = 1;
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.005;
+
+            // Rotation and basic running motion simulation
+            bones.forEach((bone, i) => {
+                if (i === 0) { // Spine
+                    bone.rotation.y += 0.01;
+                } else if (i === 3 || i === 4) { // Legs
+                    const offset = i === 3 ? 0 : Math.PI;
+                    bone.rotation.x = Math.sin(time + offset) * 0.5;
+                } else if (i === 1 || i === 2) { // Arms
+                    const offset = i === 1 ? Math.PI : 0;
+                    bone.rotation.x = Math.sin(time + offset) * 0.8;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = (window.innerWidth - 320) / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth - 320, window.innerHeight);
+        });
+
+        init();
+    </script>
+</body>
+</html>
