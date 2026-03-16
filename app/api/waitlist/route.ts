@@ -8,17 +8,19 @@ const generateCode = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6);
 
 export async function POST(req: Request) {
     try {
-        const { email, name, referredBy } = await req.json();
+        const body = await req.json();
+        const { email, name, referredBy, source: bodySource } = body;
 
         // Basic validation
         if (!email || !email.includes('@') || !name) {
             return NextResponse.json({ error: 'Valid email and name are required' }, { status: 400 });
         }
 
-        // Data Normalization: All inputs to lowercase for cleaner DB
+        // Data Normalization
         const normalizedEmail = email.toLowerCase().trim();
         const normalizedName = name.toLowerCase().trim();
         const normalizedReferredBy = referredBy ? referredBy.toUpperCase().trim() : "";
+        const source = bodySource || 'direct';
 
         try {
             // 1. Check if user already exists (Re-entry Logic)
@@ -30,9 +32,8 @@ export async function POST(req: Request) {
                 const isFounder = currentCount < 150;
 
                 // 3. Generate unique referral code
-                // Use Name as base if possible, otherwise random
                 const userCode = generateCode();
-                
+
                 userData = {
                     email: normalizedEmail,
                     name: normalizedName,
@@ -41,7 +42,8 @@ export async function POST(req: Request) {
                     referredBy: normalizedReferredBy,
                     founder: isFounder ? "true" : "false",
                     founderId: isFounder ? (currentCount + 1).toString().padStart(3, '0') : "",
-                    joinedAt: Date.now().toString()
+                    joinedAt: Date.now().toString(),
+                    source: source
                 };
 
                 // 4. Save User Data and Code Lookup
@@ -50,6 +52,9 @@ export async function POST(req: Request) {
                 
                 // 5. Record in general waitlist list
                 await kv.lpush('waitlist_athletes', normalizedEmail);
+
+                // Track metric
+                await kv.hincrby('marketing_metrics', `source:${source}`, 1);
 
                 // 6. Handle Referral Logic
                 if (normalizedReferredBy) {
