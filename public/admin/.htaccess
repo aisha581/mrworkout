@@ -1,0 +1,15 @@
+# MR. WORKOUT | SERVER DIRECTIVE
+# Force PHP handling and direct rendering
+
+DirectoryIndex index.php
+
+<Files "index.php">
+    AddType text/html .php
+    ForceType application/x-httpd-php
+</Files>
+
+# Protect archives
+<FilesMatch "\.(csv|log)$">
+    Order deny,allow
+    Deny from all
+</FilesMatch>
