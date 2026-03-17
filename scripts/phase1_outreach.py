@@ -55,10 +55,12 @@ def send_email(lead, html_content):
 
     subject = "The Godfather Offer"
     
-    # Simple template substitution
+    # Template variable injection
+    tracking_id = lead.get("id", "PROBE_" + str(int(time.time())))
     html = html_content.replace("{{name}}", name)
     html = html.replace("{{platform}}", "Instagram")
     html = html.replace("{{topic}}", lead.get("topic", "Strength & Conditioning"))
+    html = html.replace("{{tracking_id}}", tracking_id)
 
     msg = MIMEMultipart()
     msg['From'] = f"Mr. Workout <{SMTP_USER}>"
