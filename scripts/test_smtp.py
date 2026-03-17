@@ -29,7 +29,7 @@ def test_hostinger_smtp():
             
             # Send test probe
             msg = MIMEText("SMTP Pipe Operational. Vectors secure.")
-            msg['Subject'] = "Protocol Test: SMTP"
+            msg['Subject'] = "Bridge Success Test"
             msg['From'] = USER
             msg['To'] = USER
             

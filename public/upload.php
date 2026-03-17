@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // Define storage directory
-$dataDir = __DIR__ . '/data/pending_audits/';
+$dataDir = __DIR__ . '/data/uploads/';
 if (!is_dir($dataDir)) {
     mkdir($dataDir, 0777, true);
 }
