@@ -244,7 +244,7 @@
             
             try {
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', '/api/upload', true);
+                xhr.open('POST', '/upload.php', true);
 
                 xhr.upload.onprogress = e => {
                     if (e.lengthComputable) {

@@ -46,66 +46,36 @@ def save_daily_state(state):
     with open(STATE_FILE, 'w') as f:
         json.dump(state, f)
 
-def send_via_resend(lead, sanitized_name, html, subject):
-    """Primary provider: Resend."""
-    if not RESEND_API_KEY:
-        return False, "KEY_MISSING", "Resend API Key missing"
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+HOSTINGER_SMTP_SERVER = "smtps.hostinger.com"
+HOSTINGER_SMTP_PORT = 465
+HOSTINGER_SMTP_USER = os.getenv("HOSTINGER_SMTP_USER") or "coach@mrworkout.pro"
+HOSTINGER_SMTP_PASS = os.getenv("HOSTINGER_SMTP_PASS")
+LIMIT_HOSTINGER = 1000
+
+def send_via_hostinger(lead, sanitized_name, html, subject):
+    """Unified Hostinger SMTP Pipe (1,000/day cap)."""
+    if not HOSTINGER_SMTP_PASS:
+        return False, "KEY_MISSING", "Hostinger SMTP Password missing in .env"
     
-    url = "https://api.resend.com/emails"
-    headers = {
-        "Authorization": f"Bearer {RESEND_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    payload = {
-        "from": "Mr. Workout <coach@mrworkout.pro>",
-        "to": [lead["email"]],
-        "reply_to": "thebillion9@gmail.com",
-        "subject": subject,
-        "html": html
-    }
+    msg = MIMEMultipart()
+    msg['From'] = f"Mr. Workout <{HOSTINGER_SMTP_USER}>"
+    msg['To'] = lead["email"]
+    msg['Subject'] = subject
+    msg.attach(MIMEText(html, 'html'))
 
     try:
-        response = requests.post(url, headers=headers, json=payload)
-        if response.status_code in [200, 201]:
-            return True, "SUCCESS", f"Sent via Resend to {sanitized_name}"
-        elif response.status_code == 429 or "rate limit" in response.text.lower() or "quota" in response.text.lower():
-            return False, "QUOTA_EXCEEDED", f"Resend Quota: {response.text}"
-        else:
-            return False, "ERROR", f"Resend Error: {response.text}"
+        with smtplib.SMTP_SSL(HOSTINGER_SMTP_SERVER, HOSTINGER_SMTP_PORT) as server:
+            server.login(HOSTINGER_SMTP_USER, HOSTINGER_SMTP_PASS)
+            server.send_message(msg)
+        return True, "SUCCESS", f"Sent via Hostinger SMTP to {sanitized_name}"
+    except smtplib.SMTPAuthenticationError:
+        return False, "AUTH_ERROR", "Hostinger SMTP Authentication Failed"
     except Exception as e:
-        return False, "CRITICAL", f"Resend Connection Failure: {e}"
-
-def send_via_brevo(lead, sanitized_name, html, subject):
-    """Secondary provider: Brevo."""
-    if not BREVO_API_KEY:
-        return False, "KEY_MISSING", "Brevo API Key missing"
-    
-    url = "https://api.brevo.com/v3/smtp/email"
-    headers = {
-        "api-key": BREVO_API_KEY,
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    }
-    
-    payload = {
-        "sender": {"name": "Mr. Workout", "email": "coach@mrworkout.pro"},
-        "to": [{"email": lead["email"], "name": sanitized_name}],
-        "replyTo": {"email": "thebillion9@gmail.com"},
-        "subject": subject,
-        "htmlContent": html
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        if response.status_code in [200, 201]:
-            return True, "SUCCESS", f"Sent via Brevo to {sanitized_name}"
-        elif response.status_code == 429 or "quota" in response.text.lower():
-            return False, "QUOTA_EXCEEDED", f"Brevo Quota: {response.text}"
-        else:
-            return False, "ERROR", f"Brevo Error: {response.text}"
-    except Exception as e:
-        return False, "CRITICAL", f"Brevo Connection Failure: {e}"
+        return False, "ERROR", f"Hostinger SMTP Failure: {e}"
 
 def log_overflow(lead):
     """Logs leads to pending_tomorrow.csv when both providers are exhausted."""
@@ -187,31 +157,18 @@ def run_daemon():
 
             dispatched = False
             
-            # PROVIDER TIER 1: Resend
-            if state["resend_count"] < LIMIT_RESEND:
-                success, code, msg = send_via_resend(lead, sanitized_name, html, subject)
+            # PRIMARY PIPE: Hostinger SMTP (1,000/day cap)
+            if state.get("hostinger_count", 0) < LIMIT_HOSTINGER:
+                success, code, msg = send_via_hostinger(lead, sanitized_name, html, subject)
                 if success:
-                    state["resend_count"] += 1
-                    log_status(f"STATUS_SENT (RESEND): {msg}")
+                    state["hostinger_count"] = state.get("hostinger_count", 0) + 1
+                    log_status(f"STATUS_SENT (HOSTINGER): {msg}")
                     dispatched = True
-                elif code == "QUOTA_EXCEEDED":
-                    log_status(f"FAILOVER_TRIGGERED: Resend Quota Exceeded. Moving to Brevo.")
-                    state["resend_count"] = LIMIT_RESEND # Force limit hit to skip next time
+                elif code == "AUTH_ERROR":
+                    log_status(f"CRITICAL_AUTH_FAILURE: Hostinger SMTP Authentication failed. Check .env")
+                    break # Stop daemon to prevent lockouts
                 else:
-                    log_status(f"PROVIDER_ERROR (RESEND): {msg}")
-
-            # PROVIDER TIER 2: Brevo
-            if not dispatched and state["brevo_count"] < LIMIT_BREVO:
-                success, code, msg = send_via_brevo(lead, sanitized_name, html, subject)
-                if success:
-                    state["brevo_count"] += 1
-                    log_status(f"STATUS_SENT (BREVO): {msg}")
-                    dispatched = True
-                elif code == "QUOTA_EXCEEDED":
-                    log_status(f"FALLBACK_TRIGGERED: Brevo Quota Exceeded. Final Fallback.")
-                    state["brevo_count"] = LIMIT_BREVO
-                else:
-                    log_status(f"PROVIDER_ERROR (BREVO): {msg}")
+                    log_status(f"PROVIDER_ERROR (HOSTINGER): {msg}")
 
             # RECOVERY: Overflow
             if not dispatched:
@@ -220,7 +177,7 @@ def run_daemon():
                     state["overflow_count"] += 1
                     log_status(f"STATUS_OVERFLOW: Staged to pending_tomorrow.csv | {name}")
                 else:
-                    log_status(f"STATUS_DROPPED: Capacity Full (500/day exceeded) | {name}")
+                    log_status(f"STATUS_DROPPED: Capacity Full (1,000/day exceeded) | {name}")
 
             save_daily_state(state)
             time.sleep(DRIP_INTERVAL_SECONDS)
