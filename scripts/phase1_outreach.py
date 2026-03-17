@@ -19,6 +19,7 @@ SMTP_PASS = os.getenv("HOSTINGER_SMTP_PASS")
 # Campaign Settings
 SEGMENT_FILE = "ig_leads.log"
 LOG_FILE = "campaign_log.csv"
+ARCHIVE_DIR = "public/logs/sent_emails"
 TEMPLATE_FILE = "templates/godfather_partnership.html"
 DRIP_INTERVAL = 120  # 2 minutes in seconds
 MAX_LEADS = 50
@@ -69,6 +70,14 @@ def send_email(lead, html_content):
     msg.attach(MIMEText(html, 'html'))
 
     try:
+        # Save archive copy
+        if not os.path.exists(ARCHIVE_DIR):
+            os.makedirs(ARCHIVE_DIR)
+        
+        archive_name = f"{int(time.time())}_{lead.get('username', 'lead')}.html"
+        with open(os.path.join(ARCHIVE_DIR, archive_name), 'w') as f:
+            f.write(html)
+
         with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
             server.login(SMTP_USER, SMTP_PASS)
             server.send_message(msg)
