@@ -50,7 +50,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-HOSTINGER_SMTP_SERVER = "smtps.hostinger.com"
+HOSTINGER_SMTP_SERVER = "smtp.hostinger.com"
 HOSTINGER_SMTP_PORT = 465
 HOSTINGER_SMTP_USER = os.getenv("HOSTINGER_SMTP_USER") or "coach@mrworkout.pro"
 HOSTINGER_SMTP_PASS = os.getenv("HOSTINGER_SMTP_PASS")

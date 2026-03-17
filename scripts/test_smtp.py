@@ -8,7 +8,7 @@ load_dotenv()
 def test_hostinger_smtp():
     print("--- MR. WORKOUT: SMTP CONNECTIVITY TEST ---")
     
-    SERVER = "smtps.hostinger.com"
+    SERVER = "smtp.hostinger.com"
     PORT = 465
     USER = os.getenv("HOSTINGER_SMTP_USER") or "coach@mrworkout.pro"
     PASS = os.getenv("HOSTINGER_SMTP_PASS")
