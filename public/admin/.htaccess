@@ -1,14 +1,13 @@
 # MR. WORKOUT | SERVER DIRECTIVE
-# Force PHP handling and direct rendering
+# Force PHP handling and direct rendering for Hostinger/LiteSpeed
+
+<FilesMatch "\.php$">
+    SetHandler application/x-httpd-php
+</FilesMatch>
 
 DirectoryIndex index.php
 
-<Files "index.php">
-    AddType text/html .php
-    ForceType application/x-httpd-php
-</Files>
-
-# Protect archives
+# Protect sensitive data
 <FilesMatch "\.(csv|log)$">
     Order deny,allow
     Deny from all

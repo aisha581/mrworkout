@@ -7,10 +7,25 @@
 $secret_key = "savage_scout_2026";
 $provided_key = $_GET['key'] ?? '';
 
-// Check for key. If missing, show "Access Denied" instead of file download.
+// Check for key. Always send HTML header to prevent download triggers.
 if ($provided_key !== $secret_key) {
     header('Content-Type: text/html; charset=utf-8');
-    echo "<!DOCTYPE html><html><head><title>MISSION DENIED</title><style>body{background:#000;color:#f00;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:20px;text-align:center;}h1{border:1px solid #f00;padding:20px;letter-spacing:5px;}</style></head><body><h1>MISSION DENIED | ACCESS RESTRICTED</h1></body></html>";
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>MISSION DENIED | ACCESS RESTRICTED</title>
+        <style>
+            body { background: #000; color: #f00; font-family: monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+            h1 { border: 2px solid #f00; padding: 40px; letter-spacing: 5px; text-transform: uppercase; border-radius: 10px; }
+        </style>
+    </head>
+    <body>
+        <h1>ACCESS RESTRICTED<br>PHASE 1 CLEARANCE REQUIRED</h1>
+    </body>
+    </html>
+    <?php
     exit;
 }
 
