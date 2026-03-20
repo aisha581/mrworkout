@@ -28,27 +28,16 @@ export default function DashboardAlpha() {
 
             if (leadsError) throw leadsError;
             
-            // 3. Fetch Waitlist (Vercel KV)
+            // 3. Fetch Waitlist & Google Sheets Proxy
             const waitlistRes = await fetch('/api/dashboard/waitlist');
             const waitlistData = await waitlistRes.json();
             const waitlistItems = waitlistData.waitlist || [];
+            const googleSheetsItems = waitlistData.googleSheets || [];
             
-            // 3.5. Google Sheets Bridge Fetch (DEBUG)
-            const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyRRB7PwgDM3yQmNV6GqS_C6MpFzA5cidvSNgzo3v129IgomqoXyiZ8XW5q8733QXYV/exec";
-            try {
-                const sheetRes = await fetch(GOOGLE_SHEETS_URL);
-                const sheetRaw = await sheetRes.text(); // Get raw text for logging
-                console.log("[DEBUG] Dashboard Fetch Raw Response from Google Sheets:", sheetRaw);
-                
-                try {
-                    const sheetJson = JSON.parse(sheetRaw);
-                    console.log("[DEBUG] Dashboard JSON parsed:", sheetJson);
-                    // If we wanted to merge, we could do it here
-                } catch (e) {
-                    console.warn("[DEBUG] Could not parse Google Sheets response as JSON. Potential CORS or Script Error.");
-                }
-            } catch (sheetErr) {
-                console.error("[DEBUG] Google Sheets Dashboard Fetch failed:", sheetErr);
+            console.log("[DEBUG] KV Waitlist:", waitlistItems.length);
+            console.log("[DEBUG] Google Sheets (Proxied):", googleSheetsItems.length);
+            if (googleSheetsItems.length > 0) {
+                console.log("[DEBUG] Sample Google Sheet entry:", googleSheetsItems[0]);
             }
 
             const partnersCount = waitlistItems.filter((item: any) => item.role === 'partner').length;
