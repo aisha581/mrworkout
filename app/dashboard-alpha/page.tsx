@@ -28,30 +28,24 @@ export default function DashboardAlpha() {
 
             if (leadsError) throw leadsError;
             
-            // 3. BYPASS VERCEL - Direct Fetch from Google Sheets
-            const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
+            // 3. DIRECT FETCH from Google Sheets - NO VERCEL PROXY
+            const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwoLdjb55fgb96MV8TwLT4hqIuyK1-3EmFdEAp00G7QO-x-ZEVCs6IrJ7AUZ0_nU9xN/exec";
             let waitlistItems = [];
             
             try {
                 const sheetRes = await fetch(GOOGLE_URL);
                 const sheetJson = await sheetRes.json();
                 waitlistItems = sheetJson.waitlist || [];
-                console.log("[DEBUG] Direct Data Received:", waitlistItems.length);
+                console.log("[DEBUG] Live Data Received:", waitlistItems.length);
             } catch (sheetErr) {
-                console.error("[DEBUG] Direct Google Sheets Fetch failed (Possible CORS):", sheetErr);
+                console.error("[DEBUG] Direct Google Sync Failed:", sheetErr);
             }
 
             const partnersCount = waitlistItems.filter((item: any) => item.role === 'partner').length;
             const athletesCount = waitlistItems.filter((item: any) => item.role === 'athlete').length;
 
-            // 4. Skip metrics if API is 500
-            let metricsData: any = { sent: 0, opens: 0, social_shares: 0, whatsapp_clicks: 0, partner_conversions: 0 };
-            try {
-                const mRes = await fetch('/api/marketing/metrics');
-                if (mRes.ok) metricsData = await mRes.json();
-            } catch (e) {
-                console.warn("[DEBUG] Metrics API failed, using defaults.");
-            }
+            // 4. Default Stats (Metrics API removed)
+            const metricsData: any = { sent: 0, opens: 0, social_shares: 0, whatsapp_clicks: 0, partner_conversions: 0 };
 
             // 5. Process Metrics
             setStats({

@@ -70,29 +70,31 @@
     </div>
 
     <script>
-        const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
+        const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwoLdjb55fgb96MV8TwLT4hqIuyK1-3EmFdEAp00G7QO-x-ZEVCs6IrJ7AUZ0_nU9xN/exec";
 
         function testConnection() {
-            console.log("[DEBUG] Opening test tab for:", GOOGLE_URL);
             window.open(GOOGLE_URL, '_blank');
         }
 
         async function loadLeads() {
-            console.log("[DEBUG] Synchronizing with Google Sheets...");
-            try {
-                // 1. First, attempt fetch through proxy (Bypasses local CORS)
-                const res = await fetch('/api/dashboard/waitlist');
-                const result = await res.json();
-                console.log("[DEBUG] API Data Received:", result);
+            console.log("[DEBUG] Syncing directly with Google...");
+            const loadingStatus = document.getElementById('total-leads');
+            loadingStatus.innerText = "...";
 
-                const data = (result.googleSheets && result.googleSheets.length > 0) ? result.googleSheets : result.waitlist || [];
+            try {
+                // DIRECT FETCH ONLY - BYPASS VERCEL 500s
+                const res = await fetch(GOOGLE_URL);
+                const result = await res.json();
+                console.log("[DEBUG] Live Data:", result);
+
+                const data = result.waitlist || [];
                 
                 document.getElementById('total-leads').innerText = result.total || data.length;
                 document.getElementById('partner-count').innerText = data.filter(l => l.role?.toLowerCase() === 'partner').length;
                 document.getElementById('athlete-count').innerText = data.filter(l => l.role?.toLowerCase() === 'athlete').length;
 
                 const tbody = document.querySelector('#leads-table tbody');
-                tbody.innerHTML = data.reverse().slice(0, 20).map(l => `
+                tbody.innerHTML = data.reverse().slice(0, 50).map(l => `
                     <tr>
                         <td style="color: #666; font-family: monospace;">${l.timestamp ? new Date(l.timestamp).toLocaleString() : 'N/A'}</td>
                         <td style="font-weight: bold;">${l.email || 'N/A'}</td>
@@ -100,7 +102,8 @@
                     </tr>
                 `).join('');
             } catch (e) {
-                console.error("[DEBUG] Direct Google Sheets Fetch Failed (Possible CORS):", e);
+                console.error("[DEBUG] Sync Failed:", e);
+                loadingStatus.innerText = "Error";
             }
         }
 
