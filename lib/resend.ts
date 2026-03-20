@@ -8,7 +8,7 @@ export default resend;
 /**
  * Sends a "Savage" welcome email to newly enrolled athletes.
  */
-export async function sendWelcomeEmail(email: string, founderNumber?: string) {
+export async function sendWelcomeEmail(email: string, founderNumber?: string, options?: { subject?: string, html?: string }) {
     try {
         if (!process.env.RESEND_API_KEY) {
             console.warn('[RESEND] API Key missing. Skipping email sent to:', email);
@@ -19,8 +19,8 @@ export async function sendWelcomeEmail(email: string, founderNumber?: string) {
             from: 'Mr. Workout <coach@mrworkout.pro>',
             to: [email],
             replyTo: 'thebillion9@gmail.com',
-            subject: 'Entry Granted: Welcome to the Clinic',
-            html: `
+            subject: options?.subject || 'Entry Granted: Welcome to the Clinic',
+            html: options?.html || `
                 <div style="font-family: sans-serif; background: #121212; color: #ffffff; padding: 40px; border-radius: 20px;">
                     <h1 style="color: #00ffff; font-style: italic; text-transform: uppercase;">Entry Granted</h1>
                     <p style="font-size: 16px; line-height: 1.6;">

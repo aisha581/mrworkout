@@ -20,6 +20,9 @@ export async function GET() {
             sent: totalSent,
             opens: totalOpens,
             clicks: totalClicks,
+            social_shares: parseInt((metrics?.social_shares as string) || "0"),
+            whatsapp_clicks: parseInt((metrics?.['clicks:whatsapp'] as string) || "0"),
+            partner_conversions: parseInt((metrics?.['clicks:whatsapp_partner'] as string) || "0"),
             open_rate: `${openRate}%`,
             click_rate: `${clickRate}%`,
             campaigns: {

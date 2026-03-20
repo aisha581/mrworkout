@@ -97,44 +97,6 @@
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
         }
 
-        .file-upload {
-            border: 2px dashed var(--glass-border);
-            border-radius: 20px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .file-upload:hover {
-            border-color: var(--neon-green);
-            background: rgba(57, 255, 20, 0.02);
-        }
-
-        .file-upload p {
-            font-size: 12px;
-            color: #666;
-            margin: 0;
-        }
-
-        .file-upload strong {
-            display: block;
-            color: #fff;
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-
-        #file-input {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
-
         .btn-submit {
             width: 100%;
             background: var(--neon-green);
@@ -174,100 +136,93 @@
             color: rgba(255,255,255,0.1);
             pointer-events: none;
         }
-
-        #progress-bar {
-            width: 0%;
-            height: 4px;
-            background: var(--neon-green);
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            border-radius: 0 0 32px 32px;
-            transition: width 0.3s ease;
-        }
     </style>
 </head>
 <body>
     <div class="upload-card">
         <div class="header">
-            <h1>Vector Input</h1>
-            <p>Institutional Intake Protocol</p>
+            <h1>Coach Connection</h1>
+            <p>Institutional Intake Protocol (v.2)</p>
         </div>
 
-        <form id="upload-form">
-            <div class="form-group">
-                <label>Coach Name</label>
-                <input type="text" id="coach-name" name="coachName" placeholder="ENTER IDENTIFIER" required>
-            </div>
+        <div style="text-align: center; margin-bottom: 30px;">
+            <p style="font-size: 14px; text-transform: uppercase; color: #fff; letter-spacing: 1px; font-weight: 900;">
+                Direct 3D Vector Audit
+            </p>
+            <p style="font-size: 11px; color: #888; margin-top: 10px; line-height: 1.6;">
+                The intake portal is currently optimized for WhatsApp. 
+                Click below to start your private biomechanical thread.
+            </p>
+        </div>
 
-            <div class="form-group">
-                <label>Athlete ID</label>
-                <input type="text" id="athlete-id" name="athleteId" placeholder="SUBJECT REF NO." required>
-            </div>
+        <div class="form-group">
+            <label>Coach Identifier</label>
+            <input type="text" id="coach-name" placeholder="YOUR NAME / HANDLE">
+        </div>
 
-            <div class="form-group">
-                <label>Capture File (.mp4 / .mov)</label>
-                <div class="file-upload">
-                    <strong>Drop Biomechanical Data</strong>
-                    <p id="file-name">Maximum payload 50MB</p>
-                    <input type="file" id="file-input" name="video" accept=".mp4,.mov" required>
-                </div>
-            </div>
+        <div class="form-group">
+            <label>Athlete ID</label>
+            <input type="text" id="athlete-id" placeholder="SUBJECT REF NO. (OPTIONAL)">
+        </div>
 
-            <button type="submit" class="btn-submit" id="submit-btn">Execute Upload</button>
-        </form>
-        <div id="progress-bar"></div>
+        <button id="whatsapp-btn" class="btn-submit" style="background: #25D366; color: #fff; box-shadow: 0 10px 30px rgba(37, 211, 102, 0.2);">
+            Chat with Coach on WhatsApp
+        </button>
     </div>
 
     <div class="watermark">MRWORKOUT.PRO</div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        const fileInput = document.getElementById('file-input');
-        const fileNameDisp = document.getElementById('file-name');
-        const form = document.getElementById('upload-form');
-        const submitBtn = document.getElementById('submit-btn');
-        const progressBar = document.getElementById('progress-bar');
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://btmopyfbuvylmdfwqfuo.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_q6qXYCW5pnFYLailU9fBMg_nNCwFT8h';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        fileInput.addEventListener('change', e => {
-            if (e.target.files.length > 0) {
-                fileNameDisp.innerText = e.target.files[0].name;
-                fileNameDisp.style.color = '#39ff14';
-            }
-        });
+        const whatsappBtn = document.getElementById('whatsapp-btn');
+        const coachInput = document.getElementById('coach-name');
+        const athleteInput = document.getElementById('athlete-id');
 
-        form.addEventListener('submit', async e => {
-            e.preventDefault();
-            submitBtn.disabled = true;
-            submitBtn.innerText = 'Analyzing Vectors...';
-
-            const formData = new FormData(form);
+        whatsappBtn.addEventListener('click', async () => {
+            const coachName = coachInput.value || 'Anonymous Lead';
+            const athleteId = athleteInput.value || 'N/A';
             
+            whatsappBtn.innerText = 'Initializing Secure Link...';
+            whatsappBtn.disabled = true;
+
             try {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', '/upload.php', true);
+                // 1. Log Lead Click in Supabase
+                const { error } = await supabase
+                    .from('leads')
+                    .insert([
+                        { 
+                            coach_name: coachName, 
+                            athlete_id: athleteId,
+                            contact_method: 'WHATSAPP',
+                            status: 'CLICKED'
+                        }
+                    ]);
 
-                xhr.upload.onprogress = e => {
-                    if (e.lengthComputable) {
-                        const percent = (e.loaded / e.total) * 100;
-                        progressBar.style.width = percent + '%';
-                    }
-                };
+                if (error) console.error('Tracking Error:', error);
 
-                xhr.onload = () => {
-                    if (xhr.status === 200) {
-                        window.location.href = '/success.html';
-                    } else {
-                        alert('Intake Failure: ' + xhr.responseText);
-                        submitBtn.disabled = false;
-                        submitBtn.innerText = 'Retry Upload';
-                    }
-                };
+                // 2. Open WhatsApp Link
+                const phone = "447341841844";
+                const message = encodeURIComponent("Hey! I'm interested in joining the Mr. Workout Founder's Circle. Here's my clip for the 3D analysis.");
+                const whatsappUrl = `https://wa.me/${phone}?text=${message}`;
+                
+                window.open(whatsappUrl, '_blank');
+                
+                whatsappBtn.innerText = 'Link Active';
+                setTimeout(() => {
+                    whatsappBtn.disabled = false;
+                    whatsappBtn.innerText = 'Chat with Coach on WhatsApp';
+                }, 3000);
 
-                xhr.send(formData);
             } catch (err) {
-                console.error(err);
-                alert('Critical System Error');
-                submitBtn.disabled = false;
+                console.error('Lead Error:', err);
+                alert('Connection Error. Try again.');
+                whatsappBtn.disabled = false;
+                whatsappBtn.innerText = 'Chat with Coach on WhatsApp';
             }
         });
     </script>

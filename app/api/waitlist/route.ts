@@ -9,7 +9,9 @@ const generateCode = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6);
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { email, name, referredBy, source: bodySource } = body;
+        const { email, name, referredBy, source: bodySource, role: bodyRole } = body;
+
+        const role = (bodyRole === 'partner' || bodyRole === 'athlete') ? bodyRole : 'athlete';
 
         // Basic validation
         if (!email || !email.includes('@') || !name) {
@@ -43,7 +45,8 @@ export async function POST(req: Request) {
                     founder: isFounder ? "true" : "false",
                     founderId: isFounder ? (currentCount + 1).toString().padStart(3, '0') : "",
                     joinedAt: Date.now().toString(),
-                    source: source
+                    source: source,
+                    role: role
                 };
 
                 // 4. Save User Data and Code Lookup
@@ -55,6 +58,7 @@ export async function POST(req: Request) {
 
                 // Track metric
                 await kv.hincrby('marketing_metrics', `source:${source}`, 1);
+                await kv.hincrby('marketing_metrics', `role:${role}`, 1);
 
                 // 6. Handle Referral Logic
                 if (normalizedReferredBy) {
@@ -68,8 +72,17 @@ export async function POST(req: Request) {
                 console.log(`[ATHLETE_JOINED] ${normalizedEmail} joined. Code: ${userCode} | Founder: ${isFounder}`);
                 
                 // 7. Trigger Welcome Email (only for NEW signups)
-                // Pass founderId if they are a founder
                 await sendWelcomeEmail(normalizedEmail, isFounder ? (userData as any).founderId : undefined);
+
+                // 8. EMERGENCY BCC NOTIFICATION (Hostinger Fallback)
+                try {
+                    await sendWelcomeEmail('sales@mrworkout.pro', undefined, {
+                        subject: `NEW LEAD ENLISTED: ${normalizedName}`,
+                        html: `<p><strong>Email:</strong> ${normalizedEmail}</p><p><strong>Role:</strong> ${role}</p><p><strong>Source:</strong> ${source}</p>`
+                    });
+                } catch (bccError) {
+                    console.error('[BCC_FAIL]', bccError);
+                }
             } else {
                 console.log(`[ATHLETE_REENTRY] ${normalizedEmail} recognized. Redirecting...`);
                 // Trigger email on re-entry just in case they missed it, or at least log it

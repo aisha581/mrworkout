@@ -1,4 +1,10 @@
 {
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/dashboard-alpha", "destination": "/dashboard-alpha.html" },
+    { "source": "/upload", "destination": "/upload.html" }
+  ],
   "crons": [
     {
       "path": "/api/cron/followup",

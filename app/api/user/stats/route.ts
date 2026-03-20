@@ -46,6 +46,7 @@ export async function GET(req: Request) {
             isFounder: userData.founder === "true" || userData.founder === true,
             founderId: founderId,
             joinedAt: userData.joinedAt as string || Date.now().toString(),
+            role: (userData.role as string) || "athlete",
             status: "active"
         });
 

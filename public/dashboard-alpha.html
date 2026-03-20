@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Alpha | Mr. Workout</title>
+    <style>
+        :root {
+            --neon-green: #39ff14;
+            --neon-cyan: #00ffff;
+            --dark-bg: #050505;
+        }
+        body {
+            background: var(--dark-bg);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 40px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; text-align: center; }
+        .card h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #666; margin-bottom: 10px; }
+        .card p { font-size: 32px; font-weight: 900; margin: 0; color: var(--neon-green); }
+        table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.02); border-radius: 20px; overflow: hidden; }
+        th { text-align: left; padding: 20px; font-size: 10px; text-transform: uppercase; color: #444; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        td { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
+        .role-partner { color: #FFD700; font-weight: bold; }
+        .role-athlete { color: var(--neon-cyan); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 5px; margin-bottom: 40px;">System Dashboard</h1>
+        
+        <div class="grid">
+            <div class="card">
+                <h3>Total Leads</h3>
+                <p id="total-leads">0</p>
+            </div>
+            <div class="card">
+                <h3>Partners</h3>
+                <p id="partner-count" style="color: #FFD700;">0</p>
+            </div>
+            <div class="card">
+                <h3>Athletes</h3>
+                <p id="athlete-count" style="color: var(--neon-cyan);">0</p>
+            </div>
+        </div>
+
+        <table id="leads-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyRRB7PwgDM3yQmNV6GqS_C6MpFzA5cidvSNgzo3v129IgomqoXyiZ8XW5q8733QXYV/exec";
+
+        async function loadLeads() {
+            console.log("[DEBUG] Fetching from:", GOOGLE_SHEETS_URL);
+            try {
+                const res = await fetch(GOOGLE_SHEETS_URL);
+                const rawText = await res.text();
+                console.log("[DEBUG] Raw Response from Google Sheets:", rawText);
+                
+                const result = JSON.parse(rawText);
+                console.log("[DEBUG] Parsed JSON:", result);
+
+                const data = result.waitlist || [];
+                
+                document.getElementById('total-leads').innerText = result.total || 0;
+                document.getElementById('partner-count').innerText = data.filter(l => l.role?.toLowerCase() === 'partner').length;
+                document.getElementById('athlete-count').innerText = data.filter(l => l.role?.toLowerCase() === 'athlete').length;
+
+                const tbody = document.querySelector('#leads-table tbody');
+                tbody.innerHTML = data.reverse().map(l => `
+                    <tr>
+                        <td style="color: #666; font-family: monospace;">${new Date(l.timestamp).toLocaleString()}</td>
+                        <td style="font-weight: bold;">${l.email}</td>
+                        <td class="role-${l.role?.toLowerCase()}">${(l.role || 'ATHLETE').toUpperCase()}</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error("[DEBUG] Google Sheets Fetch Failed:", e);
+                // Fallback to local API if Sheets URL is missing
+                if (GOOGLE_SHEETS_URL.includes("XXXXXXXXXX")) {
+                    console.log("Using API Fallback...");
+                    const res = await fetch('/api/dashboard/waitlist');
+                    const r = await res.json();
+                    // ... handle fallback if needed
+                }
+            }
+        }
+
+        loadLeads();
+        setInterval(loadLeads, 30000);
+    </script>
+</body>
+</html>

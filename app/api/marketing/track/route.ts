@@ -33,12 +33,34 @@ export async function GET(req: Request) {
             });
         }
 
+        if (type === 'social_share') {
+            await kv.hincrby('marketing_metrics', 'social_shares', 1);
+            return NextResponse.json({ success: true });
+        }
+
         if (type === 'click') {
             await kv.hincrby('marketing_metrics', `clicks:${campaignId}`, 1);
             await kv.hincrby('marketing_metrics', 'total_clicks', 1);
             
-            // Redirect to welcome page
-            return NextResponse.redirect('https://www.mrworkout.pro/welcome');
+            // If it's a WhatsApp click from a partner, track as conversion
+            if (campaignId === 'whatsapp' && searchParams.get('role') === 'partner') {
+                await kv.hincrby('marketing_metrics', 'clicks:whatsapp_partner', 1);
+            }
+
+            // If it's a tracking pixel or internal click, return success
+            if (campaignId === 'whatsapp') {
+                return NextResponse.json({ success: true });
+            }
+
+            // Construct redirect URL with existing params (role, etc.)
+            const redirectUrl = new URL('https://mrworkout.pro/welcome');
+            searchParams.forEach((value, key) => {
+                if (key !== 'type' && key !== 'id') {
+                    redirectUrl.searchParams.set(key, value);
+                }
+            });
+
+            return NextResponse.redirect(redirectUrl.toString());
         }
 
         return new Response('Invalid type', { status: 400 });

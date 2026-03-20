@@ -2,8 +2,9 @@
 
 import { useState, useEffect, Suspense, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, Check, ShieldCheck, Download, Share2, Instagram, Smartphone, Lock, Target, Zap, ChevronRight, Users, Loader2, Volume2, VolumeX, Medal } from "lucide-react";
+import { Copy, Check, ShieldCheck, Download, Share2, Instagram, Smartphone, Lock, Target, Zap, ChevronRight, Users, Loader2, Volume2, VolumeX, Medal, MessageSquare, UserPlus, CheckCircle, Link2, Play } from "lucide-react";
 import Link from "next/link";
+import VideoPlayer from "@/components/VideoPlayer";
 import { useSearchParams } from "next/navigation";
 import { toPng, toBlob } from "html-to-image";
 import { saveAs } from "file-saver";
@@ -55,9 +56,11 @@ function WelcomeContent() {
     const paramEmail = searchParams.get('email');
     
     // Fallback data for optimistic redirect
-    const [stats, setStats] = useState<{ referrals: number; isFounder: boolean; email: string; name: string; founderId: string; joinedAt?: string } | null>(
-        paramName ? { referrals: 0, isFounder: true, email: paramEmail || "", name: paramName, founderId: "???", joinedAt: Date.now().toString() } : null
+    const [stats, setStats] = useState<{ referrals: number; isFounder: boolean; email: string; name: string; founderId: string; joinedAt?: string; role?: string } | null>(
+        paramName ? { referrals: 0, isFounder: true, email: paramEmail || "", name: paramName, founderId: "???", joinedAt: Date.now().toString(), role: searchParams.get('role') || 'athlete' } : null
     );
+
+    const [videoExercise, setVideoExercise] = useState<any>(null);
     const [copySuccess, setCopySuccess] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -87,7 +90,8 @@ function WelcomeContent() {
                         email: data.email,
                         name: data.name,
                         founderId: data.founderId,
-                        joinedAt: data.joinedAt
+                        joinedAt: data.joinedAt,
+                        role: data.role
                     });
                 })
                 .catch(console.error);
@@ -105,11 +109,12 @@ function WelcomeContent() {
                     email: paramEmail || "",
                     name: paramName || "ATHLETE",
                     founderId: formattedCount,
-                    joinedAt: Date.now().toString()
+                    joinedAt: Date.now().toString(),
+                    role: searchParams.get('role') || 'athlete'
                 });
             });
         }
-    }, [paramName, paramEmail, stats]);
+    }, [paramName, paramEmail, stats, searchParams]);
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(referralLink);
@@ -163,6 +168,10 @@ function WelcomeContent() {
         }
         setIsSharing(true);
         try {
+            // Track social share event
+            fetch(`/api/marketing/track?type=social_share&email=${encodeURIComponent(stats?.email || "unknown")}`)
+                .catch(err => console.error("Tracking failed:", err));
+
             await navigator.share({
                 title: "MR. WORKOUT | FOUNDER",
                 text: "I just secured my Founder Status at the Mr. Workout Clinic. The 3D revolution has begun. join the squad.",
@@ -200,67 +209,126 @@ function WelcomeContent() {
                 <motion.div 
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="w-full flex flex-col items-center gap-8"
+                    className="w-full flex flex-col items-center gap-10"
                 >
-                    {/* The Actual Card DOM for html2canvas */}
-                    <div className="relative group p-1 shadow-[0_0_100px_rgba(255,215,0,0.1)] rounded-[40px] bg-gradient-to-br from-[#FFD700]/40 via-transparent to-[#FFD700]/20">
-                        <div 
-                            ref={cardRef}
-                            className="relative w-[340px] sm:w-[500px] md:w-[600px] aspect-[1.6/1] rounded-[38px] overflow-hidden bg-black flex flex-col p-8 sm:p-12 border border-white/10"
-                            style={{ backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.05) 0%, transparent 40%)' }}
-                        >
-                            {/* Card Decorative Elements */}
-                            <div className="absolute top-0 right-0 p-10 opacity-10">
-                                <Medal size={120} className="text-[#FFD700]" />
-                            </div>
-                            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-[#FFD700]/5 to-transparent pointer-events-none" />
-
-                            <div className="relative z-10 flex flex-col justify-between h-full uppercase italic">
-                                <div>
-                                    <h4 className="text-[10px] font-black tracking-[0.5em] text-[#FFD700] mb-2">MR. WORKOUT // CLINIC</h4>
-                                    <div className="h-[2px] w-12 bg-[#FFD700]" />
-                                </div>
-
+                    {/* The Visual Card - STORY READY 9:16 */}
+                    <div 
+                        id="founder-card"
+                        className={`relative w-full max-w-[380px] aspect-[9/16] rounded-[40px] overflow-hidden border border-white/20 shadow-2xl group ${
+                            stats.role === 'partner' ? 'bg-[#000000] shadow-[0_0_80px_rgba(255,215,0,0.1)]' : 'bg-[#050505] shadow-[0_0_80px_rgba(57,255,20,0.15)]'
+                        }`}
+                    >
+                        {/* Premium Card Background */}
+                        <div className={`absolute inset-0 ${
+                            stats.role === 'partner' 
+                            ? 'bg-gradient-to-b from-[#1a1a1a] via-[#000000] to-[#000000]' 
+                            : 'bg-gradient-to-b from-[#121212] via-[#050505] to-[#000000]'
+                        }`} />
+                        
+                        {/* Dynamic Lighting Overlay */}
+                        <div className={`absolute inset-0 opacity-50 ${
+                            stats.role === 'partner'
+                            ? 'bg-[radial-gradient(circle_at_50%_0%,rgba(255,215,0,0.1),transparent_70%)]'
+                            : 'bg-[radial-gradient(circle_at_50%_0%,rgba(57,255,20,0.1),transparent_70%)]'
+                        }`} />
+                        
+                        {/* Card Content Area */}
+                        <div className="relative h-full p-10 flex flex-col justify-between z-10">
+                            {/* Header: Logo & Status */}
+                            <div className="flex justify-between items-start">
                                 <div className="space-y-1">
-                                    <h2 className="text-3xl sm:text-5xl font-black tracking-tighter text-white leading-none">
-                                        {stats.name}
-                                    </h2>
-                                    <p className="text-lg sm:text-2xl font-black text-[#FFD700] tracking-tight">
-                                        FOUNDING ATHLETE #{stats.founderId}
-                                    </p>
+                                    <div className={`text-[10px] font-black tracking-[0.4em] uppercase opacity-80 ${
+                                        stats.role === 'partner' ? 'text-[#FFD700]' : 'text-[#39ff14]'
+                                    }`}>Verified Status</div>
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                                            stats.role === 'partner' ? 'bg-[#FFD700]' : 'bg-[#39ff14]'
+                                        }`} />
+                                        <span className="text-[10px] font-bold text-white tracking-widest uppercase italic">LIVE: FOUNDER</span>
+                                    </div>
+                                </div>
+                                <img src="/logo.jpg" alt="Logo" className="w-10 h-10 rounded-xl grayscale invert opacity-60" />
+                            </div>
+
+                            {/* Mid Section: LARGE FOUNDER TEXT */}
+                            <div className="py-6 sm:py-10">
+                                <h1 className="text-[60px] sm:text-[80px] font-black italic tracking-tighter leading-[0.85] mb-4 text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/30 uppercase">
+                                    FOUNDER
+                                </h1>
+                                <div className={`h-[2px] w-16 mb-8 ${
+                                    stats.role === 'partner' ? 'bg-[#FFD700]' : 'bg-[#39ff14]'
+                                }`} />
+                                
+                                <div className="space-y-4">
+                                    <div className="space-y-1">
+                                        <h2 className={`text-3xl sm:text-4xl font-black italic uppercase tracking-tighter drop-shadow-lg ${
+                                            stats.role === 'partner' ? 'text-[#FFD700]' : 'text-[#39ff14]'
+                                        }`}>
+                                            {stats.name}
+                                        </h2>
+                                        <p className="text-lg sm:text-xl font-black text-white/90 tracking-tight uppercase">
+                                            {stats.role === 'partner' ? 'ESTEEMED PARTNER' : 'FOUNDING ATHLETE'}
+                                        </p>
+                                        <div className="text-white/30 text-[9px] font-mono mt-2 tracking-widest uppercase">
+                                            PROTOCOL_V1 // ID: #{stats.founderId}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer: Stats & Branding */}
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-2 gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                                    <div>
+                                        <div className="text-[7px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Referrals</div>
+                                        <div className="text-lg font-black text-white">{stats.referrals}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[7px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Status</div>
+                                        <div className={`text-lg font-black italic uppercase tracking-tighter ${
+                                            stats.role === 'partner' ? 'text-[#FFD700]' : 'text-[#00ffff]'
+                                        }`}>ELITE</div>
+                                    </div>
                                 </div>
 
-                                <div className="flex justify-between items-end border-t border-white/20 pt-6">
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-bold tracking-[0.3em] text-white/40">TIER STATUS</p>
-                                        <p className="text-xs font-black text-white">ALPHA SQUAD (01/150)</p>
+                                <div className="flex justify-between items-end border-t border-white/5 pt-5">
+                                    <div className="space-y-0.5">
+                                        <div className={`text-[7px] font-black uppercase tracking-widest ${
+                                            stats.role === 'partner' ? 'text-[#FFD700]' : 'text-[#39ff14]'
+                                        }`}>The 3D Clinic</div>
+                                        <div className="text-[8px] font-bold text-white/30 tracking-tighter uppercase italic">London • SG • NYC</div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-[8px] font-bold tracking-[0.3em] text-white/40">ACCESS KEY</p>
-                                        <p className="text-xs font-black text-white px-3 py-1 bg-white/10 rounded-md">{stats.founderId}-{stats.name.slice(0,3)}</p>
-                                    </div>
+                                    <div className="text-[7px] text-white/20 font-mono tracking-widest italic uppercase">Secure Asset</div>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Aesthetic Glow Lines */}
+                        <div className={`absolute top-0 right-0 w-[1px] h-32 bg-gradient-to-b from-transparent ${
+                            stats.role === 'partner' ? 'via-[#FFD700]/30' : 'via-[#39ff14]/30'
+                        } to-transparent`} />
+                        <div className={`absolute bottom-0 left-0 w-[1px] h-32 bg-gradient-to-t from-transparent ${
+                            stats.role === 'partner' ? 'via-[#FFD700]/30' : 'via-[#00ffff]/30'
+                        } to-transparent`} />
                     </div>
 
                     {/* Action Panel */}
                     <div className="flex flex-wrap justify-center gap-4">
                         <button 
-                            onClick={handleDownloadCard}
-                            disabled={isDownloading}
-                            className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-[#FFD700] text-black font-black uppercase tracking-widest text-sm hover:scale-105 transition-all shadow-xl hover:shadow-[#FFD700]/20 min-w-[220px] justify-center"
-                        >
-                            {isDownloading ? <Loader2 size={20} className="animate-spin" /> : <Download size={20} />}
-                            {isDownloading ? "GENERATING..." : "DOWNLOAD FOUNDER CARD"}
-                        </button>
-                        <button 
                             onClick={handleShare}
                             disabled={isSharing}
-                            className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-sm hover:scale-105 transition-all shadow-xl min-w-[220px] justify-center"
+                            className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-[#39ff14] text-black font-black uppercase tracking-widest text-sm hover:scale-105 transition-all shadow-xl hover:shadow-[#39ff14]/20 min-w-[220px] justify-center"
                         >
                             {isSharing ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
-                            {isSharing ? "SHARING..." : "SHARE STATUS"}
+                            {isSharing ? "SHARING..." : "POST TO STORY"}
+                        </button>
+                        <button 
+                            onClick={handleDownloadCard}
+                            disabled={isDownloading}
+                            className="flex items-center gap-3 px-10 py-5 rounded-2xl bg-white/10 text-white border border-white/20 font-black uppercase tracking-widest text-sm hover:bg-white/20 transition-all min-w-[220px] justify-center"
+                        >
+                            {isDownloading ? <Loader2 size={20} className="animate-spin" /> : <Download size={20} />}
+                            {isDownloading ? "GENERATING..." : "DOWNLOAD CARD"}
                         </button>
                     </div>
 
@@ -439,7 +507,7 @@ function WelcomeContent() {
                 </motion.section>
             </div>
 
-            {/* DAILY DIRECTIVE */}
+            {/* DAILY ACTIONS */}
             <motion.section
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -457,19 +525,112 @@ function WelcomeContent() {
                             />
                         </div>
                         <h3 className="text-white text-xs font-black uppercase tracking-[0.6em] flex items-center gap-2">
-                            DAILY DIRECTIVE <span className="opacity-20">//</span> DAY {currentDay + 1}
+                            DAILY ACTIONS <span className="opacity-20">//</span> DAY {currentDay + 1}
                         </h3>
                     </div>
                     <span className="text-[10px] font-bold text-white/20 tracking-widest uppercase">STATUS: ACTIVE</span>
                 </div>
 
-                <div className="space-y-6 relative z-10">
-                    <h2 className="text-4xl sm:text-5xl font-black italic uppercase tracking-tighter text-white leading-tight">
-                        {currentDirective.split(':')[0]}
-                    </h2>
-                    <p className="text-xl sm:text-2xl font-medium text-[#00ffff] leading-relaxed italic opacity-90">
-                        "{currentDirective.split(':').slice(1).join(':').trim()}"
-                    </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
+                    <div className="space-y-6">
+                        {stats?.role === 'athlete' ? (
+                            <ul className="space-y-5">
+                                {[
+                                    { text: "DM Coach your goals on WhatsApp", icon: <MessageSquare size={16} /> },
+                                    { text: "Post Founder Card to IG Story & Tag @MrWorkout", icon: <Share2 size={16} /> },
+                                    { text: "Follow @MrWorkout for Daily Drills", icon: <UserPlus size={16} /> }
+                                ].map((action, idx) => (
+                                    <li key={idx} className="flex items-center gap-5 text-white/90 group/item">
+                                        <div className="w-10 h-10 rounded-xl bg-[#39ff14]/10 border border-[#39ff14]/30 flex items-center justify-center text-[#39ff14] shadow-[0_0_15px_rgba(57,255,20,0.1)] group-hover/item:scale-110 transition-transform">
+                                            {action.icon}
+                                        </div>
+                                        <span className="text-xl sm:text-2xl font-black italic uppercase tracking-tighter">
+                                            {action.text}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : stats?.role === 'partner' ? (
+                            <div className="space-y-8">
+                                <div className="p-8 rounded-3xl bg-gradient-to-br from-[#FFD700]/10 to-transparent border border-[#FFD700]/20 shadow-[0_0_30px_rgba(255,215,0,0.05)]">
+                                    <h3 className="text-[10px] font-black tracking-[0.4em] text-[#FFD700] uppercase mb-6 flex items-center gap-2">
+                                        <Medal size={14} /> Founder Partner Perks
+                                    </h3>
+                                    <ul className="grid grid-cols-1 gap-4">
+                                        {[
+                                            "20% Lifetime Commission on all referred athletes.",
+                                            "Unlimited Free 3D Analysis for your personal content.",
+                                            "Direct WhatsApp 'Founder Line' for 24/7 support.",
+                                            "Early Access to the Mr. Workout AI App Beta."
+                                        ].map((perk, idx) => (
+                                            <li key={idx} className="flex gap-4 items-start group/perk">
+                                                <div className="w-5 h-5 rounded-full bg-[#FFD700]/20 border border-[#FFD700]/50 flex items-center justify-center text-[10px] font-black text-[#FFD700] shrink-0 mt-0.5 group-hover/perk:scale-110 transition-transform">
+                                                    ✓
+                                                </div>
+                                                <span className="text-sm sm:text-base font-bold text-white/90 leading-tight">
+                                                    {perk}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                <ul className="space-y-5">
+                                    {[
+                                        { text: "Verify Partner ID with Coach on WhatsApp", icon: <CheckCircle size={16} /> },
+                                        { text: "Add 'Founder Partner @MrWorkout' to Bio", icon: <Link2 size={16} /> },
+                                        { text: "Watch the Founder Pitch Video", icon: <Play size={16} />, trigger: () => setVideoExercise({ id: 'pitch', name: 'FOUNDER PITCH', videoUrl: 'https://player.vimeo.com/external/370365319.sd.mp4?s=d946d0a7949390234f6644f0be89679f168fa5e6&profile_id=164', savageTip: 'The 3D revolution is here. Secure your equity.' }) }
+                                    ].map((action, idx) => (
+                                        <li key={idx} className="flex items-center gap-5 text-white/90 group/item cursor-pointer" onClick={action.trigger}>
+                                            <div className="w-10 h-10 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center text-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.1)] group-hover/item:scale-110 transition-transform">
+                                                {action.icon}
+                                            </div>
+                                            <span className="text-xl sm:text-2xl font-black italic uppercase tracking-tighter">
+                                                {action.text}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : (
+                            <>
+                                <h2 className="text-4xl sm:text-5xl font-black italic uppercase tracking-tighter text-white leading-tight">
+                                    {currentDirective.split(':')[0]}
+                                </h2>
+                                <p className="text-xl sm:text-2xl font-medium text-[#00ffff] leading-relaxed italic opacity-90">
+                                    "{currentDirective.split(':').slice(1).join(':').trim()}"
+                                </p>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col justify-center gap-6 p-8 rounded-3xl bg-white/5 border border-white/10">
+                        <div className="space-y-2">
+                            <h4 className="text-[10px] font-black tracking-[0.3em] text-[#00ffff] uppercase">Exclusive Status</h4>
+                            <p className="text-2xl font-black italic uppercase text-white">
+                                {stats?.role === 'partner' ? "Founder Partner" : "Founder Member"}
+                            </p>
+                        </div>
+                        
+                        <a 
+                            onClick={() => {
+                                // Track WhatsApp Click
+                                fetch(`/api/marketing/track?type=click&id=whatsapp&email=${encodeURIComponent(stats?.email || "unknown")}`)
+                                    .catch(err => console.error("Tracking failed:", err));
+                            }}
+                            href={`https://wa.me/447341841844?text=${encodeURIComponent(
+                                stats?.role === 'partner' 
+                                ? "Coach, I'm in for the Founding Partner Perks. Let's get my first 3D scan started. My Partner ID is #" + stats.founderId
+                                : "Coach, I'm a Founder Member! I've shared the card—ready for my 20% discount and 3D analysis."
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full py-5 rounded-2xl bg-[#25D366] text-black font-black uppercase tracking-widest text-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(37,211,102,0.3)]"
+                        >
+                            <Smartphone size={20} />
+                            {stats?.role === 'partner' ? 'ACTIVATE PARTNER PERKS' : 'CLAIM DISCOUNT'}
+                        </a>
+                    </div>
                 </div>
 
                 {/* Decorative background grid */}
@@ -541,6 +702,12 @@ function WelcomeContent() {
                     background-size: 40px 40px;
                 }
             `}</style>
+            {/* Video Player for Pitch/Tutorials */}
+            <VideoPlayer 
+                isOpen={!!videoExercise}
+                onClose={() => setVideoExercise(null)}
+                exercise={videoExercise}
+            />
         </div>
     );
 }

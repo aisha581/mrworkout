@@ -115,6 +115,7 @@ export default function WaitlistPage() {
 
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const referredBy = searchParams?.get('ref');
+    const role = searchParams?.get('role') || 'athlete';
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -122,24 +123,42 @@ export default function WaitlistPage() {
 
         setStatus("submitting");
         
+        // Google Sheets Bridge URL (Hard-coded for debugging)
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyRRB7PwgDM3yQmNV6GqS_C6MpFzA5cidvSNgzo3v129IgomqoXyiZ8XW5q8733QXYV/exec";
+        console.log("[DEBUG] Posting to:", GOOGLE_SHEETS_URL);
+
         // SPEED FIX: Instant Optimistic Redirect
-        // Encode data for the welcome page to use while the DB update happens in background
         const welcomeUrl = `/welcome?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
         router.push(welcomeUrl);
 
         try {
-            // Send request in background
+            // 1. Send to Vercel API (Background)
             fetch("/api/waitlist", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, name, referredBy })
-            }).catch(err => console.error("Background DB update failed:", err));
+                body: JSON.stringify({ email, name, referredBy, role })
+            }).catch(err => console.error("Internal DB update failed:", err));
+
+            // 2. Send to Google Sheets (New Bridge - DEBUG MODE)
+            console.log("[DEBUG] TEST CALL: Posting to URL ->", GOOGLE_SHEETS_URL);
+            
+            fetch(GOOGLE_SHEETS_URL, {
+                method: "POST",
+                mode: "no-cors", 
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, name, role, site: "mrworkout.pro", timestamp: new Date().toISOString() })
+            }).then((res) => {
+                console.log("[DEBUG] Google Sheets POST initiated (no-cors). Response Status:", res.status);
+            }).catch(err => {
+                console.error("[DEBUG] Google Sheets Bridge failed:", err);
+                alert("Connection Error");
+            });
             
             if (typeof navigator !== 'undefined' && navigator.vibrate) {
                 navigator.vibrate([50, 20, 50]);
             }
         } catch (err) {
-            console.warn("Optimistic redirect initiated, background task handled.");
+            console.warn("Optimistic redirect initiated, sync handled in background.");
         }
     };
 
