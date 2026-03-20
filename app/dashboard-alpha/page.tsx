@@ -28,24 +28,30 @@ export default function DashboardAlpha() {
 
             if (leadsError) throw leadsError;
             
-            // 3. Fetch Waitlist & Google Sheets Proxy
-            const waitlistRes = await fetch('/api/dashboard/waitlist');
-            const waitlistData = await waitlistRes.json();
-            const waitlistItems = waitlistData.waitlist || [];
-            const googleSheetsItems = waitlistData.googleSheets || [];
+            // 3. BYPASS VERCEL - Direct Fetch from Google Sheets
+            const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
+            let waitlistItems = [];
             
-            console.log("[DEBUG] KV Waitlist:", waitlistItems.length);
-            console.log("[DEBUG] Google Sheets (Proxied):", googleSheetsItems.length);
-            if (googleSheetsItems.length > 0) {
-                console.log("[DEBUG] Sample Google Sheet entry:", googleSheetsItems[0]);
+            try {
+                const sheetRes = await fetch(GOOGLE_URL);
+                const sheetJson = await sheetRes.json();
+                waitlistItems = sheetJson.waitlist || [];
+                console.log("[DEBUG] Direct Data Received:", waitlistItems.length);
+            } catch (sheetErr) {
+                console.error("[DEBUG] Direct Google Sheets Fetch failed (Possible CORS):", sheetErr);
             }
 
             const partnersCount = waitlistItems.filter((item: any) => item.role === 'partner').length;
             const athletesCount = waitlistItems.filter((item: any) => item.role === 'athlete').length;
 
-            // 4. Fetch Marketing Metrics (Social Shares)
-            const metricsRes = await fetch('/api/marketing/metrics');
-            const metricsData = await metricsRes.json();
+            // 4. Skip metrics if API is 500
+            let metricsData: any = { sent: 0, opens: 0, social_shares: 0, whatsapp_clicks: 0, partner_conversions: 0 };
+            try {
+                const mRes = await fetch('/api/marketing/metrics');
+                if (mRes.ok) metricsData = await mRes.json();
+            } catch (e) {
+                console.warn("[DEBUG] Metrics API failed, using defaults.");
+            }
 
             // 5. Process Metrics
             setStats({

@@ -61,17 +61,16 @@
     </div>
 
     <script>
-        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
-
         async function loadLeads() {
-            console.log("[DEBUG] Fetching via proxy: /api/dashboard/waitlist");
+            const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
+            console.log("[DEBUG] Fetching DIRECTLY from Google Sheets:", GOOGLE_URL);
             try {
-                const res = await fetch('/api/dashboard/waitlist');
+                // BYPASS VERCEL - Direct Fetch
+                const res = await fetch(GOOGLE_URL);
                 const result = await res.json();
-                console.log("[DEBUG] Proxied Data Received:", result);
+                console.log("[DEBUG] Direct Data Received:", result);
 
-                // Use Google Sheets data from the proxy, fall back to KV if needed
-                const data = (result.googleSheets && result.googleSheets.length > 0) ? result.googleSheets : result.waitlist || [];
+                const data = result.waitlist || [];
                 
                 document.getElementById('total-leads').innerText = result.total || data.length;
                 document.getElementById('partner-count').innerText = data.filter(l => l.role?.toLowerCase() === 'partner').length;
@@ -86,7 +85,7 @@
                     </tr>
                 `).join('');
             } catch (e) {
-                console.error("[DEBUG] Proxy Fetch Failed:", e);
+                console.error("[DEBUG] Direct Google Sheets Fetch Failed (Possible CORS):", e);
             }
         }
 
