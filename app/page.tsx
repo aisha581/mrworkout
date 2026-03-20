@@ -145,7 +145,7 @@ export default function WaitlistPage() {
             fetch(GOOGLE_SHEETS_URL, {
                 method: "POST",
                 mode: "no-cors", 
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify({ email, name, role, site: "mrworkout.pro", timestamp: new Date().toISOString() })
             }).then((res) => {
                 console.log("[DEBUG] Google Sheets POST initiated (no-cors). Response Status:", res.status);
