@@ -20,7 +20,7 @@ export async function GET() {
             .sort((a: any, b: any) => parseInt(b.joinedAt) - parseInt(a.joinedAt));
 
         // 4. Also fetch from Google Sheets (Proxy to avoid CORS)
-        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyRRB7PwgDM3yQmNV6GqS_C6MpFzA5cidvSNgzo3v129IgomqoXyiZ8XW5q8733QXYV/exec";
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
         let googleData = [];
         try {
             const sheetRes = await fetch(GOOGLE_SHEETS_URL);

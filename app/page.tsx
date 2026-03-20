@@ -124,7 +124,7 @@ export default function WaitlistPage() {
         setStatus("submitting");
         
         // Google Sheets Bridge URL (Hard-coded for debugging)
-        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyRRB7PwgDM3yQmNV6GqS_C6MpFzA5cidvSNgzo3v129IgomqoXyiZ8XW5q8733QXYV/exec";
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
         console.log("[DEBUG] Posting to:", GOOGLE_SHEETS_URL);
 
         // SPEED FIX: Instant Optimistic Redirect
