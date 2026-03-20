@@ -19,8 +19,21 @@ export async function GET() {
             .filter(user => user !== null)
             .sort((a: any, b: any) => parseInt(b.joinedAt) - parseInt(a.joinedAt));
 
+        // 4. Also fetch from Google Sheets (Proxy to avoid CORS)
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbyRRB7PwgDM3yQmNV6GqS_C6MpFzA5cidvSNgzo3v129IgomqoXyiZ8XW5q8733QXYV/exec";
+        let googleData = [];
+        try {
+            const sheetRes = await fetch(GOOGLE_SHEETS_URL);
+            const sheetJson: any = await sheetRes.json();
+            googleData = sheetJson.waitlist || [];
+            console.log(`[DASHBOARD_PROXY] Fetched ${googleData.length} entries from Google Sheets.`);
+        } catch (sheetErr) {
+            console.warn('[DASHBOARD_PROXY_WARNING] Google Sheets Fetch failed, falling back to KV only:', sheetErr);
+        }
+
         return NextResponse.json({
             waitlist: waitlistData,
+            googleSheets: googleData,
             total: waitlistData.length
         });
 
