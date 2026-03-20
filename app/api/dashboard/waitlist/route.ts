@@ -3,42 +3,63 @@ import { kv } from '@vercel/kv';
 
 export async function GET() {
     try {
-        // 1. Fetch all emails from the waitlist
-        const emails = await kv.lrange('waitlist_athletes', 0, -1);
-
-        if (!emails || emails.length === 0) {
-            return NextResponse.json({ waitlist: [] });
+        // 1. Fetch from KV (Athletes)
+        let emails: any[] = [];
+        try {
+            emails = await kv.lrange('waitlist_athletes', 0, -1) || [];
+        } catch (kvErr) {
+            console.error('[API_KV_FAIL_LITERAL]', kvErr);
         }
 
         // 2. Fetch full user data for each email
-        const userPromises = emails.map(email => kv.hgetall(`user:${email}`));
-        const users = await Promise.all(userPromises);
-
-        // 3. Filter out any null entries and sort by joinedAt (newest first)
-        const waitlistData = users
-            .filter(user => user !== null)
-            .sort((a: any, b: any) => parseInt(b.joinedAt) - parseInt(a.joinedAt));
-
-        // 4. Also fetch from Google Sheets (Proxy to avoid CORS)
-        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
-        let googleData = [];
+        let waitlistData: any[] = [];
         try {
-            const sheetRes = await fetch(GOOGLE_SHEETS_URL);
-            const sheetJson: any = await sheetRes.json();
-            googleData = sheetJson.waitlist || [];
-            console.log(`[DASHBOARD_PROXY] Fetched ${googleData.length} entries from Google Sheets.`);
-        } catch (sheetErr) {
-            console.warn('[DASHBOARD_PROXY_WARNING] Google Sheets Fetch failed, falling back to KV only:', sheetErr);
+            if (emails.length > 0) {
+                const userPromises = emails.map(email => kv.hgetall(`user:${email}`));
+                const users = await Promise.all(userPromises);
+                waitlistData = users
+                    .filter(user => user !== null)
+                    .sort((a: any, b: any) => parseInt(b.joinedAt || '0') - parseInt(a.joinedAt || '0'));
+            }
+        } catch (dataErr) {
+            console.error('[API_DATA_PARSE_FAIL]', dataErr);
         }
 
+        // 3. Fetch from Google Sheets (Proxy)
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
+        let googleData: any[] = [];
+        let googleStatus = "PENDING";
+        
+        try {
+            const sheetRes = await fetch(GOOGLE_SHEETS_URL, { signal: AbortSignal.timeout(5000) });
+            if (sheetRes.ok) {
+                const sheetJson: any = await sheetRes.json();
+                googleData = sheetJson.waitlist || [];
+                googleStatus = "SUCCESS";
+            } else {
+                googleStatus = `FAIL_${sheetRes.status}`;
+            }
+        } catch (sheetErr) {
+            console.warn('[DASHBOARD_PROXY_WARNING] Google Sheets Fetch failed:', sheetErr);
+            googleStatus = "TIMEOUT_OR_ERR";
+        }
+
+        // 4. Return SAFE response (Always 200 if possible)
         return NextResponse.json({
             waitlist: waitlistData,
             googleSheets: googleData,
-            total: waitlistData.length
+            total: Math.max(waitlistData.length, googleData.length),
+            status: { kv: emails.length > 0 ? "OK" : "EMPTY", google: googleStatus },
+            timestamp: new Date().toISOString()
         });
 
-    } catch (error: any) {
-        console.error('[DASHBOARD_WAITLIST_FETCH_FAIL]', error);
-        return NextResponse.json({ error: 'Failed to fetch waitlist.' }, { status: 500 });
+    } catch (globalError: any) {
+        console.error('[DASHBOARD_WAITLIST_CRITICAL]', globalError);
+        return NextResponse.json({ 
+            error: 'Critical system failure.', 
+            details: globalError.message,
+            waitlist: [],
+            googleSheets: [] 
+        }, { status: 200 }); // Return 200 even on global catch to keep UI alive
     }
 }

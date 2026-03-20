@@ -48,6 +48,15 @@
             </div>
         </div>
 
+        <div class="test-panel" style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <button onclick="testConnection()" style="background: #333; color: #fff; border: 1px solid #444; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">
+                🔍 Test Google Connection (Direct Tab)
+            </button>
+            <button onclick="loadLeads()" style="background: var(--neon-green); color: #000; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">
+                🔄 Sync Now
+            </button>
+        </div>
+
         <table id="leads-table">
             <thead>
                 <tr>
@@ -61,23 +70,29 @@
     </div>
 
     <script>
-        async function loadLeads() {
-            const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
-            console.log("[DEBUG] Fetching DIRECTLY from Google Sheets:", GOOGLE_URL);
-            try {
-                // BYPASS VERCEL - Direct Fetch
-                const res = await fetch(GOOGLE_URL);
-                const result = await res.json();
-                console.log("[DEBUG] Direct Data Received:", result);
+        const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
 
-                const data = result.waitlist || [];
+        function testConnection() {
+            console.log("[DEBUG] Opening test tab for:", GOOGLE_URL);
+            window.open(GOOGLE_URL, '_blank');
+        }
+
+        async function loadLeads() {
+            console.log("[DEBUG] Synchronizing with Google Sheets...");
+            try {
+                // 1. First, attempt fetch through proxy (Bypasses local CORS)
+                const res = await fetch('/api/dashboard/waitlist');
+                const result = await res.json();
+                console.log("[DEBUG] API Data Received:", result);
+
+                const data = (result.googleSheets && result.googleSheets.length > 0) ? result.googleSheets : result.waitlist || [];
                 
                 document.getElementById('total-leads').innerText = result.total || data.length;
                 document.getElementById('partner-count').innerText = data.filter(l => l.role?.toLowerCase() === 'partner').length;
                 document.getElementById('athlete-count').innerText = data.filter(l => l.role?.toLowerCase() === 'athlete').length;
 
                 const tbody = document.querySelector('#leads-table tbody');
-                tbody.innerHTML = data.reverse().map(l => `
+                tbody.innerHTML = data.reverse().slice(0, 20).map(l => `
                     <tr>
                         <td style="color: #666; font-family: monospace;">${l.timestamp ? new Date(l.timestamp).toLocaleString() : 'N/A'}</td>
                         <td style="font-weight: bold;">${l.email || 'N/A'}</td>
