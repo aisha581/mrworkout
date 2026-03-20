@@ -64,38 +64,29 @@
         const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzXz13ekRsxGtJoBg0l0zx2GsNFX5DbzaummNivLtA0dzIRERW38wFhFIQc0Zcu3cny/exec";
 
         async function loadLeads() {
-            console.log("[DEBUG] Fetching from:", GOOGLE_SHEETS_URL);
+            console.log("[DEBUG] Fetching via proxy: /api/dashboard/waitlist");
             try {
-                const res = await fetch(GOOGLE_SHEETS_URL);
-                const rawText = await res.text();
-                console.log("[DEBUG] Raw Response from Google Sheets:", rawText);
-                
-                const result = JSON.parse(rawText);
-                console.log("[DEBUG] Parsed JSON:", result);
+                const res = await fetch('/api/dashboard/waitlist');
+                const result = await res.json();
+                console.log("[DEBUG] Proxied Data Received:", result);
 
-                const data = result.waitlist || [];
+                // Use Google Sheets data from the proxy, fall back to KV if needed
+                const data = (result.googleSheets && result.googleSheets.length > 0) ? result.googleSheets : result.waitlist || [];
                 
-                document.getElementById('total-leads').innerText = result.total || 0;
+                document.getElementById('total-leads').innerText = result.total || data.length;
                 document.getElementById('partner-count').innerText = data.filter(l => l.role?.toLowerCase() === 'partner').length;
                 document.getElementById('athlete-count').innerText = data.filter(l => l.role?.toLowerCase() === 'athlete').length;
 
                 const tbody = document.querySelector('#leads-table tbody');
                 tbody.innerHTML = data.reverse().map(l => `
                     <tr>
-                        <td style="color: #666; font-family: monospace;">${new Date(l.timestamp).toLocaleString()}</td>
-                        <td style="font-weight: bold;">${l.email}</td>
-                        <td class="role-${l.role?.toLowerCase()}">${(l.role || 'ATHLETE').toUpperCase()}</td>
+                        <td style="color: #666; font-family: monospace;">${l.timestamp ? new Date(l.timestamp).toLocaleString() : 'N/A'}</td>
+                        <td style="font-weight: bold;">${l.email || 'N/A'}</td>
+                        <td class="role-${l.role?.toLowerCase() || 'athlete'}">${(l.role || 'ATHLETE').toUpperCase()}</td>
                     </tr>
                 `).join('');
             } catch (e) {
-                console.error("[DEBUG] Google Sheets Fetch Failed:", e);
-                // Fallback to local API if Sheets URL is missing
-                if (GOOGLE_SHEETS_URL.includes("XXXXXXXXXX")) {
-                    console.log("Using API Fallback...");
-                    const res = await fetch('/api/dashboard/waitlist');
-                    const r = await res.json();
-                    // ... handle fallback if needed
-                }
+                console.error("[DEBUG] Proxy Fetch Failed:", e);
             }
         }
 
