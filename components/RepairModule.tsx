@@ -22,7 +22,8 @@ export default function RepairModule({ issue, title, description, accentColor, s
         e.preventDefault();
         setStatus('loading');
         try {
-            const res = await fetch('/api/waitlist', {
+            console.log("[API_BRIDGE] Dispatching repair signup to /api/signup...");
+            const res = await fetch('/api/signup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, name, source: `repair_${issue}` }),

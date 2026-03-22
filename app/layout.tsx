@@ -31,6 +31,18 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={`${inter.className} ${archivoBlack.variable}`} suppressHydrationWarning>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            window.addEventListener('error', (e) => {
+                                if (e.message && (e.message.includes('ChunkLoadError') || e.message.includes('Loading chunk'))) {
+                                    console.warn('ChunkLoadError detected, reloading...');
+                                    window.location.reload();
+                                }
+                            }, true);
+                        `,
+                    }}
+                />
                 <ThemeProvider>
                     <WorkoutProvider>
                         <CircuitProvider>

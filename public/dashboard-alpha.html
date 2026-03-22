@@ -70,26 +70,39 @@
     </div>
 
     <script>
-        const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwoLdjb55fgb96MV8TwLT4hqIuyK1-3EmFdEAp00G7QO-x-ZEVCs6IrJ7AUZ0_nU9xN/exec";
+        const STATS_URL = "/api/stats";
 
         function testConnection() {
-            window.open(GOOGLE_URL, '_blank');
+            console.log("[STATS_PROXY] Verification link disabled for security. Use /api/stats.");
         }
 
-        async function loadLeads() {
+        async function fetchData() {
             console.log("[DEBUG] Syncing directly with Google...");
             const loadingStatus = document.getElementById('total-leads');
             loadingStatus.innerText = "...";
 
             try {
-                // DIRECT FETCH ONLY - BYPASS VERCEL 500s
-                const res = await fetch(GOOGLE_URL);
-                const result = await res.json();
+                const sheetRes = await fetch(STATS_URL);
+                const result = await sheetRes.json();
                 console.log("[DEBUG] Live Data:", result);
 
-                const data = result.waitlist || [];
-                
-                document.getElementById('total-leads').innerText = result.total || data.length;
+                const rawData = result.waitlist || (Array.isArray(result) ? result : []);
+                let data = [];
+                let total = 0;
+
+                if (rawData.length > 0 && Array.isArray(rawData[0])) {
+                    data = rawData.slice(1).map(row => ({
+                        timestamp: row[0],
+                        email: row[1],
+                        role: row[2] || 'athlete'
+                    }));
+                    total = Math.max(0, rawData.length - 1);
+                } else {
+                    data = rawData;
+                    total = result.total || data.length;
+                }
+
+                document.getElementById('total-leads').innerText = total;
                 document.getElementById('partner-count').innerText = data.filter(l => l.role?.toLowerCase() === 'partner').length;
                 document.getElementById('athlete-count').innerText = data.filter(l => l.role?.toLowerCase() === 'athlete').length;
 

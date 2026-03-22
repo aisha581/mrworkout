@@ -123,42 +123,42 @@ export default function WaitlistPage() {
 
         setStatus("submitting");
         
-        // Google Sheets Bridge URL (Hard-coded for debugging)
-        const GOOGLE_SHEETS_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL || "https://script.google.com/macros/s/AKfycbwoLdjb55fgb96MV8TwLT4hqIuyK1-3EmFdEAp00G7QO-x-ZEVCs6IrJ7AUZ0_nU9xN/exec";
-        console.log("[DEBUG] Posting to:", GOOGLE_SHEETS_URL);
-
-        // SPEED FIX: Instant Optimistic Redirect
-        const welcomeUrl = `/welcome?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
-        router.push(welcomeUrl);
-
         try {
-            // 1. Send to Vercel API (Background)
-            fetch("/api/waitlist", {
+            // 1. Send to Vercel API (Centralized Engine)
+            console.log("[API_BRIDGE] Dispatching to /api/signup...");
+            const response = await fetch("/api/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, name, referredBy, role })
-            }).catch(err => console.error("Internal DB update failed:", err));
-
-            // 2. Send to Google Sheets (New Bridge - DEBUG MODE)
-            console.log("[DEBUG] TEST CALL: Posting to URL ->", GOOGLE_SHEETS_URL);
-            
-            fetch(GOOGLE_SHEETS_URL, {
-                method: "POST",
-                mode: "no-cors", 
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify({ email, name, role, site: "mrworkout.pro", timestamp: new Date().toISOString() })
-            }).then((res) => {
-                console.log("[DEBUG] Google Sheets POST initiated (no-cors). Response Status:", res.status);
-            }).catch(err => {
-                console.error("[DEBUG] Google Sheets Bridge failed:", err);
-                alert("Connection Error");
+                body: JSON.stringify({ 
+                    email: email.toLowerCase().trim(), 
+                    name: name.trim(), 
+                    referredBy, 
+                    role, 
+                    source: 'web' 
+                })
             });
-            
-            if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                navigator.vibrate([50, 20, 50]);
+
+            const result = await response.json();
+
+            if (result.success) {
+                setStatus("success");
+                
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                    navigator.vibrate([50, 20, 50]);
+                }
+
+                // 2. Controlled Redirect after success
+                setTimeout(() => {
+                    const welcomeUrl = result.redirect || `/welcome?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
+                    router.push(welcomeUrl);
+                }, 1500);
+            } else {
+                throw new Error(result.error || "Submission failed");
             }
-        } catch (err) {
-            console.warn("Optimistic redirect initiated, sync handled in background.");
+
+        } catch (err: any) {
+            console.error("[SUBMIT_ERROR]", err);
+            setStatus("error");
         }
     };
 

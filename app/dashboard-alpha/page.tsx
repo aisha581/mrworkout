@@ -9,36 +9,82 @@ export default function DashboardAlpha() {
     const [vectors, setVectors] = useState<any[]>([]);
     const [waitlist, setWaitlist] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [bulkData, setBulkData] = useState('');
+    const [importSource, setImportSource] = useState('Apollo');
+    const [importStatus, setImportStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
 
     async function fetchData() {
         try {
             // 1. Fetch Audit Logs (Old Intake)
-            const { data: auditData, error: auditError } = await supabase
-                .from('audit_logs')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (auditError) throw auditError;
+            let auditData = [];
+            try {
+                const { data, error } = await supabase
+                    .from('audit_logs')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                if (!error) auditData = data || [];
+            } catch (e) { console.error("Audit Logs Fetch Fail", e); }
 
             // 2. Fetch Leads (New WhatsApp Intake)
-            const { data: leadsData, error: leadsError } = await supabase
-                .from('leads')
-                .select('*')
-                .order('created_at', { ascending: false });
+            let leadsData = [];
+            try {
+                const { data, error } = await supabase
+                    .from('leads')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                if (!error) leadsData = data || [];
+            } catch (e) { console.error("Leads Fetch Fail", e); }
 
-            if (leadsError) throw leadsError;
+            // 3. Fetch NEW Supabase Waitlist (Primary)
+            let supabaseWaitlist = [];
+            try {
+                const { data, error } = await supabase
+                    .from('waitlist')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                if (!error) supabaseWaitlist = data || [];
+            } catch (e) { console.error("Supabase Waitlist Fetch Fail", e); }
             
             // 3. DIRECT FETCH from Google Sheets - NO VERCEL PROXY
             const GOOGLE_URL = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL || "https://script.google.com/macros/s/AKfycbwoLdjb55fgb96MV8TwLT4hqIuyK1-3EmFdEAp00G7QO-x-ZEVCs6IrJ7AUZ0_nU9xN/exec";
             let waitlistItems = [];
+            let waitlistCount = 0;
             
             try {
                 const sheetRes = await fetch(GOOGLE_URL);
                 const sheetJson = await sheetRes.json();
-                waitlistItems = sheetJson.waitlist || [];
-                console.log("[DEBUG] Live Data Received:", waitlistItems.length);
+                
+                let rawData = sheetJson.waitlist || (Array.isArray(sheetJson) ? sheetJson : []);
+                
+                if (rawData.length > 0 && Array.isArray(rawData[0])) {
+                    waitlistItems = rawData.slice(1).map((row: any[]) => ({
+                        name: row[1] || 'Athlete',
+                        email: row[1] || 'N/A',
+                        joinedAt: row[0],
+                        role: row[2] || 'athlete',
+                        source: row[3] || 'Sheets',
+                        timestamp: row[0]
+                    }));
+                    waitlistCount = Math.max(0, rawData.length - 1); 
+                } else {
+                    waitlistItems = rawData;
+                    waitlistCount = rawData.length;
+                }
             } catch (sheetErr) {
-                console.error("[DEBUG] Direct Google Sync Failed:", sheetErr);
+                console.error("[DEBUG] Google Sheets Sync Fallback:", sheetErr);
+                // If Sheets fails, we rely on Supabase Waitlist
+                waitlistItems = supabaseWaitlist.map(u => ({
+                    name: u.name,
+                    email: u.email,
+                    joinedAt: u.created_at,
+                    role: u.role,
+                    source: u.source,
+                    code: u.code,
+                    referrals: u.referrals,
+                    founder: u.founder ? "true" : "false",
+                    founderId: u.founder_id
+                }));
+                waitlistCount = waitlistItems.length;
             }
 
             const partnersCount = waitlistItems.filter((item: any) => item.role === 'partner').length;
@@ -53,7 +99,7 @@ export default function DashboardAlpha() {
                 opened: metricsData.opens || 0,
                 uploads: auditData.length,
                 leads: leadsData.length,
-                waitlist: waitlistItems.length,
+                waitlist: waitlistCount,
                 partners: partnersCount,
                 athletes: athletesCount,
                 socialShares: metricsData.social_shares || 0,
@@ -69,10 +115,25 @@ export default function DashboardAlpha() {
 
             setActivity(combinedActivity);
             setVectors(auditData);
-            setWaitlist(waitlistItems);
+            
+            // Prioritize Supabase data if it's more fresh/available than sheets
+            const mergedWaitlist = waitlistItems.length >= supabaseWaitlist.length ? waitlistItems : supabaseWaitlist.map(u => ({
+                name: u.name,
+                email: u.email,
+                joinedAt: u.created_at,
+                role: u.role,
+                source: u.source,
+                code: u.code,
+                referrals: u.referrals,
+                founder: u.founder ? "true" : "false",
+                founderId: u.founder_id
+            }));
+
+            setWaitlist(mergedWaitlist);
             setLoading(false);
         } catch (err) {
             console.error('Dashboard Error:', err);
+            setLoading(false);
         }
     }
 
@@ -81,6 +142,32 @@ export default function DashboardAlpha() {
         const interval = setInterval(fetchData, 10000);
         return () => clearInterval(interval);
     }, []);
+
+    async function handleBulkImport() {
+        if (!bulkData || importStatus === 'processing') return;
+        setImportStatus('processing');
+        
+        try {
+            const response = await fetch('/api/leads/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rawData: bulkData, source: importSource })
+            });
+            
+            if (response.ok) {
+                setImportStatus('success');
+                setBulkData('');
+                fetchData();
+                setTimeout(() => setImportStatus('idle'), 3000);
+            } else {
+                throw new Error('Import failed');
+            }
+        } catch (err) {
+            console.error(err);
+            setImportStatus('error');
+            setTimeout(() => setImportStatus('idle'), 5000);
+        }
+    }
 
     return (
         <div className="min-h-screen bg-[#050505] text-white p-10 font-sans">
@@ -156,9 +243,41 @@ export default function DashboardAlpha() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-5 mb-10">
-                    <div className="glass-card rounded-3xl p-6 flex justify-between items-center border-fuchsia-400/10">
-                        <h3 className="text-[10px] text-neutral-500 uppercase tracking-[2px]">Athlete Social Shares</h3>
-                        <p className="text-2xl font-black text-fuchsia-400">{stats.socialShares}</p>
+                    <div className="glass-card rounded-3xl p-10 border-cyan-400/20 bg-cyan-400/5">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-sm uppercase tracking-[3px] text-cyan-400">1,000/Day Lead Ingestion</h2>
+                                <p className="text-[10px] text-neutral-500 uppercase mt-1">Paste CSV or Raw Lead Data (Email, Name)</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <select 
+                                    value={importSource} 
+                                    onChange={(e) => setImportSource(e.target.value)}
+                                    className="bg-black border border-white/10 rounded-xl px-4 py-2 text-[10px] uppercase font-bold text-neutral-400 outline-none focus:border-cyan-400/50"
+                                >
+                                    <option value="Apollo">Apollo (Influencer)</option>
+                                    <option value="Reddit">Reddit Lead</option>
+                                    <option value="Twitter">Twitter Lead</option>
+                                    <option value="LinkedIn">LinkedIn Lead</option>
+                                    <option value="Scraper">Custom Scraper</option>
+                                </select>
+                                <button 
+                                    onClick={handleBulkImport}
+                                    disabled={importStatus === 'processing' || !bulkData}
+                                    className="bg-cyan-400 text-black px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+                                >
+                                    {importStatus === 'processing' ? 'Processing...' : 'Sync Master Record'}
+                                </button>
+                            </div>
+                        </div>
+                        <textarea 
+                            value={bulkData}
+                            onChange={(e) => setBulkData(e.target.value)}
+                            placeholder="user@example.com, John Doe&#10;athlete@clinic.com, Scott Runs"
+                            className="w-full h-32 bg-black/40 border border-white/5 rounded-2xl p-6 text-sm font-mono text-cyan-50/80 outline-none focus:border-cyan-400/30 transition-all placeholder:text-neutral-800"
+                        />
+                        {importStatus === 'success' && <p className="text-cyan-400 text-[10px] font-bold uppercase mt-4 text-center">Batch Ingested Successfully. Master Record Updated.</p>}
+                        {importStatus === 'error' && <p className="text-red-400 text-[10px] font-bold uppercase mt-4 text-center">System Error. Check Console.</p>}
                     </div>
                 </div>
 
@@ -261,7 +380,7 @@ export default function DashboardAlpha() {
                                         <td className="py-4 font-bold text-white capitalize">{item.name}</td>
                                         <td className="py-4 text-neutral-300 font-mono">{item.email}</td>
                                         <td className="py-4 text-neutral-400">
-                                            {item.joinedAt ? new Date(parseInt(item.joinedAt)).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}
+                                            {item.joinedAt ? new Date(item.joinedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}
                                         </td>
                                         <td className="py-4">
                                             <span className="bg-white/5 px-2 py-1 rounded text-[10px] uppercase tracking-[1px] text-neutral-400">
@@ -277,9 +396,9 @@ export default function DashboardAlpha() {
                                             {item.referrals || '0'}
                                         </td>
                                         <td className="py-4 text-center">
-                                            {item.founder === "true" ? (
+                                            {(item as any).founder === "true" ? (
                                                 <span className="text-[10px] font-black text-cyan-400 border border-cyan-400/30 px-2 py-0.5 rounded-full">
-                                                    FOUNDER #{item.founderId}
+                                                    FOUNDER #{(item as any).founderId}
                                                 </span>
                                             ) : (
                                                 <span className="text-[10px] text-neutral-600">STANDARD</span>
