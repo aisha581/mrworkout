@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export default function DashboardAlpha() {
-    const [stats, setStats] = useState({ sent: 0, opened: 0, uploads: 0, leads: 0, waitlist: 0, partners: 0, athletes: 0, socialShares: 0, whatsappClicks: 0, partnerConversions: 0 });
+    const [stats, setStats] = useState({ sent: 0, opened: 0, uploads: 0, leads: 0, waitlist: 0, partners: 0, athletes: 0, socialShares: 0, whatsappClicks: 0, partnerConversions: 0, apolloLeads: 0, apolloToday: 0 });
     const [activity, setActivity] = useState<any[]>([]);
     const [vectors, setVectors] = useState<any[]>([]);
     const [waitlist, setWaitlist] = useState<any[]>([]);
@@ -90,10 +90,16 @@ export default function DashboardAlpha() {
             const partnersCount = waitlistItems.filter((item: any) => item.role === 'partner').length;
             const athletesCount = waitlistItems.filter((item: any) => item.role === 'athlete').length;
 
-            // 4. Default Stats (Metrics API removed)
-            const metricsData: any = { sent: 0, opens: 0, social_shares: 0, whatsapp_clicks: 0, partner_conversions: 0 };
+            // 5. Calculate Apollo Stats
+            const apolloLeads = waitlistItems.filter((item: any) => item.source === 'apollo_automation');
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const apolloToday = apolloLeads.filter((item: any) => {
+                const itemTime = new Date(item.joinedAt || item.timestamp).getTime();
+                return itemTime >= todayStart;
+            }).length;
 
-            // 5. Process Metrics
+            // 6. Process Metrics
             setStats({
                 sent: metricsData.sent || 0, 
                 opened: metricsData.opens || 0,
@@ -104,7 +110,9 @@ export default function DashboardAlpha() {
                 athletes: athletesCount,
                 socialShares: metricsData.social_shares || 0,
                 whatsappClicks: metricsData.whatsapp_clicks || 0,
-                partnerConversions: metricsData.partner_conversions || 0
+                partnerConversions: metricsData.partner_conversions || 0,
+                apolloLeads: apolloLeads.length,
+                apolloToday: apolloToday
             });
 
             // Combine activity for feeding
@@ -200,26 +208,19 @@ export default function DashboardAlpha() {
                     </div>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-5 mb-10">
-                    <div className="glass-card rounded-3xl p-8 text-center">
-                        <h3 className="text-[10px] text-neutral-500 uppercase tracking-[2px] mb-4">Vectors Sent</h3>
-                        <p className="text-4xl font-black">{stats.sent}</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+                    <div className="glass-card rounded-3xl p-10 border-cyan-400/30 bg-cyan-400/5 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/><path d="M12 2a14.5 14.5 0 0 0 0 20"/><path d="M12 2a14.5 14.5 0 0 0 0 20"/></svg>
+                        </div>
+                        <h3 className="text-[12px] text-cyan-400 uppercase tracking-[4px] font-black mb-2">Automated Leads Today</h3>
+                        <p className="text-6xl font-black">{stats.apolloToday}</p>
+                        <p className="text-[10px] text-neutral-500 uppercase mt-4 tracking-[2px]">Goal: 50/Day</p>
                     </div>
-                    <div className="glass-card rounded-3xl p-8 text-center border-cyan-400/20">
-                        <h3 className="text-[10px] text-neutral-500 uppercase tracking-[2px] mb-4">Engagement (Opens)</h3>
-                        <p className="text-4xl font-black text-cyan-400">{stats.opened}</p>
-                    </div>
-                    <div className="glass-card rounded-3xl p-8 text-center border-fuchsia-400/20">
-                        <h3 className="text-[10px] text-neutral-500 uppercase tracking-[2px] mb-4">Lead Clicks (WA)</h3>
-                        <p className="text-4xl font-black text-fuchsia-400">{stats.leads}</p>
-                    </div>
-                    <div className="glass-card rounded-3xl p-8 text-center border-lime-400/20">
-                        <h3 className="text-[10px] text-neutral-500 uppercase tracking-[2px] mb-4">Athlete Ingests</h3>
-                        <p className="text-4xl font-black text-lime-400">{stats.uploads}</p>
-                    </div>
-                    <div className="glass-card rounded-3xl p-8 text-center border-orange-400/20">
-                        <h3 className="text-[10px] text-neutral-500 uppercase tracking-[2px] mb-4">Total Signups</h3>
-                        <p className="text-4xl font-black text-orange-400">{stats.waitlist}</p>
+                    <div className="glass-card rounded-3xl p-10 border-white/10 relative overflow-hidden">
+                        <h3 className="text-[12px] text-neutral-400 uppercase tracking-[4px] font-black mb-2">Total Automated Sends</h3>
+                        <p className="text-6xl font-black">{stats.apolloLeads}</p>
+                        <p className="text-[10px] text-neutral-500 uppercase mt-4 tracking-[2px]">Channel: Apollo.io</p>
                     </div>
                 </div>
 
