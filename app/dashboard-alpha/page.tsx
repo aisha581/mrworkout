@@ -209,7 +209,7 @@ export default function DashboardAlpha() {
                     </div>
                 </header>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
                     <div className="glass-card rounded-3xl p-10 border-cyan-400/30 bg-cyan-400/5 relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-4 opacity-10">
                             <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/><path d="M12 2a14.5 14.5 0 0 0 0 20"/><path d="M12 2a14.5 14.5 0 0 0 0 20"/></svg>
