@@ -19,18 +19,39 @@ export default function RepairModule({ issue, title, description, accentColor, s
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
     const handleJoin = async (e: React.FormEvent) => {
+        console.log("[REPAIR_DIAGNOSTIC] handleJoin START");
         e.preventDefault();
+        
+        if (!email) {
+            console.warn("[REPAIR_DIAGNOSTIC] ABORT: Email field is empty");
+            return;
+        }
+
+        console.log("[REPAIR_DIAGNOSTIC] PROCESSING: ", { email, name, source: `repair_${issue}` });
         setStatus('loading');
+        
         try {
-            console.log("[API_BRIDGE] Dispatching repair signup to /api/signup...");
-            const res = await fetch('/api/signup', {
+            const signupUrl = '/api/signup';
+            console.log("[REPAIR_DIAGNOSTIC] FETCH START -> ", signupUrl);
+            
+            const res = await fetch(signupUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, name, source: `repair_${issue}` }),
+                body: JSON.stringify({ email: email.toLowerCase().trim(), name: name.trim(), source: `repair_${issue}` }),
             });
-            if (res.ok) setStatus('success');
-            else setStatus('error');
+
+            console.log("[REPAIR_DIAGNOSTIC] FETCH END. Status: ", res.status);
+            const result = await res.json();
+            console.log("[REPAIR_DIAGNOSTIC] PAYLOAD: ", result);
+
+            if (res.ok) {
+                setStatus('success');
+            } else {
+                console.error("[REPAIR_DIAGNOSTIC] SERVER ERROR: ", result.error || "Unknown error");
+                setStatus('error');
+            }
         } catch (err) {
+            console.error("[REPAIR_DIAGNOSTIC] NETWORK ERROR: ", err);
             setStatus('error');
         }
     };

@@ -118,15 +118,27 @@ export default function WaitlistPage() {
     const role = searchParams?.get('role') || 'athlete';
 
     const handleSubmit = async (e: React.FormEvent) => {
+        console.log("[SIGNUP_DIAGNOSTIC] handleSubmit START");
         e.preventDefault();
-        if (!email || status === "submitting") return;
+        
+        if (!email) {
+            console.warn("[SIGNUP_DIAGNOSTIC] ABORT: Email field is empty");
+            return;
+        }
 
+        if (status === "submitting") {
+            console.warn("[SIGNUP_DIAGNOSTIC] ABORT: Already submitting");
+            return;
+        }
+
+        console.log("[SIGNUP_DIAGNOSTIC] PROCESSING: ", { email, name, role, source: 'web' });
         setStatus("submitting");
         
         try {
-            // 1. Send to Vercel API (Centralized Engine)
-            console.log("[API_BRIDGE] Dispatching to /api/signup...");
-            const response = await fetch("/api/signup", {
+            const signupUrl = "/api/signup";
+            console.log("[SIGNUP_DIAGNOSTIC] FETCH START -> ", signupUrl);
+            
+            const response = await fetch(signupUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
@@ -138,7 +150,9 @@ export default function WaitlistPage() {
                 })
             });
 
+            console.log("[SIGNUP_DIAGNOSTIC] FETCH END. Status: ", response.status);
             const result = await response.json();
+            console.log("[SIGNUP_DIAGNOSTIC] PAYLOAD: ", result);
 
             if (result.success) {
                 setStatus("success");
