@@ -99,6 +99,9 @@ export async function GET(req: Request) {
             const firstName = lead.first_name || "Athlete";
             const lastName = lead.last_name || "";
             const name = `${firstName} ${lastName}`.trim();
+            const linkedin_url = lead.linkedin_url || "";
+            const title = lead.title || "";
+            const company = lead.organization?.name || "";
             
             const { error: sbError } = await supabase
                 .from('waitlist')
@@ -107,7 +110,10 @@ export async function GET(req: Request) {
                     name: name,
                     source: 'apollo_automation',
                     role: 'partner',
-                    status: 'staged'
+                    status: 'staged',
+                    linkedin_url: linkedin_url,
+                    title: title,
+                    company: company
                 }]);
 
             if (sbError) {
@@ -125,6 +131,9 @@ export async function GET(req: Request) {
                         name: name,
                         role: 'partner',
                         source: 'apollo_automation',
+                        linkedin: linkedin_url,
+                        title: title,
+                        company: company,
                         timestamp: new Date().toISOString()
                     })
                 }).catch(e => console.error("[APOLLO_ENGINE] SHEETS_SYNC FAIL", e));
