@@ -91,6 +91,7 @@ export default function DashboardAlpha() {
             const athletesCount = waitlistItems.filter((item: any) => item.role === 'athlete').length;
 
             // 5. Calculate Apollo Stats
+            const metricsData: any = { sent: 0, opens: 0, social_shares: 0, whatsapp_clicks: 0, partner_conversions: 0 };
             const apolloLeads = waitlistItems.filter((item: any) => item.source === 'apollo_automation');
             const now = new Date();
             const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
