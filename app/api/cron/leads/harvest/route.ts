@@ -41,13 +41,25 @@ export async function GET(req: Request) {
                 'api-key': apiKey
             },
             body: JSON.stringify({
-                q_organization_keyword_tags: ["gym", "fitness studio", "personal training", "crossfit"],
-                person_titles: ["Owner", "Coach", "Manager", "Studio Manager", "Founder", "Director"],
+                // 1. KEYWORDS & INDUSTRY
+                q_organization_keyword_tags: ["CrossFit", "Personal Training", "Yoga Studio", "Boutique Fitness", "Gym"],
+                organization_industry_tag_ids: ["health, wellness and fitness", "wellness and fitness services"],
+                
+                // 2. PERSON FILTERS
+                person_titles: ["Owner", "Founder", "CEO", "Gym Owner", "Studio Manager", "Head Coach"],
+                q_person_title_exclude: ["Student", "Intern", "Retired", "Assistant"],
                 person_locations: ["United States"],
+                
+                // 3. FIRMOGRAPHIC FILTERS
+                organization_num_employees_ranges: ["1,10", "11,20", "21,50"],
+                
+                // 4. QUALITY CONTROL
                 contact_email_status: ["verified"],
+                
+                // 5. PACING
                 page: 1,
                 display_mode: "regular",
-                per_page: 50 // USER REQUEST: Start with 50 today
+                per_page: 50 
             })
         });
 
