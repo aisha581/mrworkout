@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { UnifiedMailer } from '@/lib/mailer';
 import { supabase } from '@/lib/supabase';
+import { nanoid } from 'nanoid';
 
 /**
  * APOLLO AUTOMATION ENGINE
@@ -116,13 +117,14 @@ export async function GET(req: Request) {
                     source: 'apollo_automation',
                     role: 'partner',
                     status: 'staged',
+                    code: nanoid(10),
                     linkedin_url: linkedin_url,
                     title: title,
                     company: company
                 }]);
 
             if (sbError) {
-                console.error(`[APOLLO_ENGINE] SB_INSERT_FAIL for ${normalizedEmail}:`, sbError);
+                console.error(`[APOLLO_ENGINE] SB_INSERT_FAIL for ${normalizedEmail}:`, JSON.stringify(sbError));
                 continue;
             }
 

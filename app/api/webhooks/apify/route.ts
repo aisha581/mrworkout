@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { UnifiedMailer } from '@/lib/mailer';
 import { supabase } from '@/lib/supabase';
+import { nanoid } from 'nanoid';
 
 /**
  * APIFY WEBHOOK ENDPOINT
@@ -71,13 +72,14 @@ export async function POST(req: Request) {
                 source: source,
                 role: 'partner',
                 status: 'staged',
+                code: nanoid(10),
                 company: company,
                 linkedin_url: linkedin
             }]);
 
         if (sbError) {
-            console.error("[APIFY_WEBHOOK] Supabase Insert Error:", sbError);
-            return NextResponse.json({ error: 'Database error' }, { status: 500 });
+            console.error("[APIFY_WEBHOOK] Supabase Insert Error Details:", JSON.stringify(sbError));
+            return NextResponse.json({ error: 'Database error', details: sbError.message }, { status: 500 });
         }
 
         // 3. Sync to Google Sheets
