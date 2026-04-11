@@ -49,6 +49,10 @@ export async function POST(req: Request) {
         const name = lead.title || lead.name || "Gym Owner";
         const company = lead.title || "";
         const linkedin = lead.linkedin || lead.linkedinUrl || "";
+        const instagram = lead.instagram || lead.instagramUrl || "";
+        const facebook = lead.facebook || lead.facebookUrl || "";
+        const twitter = lead.twitter || lead.twitterUrl || "";
+        const phone = lead.phone || lead.phoneNumber || "";
         const source = 'apify_google_maps_austin';
 
         // 1. Deduplication
@@ -74,7 +78,11 @@ export async function POST(req: Request) {
                 status: 'staged',
                 code: nanoid(10),
                 company: company,
-                linkedin_url: linkedin
+                linkedin_url: linkedin,
+                instagram_url: instagram,
+                facebook_url: facebook,
+                twitter_url: twitter,
+                phone: phone
             }]);
 
         if (sbError) {
@@ -93,6 +101,8 @@ export async function POST(req: Request) {
                     role: 'partner',
                     source: source,
                     company: company,
+                    phone: phone,
+                    socials: { linkedin, instagram, facebook, twitter },
                     timestamp: new Date().toISOString()
                 })
             }).catch(e => console.error("[APIFY_WEBHOOK] Sheets Sync Fail:", e));
