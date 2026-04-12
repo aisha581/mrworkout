@@ -52,16 +52,8 @@ export default function VideoPlayer({ isOpen, onClose, exercise }: VideoPlayerPr
         }
     };
 
-    const handleVideoEnd = () => {
-        if (videoRef.current) {
-            videoRef.current.currentTime = 0;
-            videoRef.current.play().catch(e => console.warn("Auto-play prevented", e)); // Auto-loop
-            if (audioRef.current) {
-                audioRef.current.currentTime = 0;
-                audioRef.current.play().catch(e => console.warn("Audio-play prevented", e));
-            }
-        }
-    };
+    // Native loop handles video replay seamlessly
+    // Audio can run independently or loop natively
 
     const restartVideo = () => {
         if (videoRef.current) {
@@ -119,22 +111,22 @@ export default function VideoPlayer({ isOpen, onClose, exercise }: VideoPlayerPr
                             {/* Ambient Glow behind video (visible if video doesn't perfectly fill or while loading) */}
                             <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at center, rgba(0,255,255,0.1) 0%, transparent 60%)' }} />
 
-                            {exercise.videoUrl ? (
+                            {exercise ? (
                                 <video
                                     ref={videoRef}
-                                    src={exercise.videoUrl}
+                                    src={process.env.NEXT_PUBLIC_SUPABASE_URL ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/exercise-library/${exercise.id}.mp4` : exercise.videoUrl}
                                     className="w-full h-full object-cover z-10"
                                     onTimeUpdate={handleTimeUpdate}
-                                    onEnded={handleVideoEnd}
                                     playsInline
                                     preload="auto"
                                     muted // Force muted for video, rely on separate audio stream
+                                    loop // Native infinite looping with no JS flicker
                                 />
                             ) : (
                                 <div className="z-10 flex flex-col items-center justify-center text-[#00E5CC]/50">
                                     <Play size={48} className="mb-4 opacity-50" />
                                     <p className="font-bold tracking-widest uppercase text-sm">Waiting for MP4 Drop</p>
-                                    <p className="text-xs opacity-70 mt-2 font-mono">{`/public/videos/exercises/${exercise.id}.mp4`}</p>
+                                    <p className="text-xs opacity-70 mt-2 font-mono">{`/public/videos/exercises/${exercise?.id}.mp4`}</p>
                                 </div>
                             )}
 
@@ -153,7 +145,7 @@ export default function VideoPlayer({ isOpen, onClose, exercise }: VideoPlayerPr
                                     </motion.button>
                                 )}
                                 {exercise.audioUrl && (
-                                    <audio ref={audioRef} src={exercise.audioUrl} />
+                                    <audio ref={audioRef} src={exercise.audioUrl} loop />
                                 )}
                             </AnimatePresence>
                         </div>
