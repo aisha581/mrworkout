@@ -38,15 +38,21 @@ export default function VideoUploadDashboard() {
             // Naming convention: {exercise_id}.mp4
             const fileName = `${selectedExerciseId}.mp4`;
 
-            const { data, error } = await supabase.storage
-                .from('exercise-library')
-                .upload(fileName, file, {
-                    cacheControl: '3600',
-                    upsert: true, // Overwrite if it already exists
-                    contentType: 'video/mp4'
-                });
+            // Upload via VIP backend route to bypass RLS
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('fileName', fileName);
 
-            if (error) throw error;
+            const response = await fetch('/api/admin/videos/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to upload video via VIP route.');
+            }
 
             setUploadStatus({ type: 'success', message: `Successfully mapped replacing ${fileName}!` });
             

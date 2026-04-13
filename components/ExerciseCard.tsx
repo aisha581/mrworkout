@@ -1,25 +1,22 @@
 "use client";
 
 import { useTheme } from '@/contexts/ThemeContext';
-import { motion } from 'framer-motion';
-import { PlusCircle } from 'lucide-react';
-import type { Exercise } from '@/data/libraryData';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { LiveExercise } from '@/app/library/page';
 import { useState } from 'react';
 import LogSetModal from '@/components/LogSetModal';
-import VideoPlayer from '@/components/VideoPlayer';
-import { PlayCircle, Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, PlayCircle } from 'lucide-react';
 import { useCircuit } from '@/contexts/CircuitContext';
 
 interface ExerciseCardProps {
     exercise: LiveExercise;
     delay?: number;
+    onStartWorkout: (exercise: LiveExercise) => void;
 }
 
-export default function ExerciseCard({ exercise, delay = 0 }: ExerciseCardProps) {
+export default function ExerciseCard({ exercise, delay = 0, onStartWorkout }: ExerciseCardProps) {
     const { theme } = useTheme();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
     const { addToQueue, queue } = useCircuit();
     const isInQueue = queue.some(ex => ex.id === exercise.id);
 
@@ -28,17 +25,15 @@ export default function ExerciseCard({ exercise, delay = 0 }: ExerciseCardProps)
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            whileHover={{ y: -5 }}
-            className="group relative flex flex-col rounded-[24px] overflow-hidden cursor-pointer backdrop-blur-3xl transition-all duration-300"
+            className="group relative flex flex-col rounded-[24px] overflow-hidden backdrop-blur-3xl transition-all duration-300 w-full"
             style={{
                 backgroundColor: theme.mode === 'savage' ? '#181818' : theme.cardBg,
                 border: `1px solid ${theme.borderColor}`,
                 boxShadow: theme.mode === 'savage'
-                    ? `0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)`
-                    : `0 4px 24px rgba(183, 110, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.3)`,
+                        ? `0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)`
+                        : `0 4px 24px rgba(183, 110, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.3)`,
             }}
         >
-            {/* W Watermark */}
             {theme.mode === 'savage' && (
                 <div
                     className="absolute -top-6 -right-4 text-[#00FFFF] opacity-[0.03] font-black italic text-[120px] pointer-events-none select-none"
@@ -47,20 +42,13 @@ export default function ExerciseCard({ exercise, delay = 0 }: ExerciseCardProps)
                     W
                 </div>
             )}
-            {/* Glow effect on hover (Savage Cyan / Mrs Rose) */}
-            <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none"
-                style={{ backgroundColor: theme.accent }}
-            />
 
-            {/* Hover Border Glow */}
             <div
-                className="absolute inset-0 rounded-[24px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                className="absolute inset-0 rounded-[24px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10"
                 style={{ border: `1px solid ${theme.accent}60` }}
             />
 
-            {/* Add to Circuit Button */}
-            {!isInQueue && exercise.isAvailable && (
+            {!isInQueue && exercise.videoUrl && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
@@ -73,32 +61,53 @@ export default function ExerciseCard({ exercise, delay = 0 }: ExerciseCardProps)
                 </button>
             )}
 
-            {/* Video / Image Area */}
-            <div
-                className="relative h-48 w-full bg-black/40 overflow-hidden"
-                onClick={() => setIsVideoPlayerOpen(true)}
-            >
-                <div
-                    className="absolute inset-0 opacity-20 group-hover:scale-105 transition-transform duration-700"
-                    style={{
-                        background: `linear-gradient(45deg, ${theme.accent}20, transparent)`,
-                    }}
-                />
-                {/* Fallback pattern since we don't have actual images yet */}
-                <div className="absolute inset-0 flex items-center justify-center text-white/10 font-bold text-4xl uppercase tracking-tighter mix-blend-overlay">
-                    {exercise.category}
-                </div>
+            <div className="w-full h-48 relative overflow-hidden bg-[#0a0a0a] shrink-0 cursor-pointer border-b border-white/10" onClick={() => { if(exercise.videoUrl) onStartWorkout(exercise) }}>
+                
+                {/* 1. Underlying Video Canvas */}
+                {exercise.videoUrl ? (
+                    <video
+                        src={exercise.videoUrl}
+                        className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity duration-300"
+                        playsInline
+                        preload="metadata"
+                        autoPlay
+                        muted
+                        loop
+                        poster={`/images/${exercise.category.toLowerCase()}-bg.jpg`}
+                        onTimeUpdate={(e) => {
+                            if (e.currentTarget.currentTime >= 3.0) {
+                                e.currentTarget.currentTime = 0;
+                            }
+                        }}
+                    />
+                ) : (
+                    <div 
+                        className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-50 transition-opacity duration-300"
+                        style={{ backgroundImage: `url('/images/${exercise.category.toLowerCase()}-bg.jpg')` }}
+                    />
+                )}
 
-                {/* Play Icon Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100 drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]">
-                    <div className="w-16 h-16 rounded-full bg-black/50 backdrop-blur-sm border-2 border-white flex items-center justify-center text-white">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                {/* 2. Overlays */}
+                <div
+                    className="absolute inset-0 opacity-20 group-hover:scale-105 transition-transform duration-700 pointer-events-none"
+                    style={{ background: `linear-gradient(45deg, ${theme.accent}20, transparent)` }}
+                />
+                
+                {!exercise.videoUrl && (
+                    <div className="absolute inset-0 flex items-center justify-center text-white/50 font-bold text-3xl uppercase tracking-tighter drop-shadow-2xl">
+                        {exercise.category}
+                    </div>
+                )}
+                
+                {/* Play Button Hover Indication */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100 drop-shadow-[0_0_15px_rgba(0,0,0,0.8)] pointer-events-none">
+                    <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-sm border-2 border-white flex items-center justify-center text-white">
+                        <PlayCircle size={32} />
                     </div>
                 </div>
             </div>
 
-            {/* Content Content */}
-            <div className="p-6 flex flex-col flex-grow">
+            <div className="flex flex-col flex-grow bg-[#0c0c0c] p-6 h-full">
                 <div className="flex justify-between items-start mb-2">
                     <h3 className="text-xl font-bold tracking-tight">{exercise.name}</h3>
                     <span
@@ -113,57 +122,28 @@ export default function ExerciseCard({ exercise, delay = 0 }: ExerciseCardProps)
                     Target: {exercise.targetMuscle}
                 </p>
 
-                <div className="mt-auto p-4 rounded-xl bg-black/20 border border-white/5 relative overflow-hidden group/tip">
+                <div className="mt-auto p-4 rounded-xl bg-black/40 border border-white/5 relative overflow-hidden group/tip">
                     <div
                         className="absolute left-0 top-0 bottom-0 w-1 opacity-50 transition-opacity group-hover/tip:opacity-100"
                         style={{ backgroundColor: theme.accent }}
                     />
-                    <p className="text-sm italic opacity-80 pl-2">
+                    <p className="text-sm italic opacity-80 pl-2 line-clamp-2">
                         "{exercise.savageTip}"
                     </p>
                 </div>
 
-                {/* Action Button: Hot Swap Logic */}
-                {exercise.isAvailable ? (
-                    <button
-                        onClick={(e) => { e.stopPropagation(); setIsVideoPlayerOpen(true); }}
-                        className="mt-6 flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold transition-all duration-300 hover:scale-[1.02]"
-                        style={{
-                            backgroundColor: theme.accent,
-                            color: '#000',
-                            boxShadow: `0 0 15px ${theme.accent}60`
-                        }}
-                    >
-                        <PlayCircle size={18} />
-                        Start Workout
-                    </button>
-                ) : (
-                    <button
-                        disabled
-                        className="mt-6 flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold transition-colors duration-200 cursor-not-allowed opacity-60"
-                        style={{
-                            backgroundColor: 'rgba(255,255,255,0.05)',
-                            color: 'rgba(255,255,255,0.5)',
-                            border: `1px dashed rgba(255,255,255,0.2)`
-                        }}
-                    >
-                        <Loader2 size={18} className="animate-spin" />
-                        Processing...
-                    </button>
+                {!exercise.videoUrl && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-30">
+                        <div className="flex items-center gap-2 text-white/50 bg-black/80 px-6 py-3 rounded-full border border-white/10 uppercase font-black text-xs tracking-widest">
+                            <Loader2 size={16} className="animate-spin" /> Processing
+                        </div>
+                    </div>
                 )}
             </div>
 
-            {/* Injected Logging Modal */}
             <LogSetModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                exercise={exercise}
-            />
-
-            {/* Injected Video Player */}
-            <VideoPlayer
-                isOpen={isVideoPlayerOpen}
-                onClose={() => setIsVideoPlayerOpen(false)}
                 exercise={exercise}
             />
         </motion.div>

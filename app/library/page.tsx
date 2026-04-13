@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
 import ExerciseCard from '@/components/ExerciseCard';
+import WorkoutPlayer from '@/components/WorkoutPlayer';
 import type { Exercise } from '@/data/libraryData';
 
 // Extended Exercise to account for dynamic API availability states
@@ -34,6 +35,8 @@ export default function LibraryPage() {
     const { theme } = useTheme();
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [exercises, setExercises] = useState<LiveExercise[]>([]);
+    const [activePlaylist, setActivePlaylist] = useState<LiveExercise[] | null>(null);
+    const [activeStartIndex, setActiveStartIndex] = useState<number>(0);
 
     // Hot-Reloading Fetch Logic
     useEffect(() => {
@@ -42,7 +45,7 @@ export default function LibraryPage() {
                 const res = await fetch('/api/library');
                 if (res.ok) {
                     const data = await res.json();
-                    setExercises(data);
+                    setExercises(prev => JSON.stringify(prev) === JSON.stringify(data) ? prev : data);
                 }
             } catch (error) {
                 console.error("Failed to fetch library:", error);
@@ -206,12 +209,16 @@ export default function LibraryPage() {
                                             </button>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 items-start">
                                             {filteredExercises.map((exercise, idx) => (
                                                 <ExerciseCard
                                                     key={exercise.id}
                                                     exercise={exercise}
                                                     delay={idx * 0.15}
+                                                    onStartWorkout={() => {
+                                                        setActivePlaylist(filteredExercises);
+                                                        setActiveStartIndex(idx);
+                                                    }}
                                                 />
                                             ))}
                                             {filteredExercises.length === 0 && (
@@ -227,6 +234,15 @@ export default function LibraryPage() {
                         </div>
                     </div>
                 </section>
+
+                {/* Global Workout Player Layer */}
+                {activePlaylist && (
+                    <WorkoutPlayer 
+                        playlist={activePlaylist} 
+                        initialIndex={activeStartIndex}
+                        onClose={() => setActivePlaylist(null)} 
+                    />
+                )}
 
                 {/* Mobile Navigation Bar */}
                 <MobileNav />

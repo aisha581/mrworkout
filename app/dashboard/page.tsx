@@ -167,6 +167,7 @@ export default function Home() {
                                             <ExerciseCard
                                                 exercise={exercise}
                                                 delay={0.3 + (idx * 0.1)}
+                                                onStartWorkout={() => {}}
                                             />
                                         </div>
                                     ))

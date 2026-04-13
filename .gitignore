@@ -31,6 +31,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Local video files (hosted on Supabase Storage in production)
+/public/videos/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
