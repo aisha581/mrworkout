@@ -3,7 +3,7 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LiveExercise } from '@/app/library/page';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import LogSetModal from '@/components/LogSetModal';
 import { Loader2, Plus, PlayCircle } from 'lucide-react';
 import { useCircuit } from '@/contexts/CircuitContext';
@@ -18,20 +18,55 @@ export default function ExerciseCard({ exercise, delay = 0, onStartWorkout }: Ex
     const { theme } = useTheme();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { addToQueue, queue } = useCircuit();
+
+    const cardRef  = useRef<HTMLDivElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    // ── Intersection Observer ─────────────────────────────────────────────────
+    // Video element is only mounted when the card is in (or within 150 px of)
+    // the viewport. Cards outside this zone have no <video> in the DOM at all —
+    // zero network requests, zero decoded buffers, zero GPU memory for them.
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        const el = cardRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => setIsVisible(entry.isIntersecting),
+            {
+                rootMargin: '150px', // start loading 150 px before entering view
+                threshold:  0,
+            }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
+    // ── Re-play when URL changes while visible (e.g. category filter) ─────────
+    // With conditional rendering, videoRef is only set when isVisible=true.
+    // The effect re-runs whenever the url or visibility changes.
+    useEffect(() => {
+        const v = videoRef.current;
+        if (!v || !exercise.videoUrl || !isVisible) return;
+        v.load();
+        v.play().catch(() => {});
+    }, [exercise.videoUrl, isVisible]);
+
     const isInQueue = queue.some(ex => ex.id === exercise.id);
 
     return (
         <motion.div
+            ref={cardRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="group relative flex flex-col rounded-[24px] overflow-hidden backdrop-blur-3xl transition-all duration-300 w-full"
             style={{
                 backgroundColor: theme.mode === 'savage' ? '#181818' : theme.cardBg,
-                border: `1px solid ${theme.borderColor}`,
+                border:          `1px solid ${theme.borderColor}`,
                 boxShadow: theme.mode === 'savage'
-                        ? `0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)`
-                        : `0 4px 24px rgba(183, 110, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.3)`,
+                    ? `0 4px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)`
+                    : `0 4px 24px rgba(183, 110, 121, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.3)`,
             }}
         >
             {theme.mode === 'savage' && (
@@ -50,26 +85,64 @@ export default function ExerciseCard({ exercise, delay = 0, onStartWorkout }: Ex
 
             {!isInQueue && exercise.videoUrl && (
                 <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        addToQueue(exercise);
+                    onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(40);
+                        addToQueue(exercise); 
                     }}
-                    className="absolute top-4 right-4 z-20 p-2 rounded-xl bg-black/40 border border-white/5 text-[#00FFFF]/50 hover:text-[#00FFFF] hover:border-[#00FFFF]/50 transition-all scale-0 group-hover:scale-100"
-                    title="Add to Circuit"
+                    className="absolute top-4 right-4 z-20 p-2.5 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center"
+                    style={{ 
+                        background: theme.accent, 
+                        color: '#000',
+                        boxShadow: `0 0 20px ${theme.accent}60`,
+                        border: `1px solid rgba(255,255,255,0.5)`,
+                        touchAction: 'manipulation'
+                    }}
+                    title="Add to Routine"
                 >
-                    <Plus size={20} />
+                    <Plus size={16} strokeWidth={4} />
                 </button>
             )}
+            
+            {isInQueue && (
+                <div 
+                    className="absolute top-4 right-4 z-20 p-2.5 rounded-full flex items-center justify-center"
+                    style={{ 
+                        background: 'rgba(0,255,255,0.1)', 
+                        border: `1px solid ${theme.accent}40`,
+                        color: theme.accent
+                    }}
+                >
+                    <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                    >
+                        <Plus size={16} strokeWidth={4} className="rotate-45" />
+                    </motion.div>
+                </div>
+            )}
 
-            <div className="w-full h-48 relative overflow-hidden bg-[#0a0a0a] shrink-0 cursor-pointer border-b border-white/10" onClick={() => { if(exercise.videoUrl) onStartWorkout(exercise) }}>
-                
-                {/* 1. Underlying Video Canvas */}
-                {exercise.videoUrl ? (
+            {/* ── Video thumbnail area ──────────────────────────────────────── */}
+            <div
+                className="w-full h-48 relative overflow-hidden bg-[#0a0a0a] shrink-0 cursor-pointer border-b border-white/10"
+                onClick={() => { if (exercise.videoUrl) onStartWorkout(exercise); }}
+                style={{ willChange: 'transform' }}
+            >
+                {/*
+                  Only mount the <video> element when the card is visible.
+                  - isVisible=true  → full preload="auto", plays immediately
+                  - isVisible=false → no DOM node, no network, no decoder memory
+                  The 150px rootMargin means the video is already decoded by the
+                  time the card scrolls fully into view.
+                */}
+                {exercise.videoUrl && isVisible ? (
                     <video
+                        ref={videoRef}
                         src={exercise.videoUrl}
                         className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity duration-300"
+                        style={{ transform: 'translateZ(0)', willChange: 'opacity' }}
                         playsInline
-                        preload="metadata"
+                        preload="auto"
                         autoPlay
                         muted
                         loop
@@ -80,26 +153,31 @@ export default function ExerciseCard({ exercise, delay = 0, onStartWorkout }: Ex
                             }
                         }}
                     />
+                ) : exercise.videoUrl && !isVisible ? (
+                    // Off-screen placeholder: dark slot, zero network/memory cost
+                    <div
+                        className="absolute inset-0 bg-cover bg-center opacity-20"
+                        style={{ backgroundImage: `url('/images/${exercise.category.toLowerCase()}-bg.jpg')` }}
+                    />
                 ) : (
-                    <div 
+                    // No video at all: static background
+                    <div
                         className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-50 transition-opacity duration-300"
                         style={{ backgroundImage: `url('/images/${exercise.category.toLowerCase()}-bg.jpg')` }}
                     />
                 )}
 
-                {/* 2. Overlays */}
                 <div
                     className="absolute inset-0 opacity-20 group-hover:scale-105 transition-transform duration-700 pointer-events-none"
                     style={{ background: `linear-gradient(45deg, ${theme.accent}20, transparent)` }}
                 />
-                
+
                 {!exercise.videoUrl && (
                     <div className="absolute inset-0 flex items-center justify-center text-white/50 font-bold text-3xl uppercase tracking-tighter drop-shadow-2xl">
                         {exercise.category}
                     </div>
                 )}
-                
-                {/* Play Button Hover Indication */}
+
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100 drop-shadow-[0_0_15px_rgba(0,0,0,0.8)] pointer-events-none">
                     <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-sm border-2 border-white flex items-center justify-center text-white">
                         <PlayCircle size={32} />
@@ -128,7 +206,7 @@ export default function ExerciseCard({ exercise, delay = 0, onStartWorkout }: Ex
                         style={{ backgroundColor: theme.accent }}
                     />
                     <p className="text-sm italic opacity-80 pl-2 line-clamp-2">
-                        "{exercise.savageTip}"
+                        &ldquo;{exercise.savageTip}&rdquo;
                     </p>
                 </div>
 

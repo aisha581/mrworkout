@@ -1,4 +1,4 @@
-AssetID,Exercise Name,Category,Target Muscle,Default Rest,Savage Tip
+AssetID,Exercise Name,Category,Target Muscle,Default Rest,Savage Tip  
 1a4b2afb-8d56-4d07-a66f-06fd89e96111,Barbell Bench Press,Push,Chest,90,
 0beee2b1-7f8e-4939-93fc-30376e5c2333,Incline Dumbbell Press,Push,Chest,60,
 f46873d1-b1a7-4519-86a5-fddbd35b1222,Cable Crossovers,Push,Chest,45,
@@ -21,3 +21,26 @@ f5a6b7c8-d9e0-4f1a-2b3c-4d5e6f7a8b9c,Overhead Tricep Extensions,Arms,Triceps,60,
 a6b7c8d9-e0f1-4a2b-3c4d-5e6f7a8b9c0d,Hanging Leg Raises,Core,Abs,60,
 b7c8d9e0-f1a2-4b3c-4d5e-6f7a8b9c0d1e,Cable Crunches,Core,Abs,45,
 c8d9e0f1-a2b3-4c4d-5e6f-7a8b9c0d1e2f,Russian Twists,Core,Abs,45,
+Exercise Name,Savage Tip
+Barbell Bench Press,"""Plant your feet, arch your back slightly, and explode off the chest. Don't just move weight; move the floor."""
+Incline Dumbbell Press,"""Touch the sky. Keep your elbows at 45 degrees to keep the fire in your upper chest, not your shoulders."""
+Cable Crossovers,"""Imagine hugging a massive tree. Squeeze your pinkies together at the center for that inner-chest split."""
+Pull-Ups,"""Drive your elbows to your pockets. Pull your chest to the bar, not your chin."""
+Barbell Rows,"""Keep your core like stone. Pull the bar to your belly button and crush an orange between your shoulder blades."""
+Lat Pulldowns,"""Lean back slightly and pull with your elbows. Feel the stretch at the top, then rip it down."""
+Overhead Press,"""Head through the 'window' at the top. Lock out and dominate the weight over your center of gravity."""
+Lateral Raises,"""Lead with your elbows and dump the water out of the pitchers. No swinging—pure shoulder isolation."""
+Front Raises,"""Stop at eye level. Control the descent like a statue. Don't let gravity win on the way down."""
+Barbell Squats,"""Chest up, knees out. Sit into the hole and drive through your heels like you're jumping through the ceiling."""
+Leg Press,"""Don't lock your knees. Keep the tension on the quads and push the world away from you."""
+Romanian Deadlifts,"""Hinge at the hips. Push your glutes back until you feel the hamstrings scream, then snap back up."""
+Leg Extensions,"""Hold the handles tight. Squeeze at the top for a full second. Make the quads burn."""
+Hamstring Curls,"""Keep your hips glued to the bench. Pull hard and resist the weight on the way back out."""
+Calf Raises,"""Deep stretch at the bottom, explosive pause at the top. Walk like a giant."""
+Bicep Curls,"""Pinkies to the ceiling. No swinging. Turn the wrist at the top to peak the muscle."""
+Hammer Curls,"""Crush the dumbbell handles. This is for thickness. Keep your elbows locked at your sides."""
+Tricep Pushdowns,"""Flare your hands at the bottom. Lock the elbows out and feel the horseshoe cramp."""
+Overhead Tricep Ext.,"""Deep stretch behind the head. Fire the weights to the ceiling and keep your elbows tucked in."""
+Hanging Leg Raises,"""Don't swing. Use your abs to pull your knees to your chest. Control is everything."""
+Cable Crunches,"""Crunch into a ball. Pull with your abs, not your arms. Imagine touching your elbows to your knees."""
+Russian Twists,"""Follow your hands with your eyes. Rotate the whole torso, don't just move your arms."""

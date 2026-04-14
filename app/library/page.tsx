@@ -2,13 +2,15 @@
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import MobileNav from '@/components/MobileNav';
 import ExerciseCard from '@/components/ExerciseCard';
 import WorkoutPlayer from '@/components/WorkoutPlayer';
+import { Search, X, Filter } from 'lucide-react';
 import type { Exercise } from '@/data/libraryData';
+import { EXERCISE_EQUIPMENT, type EquipmentType } from '@/data/libraryData';
 
 // Extended Exercise to account for dynamic API availability states
 export interface LiveExercise extends Exercise {
@@ -16,237 +18,278 @@ export interface LiveExercise extends Exercise {
     audioUrl?: string;
 }
 
-const CATEGORIES = [
-    { id: 'Chest', label: 'CHEST', iconUrl: '/images/chest-bg.jpg' },
-    { id: 'Back', label: 'BACK', iconUrl: '/images/back-bg.jpg' },
-    { id: 'Legs', label: 'LEGS', iconUrl: '/images/legs-bg.jpg' },
-    { id: 'Arms', label: 'ARMS', iconUrl: '/images/arms-bg.jpg' },
-    { id: 'Core', label: 'CORE', iconUrl: '/images/core-bg.jpg' },
-];
-
-// Reusable transition variants for layout swapping
-const viewVariants = {
-    initial: { opacity: 0, scale: 0.95, filter: 'blur(10px)' },
-    animate: { opacity: 1, scale: 1, filter: 'blur(0px)' },
-    exit: { opacity: 0, scale: 1.05, filter: 'blur(10px)' },
-};
+const MUSCLE_FILTERS = ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core'];
+const EQUIPMENT_FILTERS: EquipmentType[] = ['Dumbbells', 'Barbell', 'Cable', 'Bodyweight', 'Machine'];
 
 export default function LibraryPage() {
     const { theme } = useTheme();
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-    const [exercises, setExercises] = useState<LiveExercise[]>([]);
-    const [activePlaylist, setActivePlaylist] = useState<LiveExercise[] | null>(null);
-    const [activeStartIndex, setActiveStartIndex] = useState<number>(0);
 
-    // Hot-Reloading Fetch Logic
+    const [exercises,           setExercises]         = useState<LiveExercise[]>([]);
+    const [activePlaylist,      setActivePlaylist]    = useState<LiveExercise[] | null>(null);
+    const [activeStartIndex,    setActiveStartIndex]  = useState<number>(0);
+    const [searchQuery,         setSearchQuery]       = useState('');
+    const [selectedMuscle,      setSelectedMuscle]    = useState<string | null>(null);
+    const [selectedEquipment,   setSelectedEquipment] = useState<EquipmentType | null>(null);
+
+    // ── Data Fetching ────────────────────────────────────────────────────────
     useEffect(() => {
         const fetchLibrary = async () => {
             try {
                 const res = await fetch('/api/library');
                 if (res.ok) {
                     const data = await res.json();
-                    setExercises(prev => JSON.stringify(prev) === JSON.stringify(data) ? prev : data);
+                    setExercises(prev =>
+                        JSON.stringify(prev) === JSON.stringify(data) ? prev : data
+                    );
                 }
             } catch (error) {
-                console.error("Failed to fetch library:", error);
+                console.error('Failed to fetch library:', error);
             }
         };
-
-        fetchLibrary(); // Initial fetch
-        const interval = setInterval(fetchLibrary, 3000); // Poll every 3 seconds for drop-in MP4s
+        fetchLibrary();
+        const interval = setInterval(fetchLibrary, 5000);
         return () => clearInterval(interval);
     }, []);
 
-    // Filter exercises based on selected category from the live API data
-    const filteredExercises = useMemo(() => {
-        if (!selectedCategory) return [];
-        return exercises.filter(ex => ex.category === selectedCategory);
-    }, [selectedCategory, exercises]);
+    // ── Performance-Optimized Filtering ──────────────────────────────────────
+    const displayedExercises = useMemo(() => {
+        let filtered = exercises;
 
+        // 1. Muscle Filter
+        if (selectedMuscle) {
+            const m = selectedMuscle.toLowerCase();
+            filtered = filtered.filter(ex => 
+                ex.category.toLowerCase() === m || 
+                ex.targetMuscle.toLowerCase().includes(m)
+            );
+        }
+
+        // 2. Equipment Filter
+        if (selectedEquipment) {
+            filtered = filtered.filter(ex => EXERCISE_EQUIPMENT[ex.id] === selectedEquipment);
+        }
+
+        // 3. Search Intersect
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase().trim();
+            filtered = filtered.filter(ex => 
+                ex.name.toLowerCase().includes(q) ||
+                ex.targetMuscle.toLowerCase().includes(q) ||
+                ex.category.toLowerCase().includes(q)
+            );
+        }
+
+        return filtered;
+    }, [exercises, searchQuery, selectedMuscle, selectedEquipment]);
+
+    // ── Handlers ──────────────────────────────────────────────────────────────
+    const handleStartWorkout = useCallback((idx: number, list: LiveExercise[]) => {
+        navigator.vibrate?.([30, 20, 30]);
+        setActivePlaylist(list);
+        setActiveStartIndex(idx);
+    }, []);
+
+    const resetFilters = () => {
+        setSelectedMuscle(null);
+        setSelectedEquipment(null);
+        setSearchQuery('');
+    };
+
+    const isFiltered = !!(selectedMuscle || selectedEquipment || searchQuery);
+
+    // ─────────────────────────────────────────────────────────────────────────
     return (
-        <AnimatePresence mode="wait">
-            <motion.main
-                key={theme.mode}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-                className="min-h-screen relative overflow-hidden pb-24 lg:pb-0"
+        <main
+            className="min-h-screen relative overflow-x-hidden pb-24 lg:pb-0 font-sans"
+            style={{ backgroundColor: theme.bg }}
+        >
+            <Navbar />
+            <Sidebar />
+
+            {/* Background glow */}
+            <div
+                className="fixed inset-0 -z-10 transition-all duration-[800ms]"
+                style={{ background: theme.bgGlow }}
+            />
+
+            {/* ── STICKY HEADER ─────────────────────────────────────────────── */}
+            <header 
+                className="sticky top-0 z-40 pt-28 pb-6 px-6 sm:px-8 lg:px-24 lg:pl-32 backdrop-blur-xl border-b transition-all duration-300"
+                style={{ 
+                    borderBottomColor: isFiltered ? `${theme.accent}20` : 'rgba(255,255,255,0.05)',
+                    backgroundColor: `${theme.bg}B0`,
+                    boxShadow: isFiltered ? `0 10px 40px -10px ${theme.accent}15` : 'none'
+                }}
             >
-                <Navbar />
-                <Sidebar />
-
-                {/* Background with radial glow matching Dashboard */}
-                <div
-                    className="fixed inset-0 -z-10 transition-all duration-[800ms]"
-                    style={{
-                        background: theme.bgGlow,
-                    }}
-                />
-
-                <section className="pt-28 pb-16 px-6 sm:px-8 lg:px-24 lg:pl-32">
-                    <div className="max-w-[1800px] mx-auto relative">
-
-                        {/* Header Section */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mb-12 text-center"
-                        >
-                            <h1
-                                className="text-5xl lg:text-7xl font-bold mb-4 tracking-tighter uppercase"
-                                style={{
+                <div className="max-w-[1800px] mx-auto">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div>
+                            <h1 className="text-4xl lg:text-5xl font-black tracking-tighter uppercase leading-none mb-1"
+                                style={{ 
                                     fontFamily: 'var(--font-archivo-black), sans-serif',
                                     textShadow: theme.mode === 'savage' ? `0 0 40px ${theme.accent}40` : 'none'
                                 }}
                             >
                                 THE <span style={{ color: theme.accent }}>ARMORY</span>
                             </h1>
-                            <p className="text-lg opacity-60 font-medium tracking-wide uppercase">
-                                SELECT YOUR TARGET
-                            </p>
-                        </motion.div>
+                            <p className="text-[10px] font-bold opacity-40 uppercase tracking-[0.3em]">Advanced Arsenal // v2.4</p>
+                        </div>
 
-                        {/* Animated View Container with Savage Cyan Glow during transition */}
-                        <div className="relative">
-
-                            {/* Ambient Glow behind the views */}
-                            <AnimatePresence>
-                                {selectedCategory && (
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        className="absolute inset-0 z-0 pointer-events-none"
-                                        style={{
-                                            background: `radial-gradient(circle at top, ${theme.accent}20 0%, transparent 60%)`,
-                                            filter: 'blur(60px)'
-                                        }}
-                                    />
-                                )}
-                            </AnimatePresence>
-
-                            <AnimatePresence mode="wait">
-                                {!selectedCategory ? (
-                                    /* --- VIEW 1: CATEGORY GRID --- */
-                                    <motion.div
-                                        key="category-grid"
-                                        variants={viewVariants}
-                                        initial="initial"
-                                        animate="animate"
-                                        exit="exit"
-                                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                                        className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6 relative z-10"
-                                    >
-                                        {CATEGORIES.map((category, idx) => (
-                                            <motion.div
-                                                key={category.id}
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: idx * 0.1 }}
-                                                onClick={() => setSelectedCategory(category.id)}
-                                                className="group relative h-40 lg:h-64 rounded-[24px] overflow-hidden flex flex-col items-center justify-center cursor-pointer backdrop-blur-3xl transition-all duration-300"
-                                                style={{
-                                                    backgroundColor: theme.cardBg,
-                                                    border: `1px solid ${theme.borderColor}`,
-                                                }}
-                                                whileHover={{ y: -5, scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                            >
-                                                {/* Savage Cyan Hover Glow Effect */}
-                                                <div
-                                                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                                                    style={{ boxShadow: `inset 0 0 50px ${theme.accent}40`, border: `2px solid ${theme.accent}80`, borderRadius: '24px' }}
-                                                />
-
-                                                {/* High Contrast Background Placeholder */}
-                                                <div
-                                                    className="absolute inset-0 opacity-20 group-hover:opacity-40 transition-opacity duration-500"
-                                                    style={{
-                                                        background: `radial-gradient(circle at center, ${theme.accent}60 0%, transparent 70%)`,
-                                                        filter: 'blur(20px)'
-                                                    }}
-                                                />
-
-                                                {/* Category Label */}
-                                                <h3
-                                                    className="text-2xl lg:text-3xl font-bold tracking-tighter uppercase z-10 transition-transform duration-300 group-hover:scale-110"
-                                                    style={{
-                                                        fontFamily: 'var(--font-archivo-black), sans-serif',
-                                                    }}
-                                                >
-                                                    {category.label}
-                                                </h3>
-                                            </motion.div>
-                                        ))}
-                                    </motion.div>
-                                ) : (
-                                    /* --- VIEW 2: EXERCISE LIST --- */
-                                    <motion.div
-                                        key="exercise-list"
-                                        variants={viewVariants}
-                                        initial="initial"
-                                        animate="animate"
-                                        exit="exit"
-                                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                                        className="relative z-10"
-                                    >
-                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-                                            <h2 className="text-3xl lg:text-4xl font-bold tracking-tighter uppercase" style={{ fontFamily: 'var(--font-archivo-black), sans-serif' }}>
-                                                {selectedCategory} <span style={{ color: theme.accent }}>TARGETS</span>
-                                            </h2>
-
-                                            {/* Navigation Fix: Return to Category Grid */}
-                                            <button
-                                                onClick={() => setSelectedCategory(null)}
-                                                className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wider backdrop-blur-xl transition-all hover:-translate-x-2"
-                                                style={{
-                                                    border: `1px solid ${theme.borderColor}`,
-                                                    backgroundColor: theme.cardBg
-                                                }}
-                                            >
-                                                ← Back to Categories
-                                            </button>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 items-start">
-                                            {filteredExercises.map((exercise, idx) => (
-                                                <ExerciseCard
-                                                    key={exercise.id}
-                                                    exercise={exercise}
-                                                    delay={idx * 0.15}
-                                                    onStartWorkout={() => {
-                                                        setActivePlaylist(filteredExercises);
-                                                        setActiveStartIndex(idx);
-                                                    }}
-                                                />
-                                            ))}
-                                            {filteredExercises.length === 0 && (
-                                                <div className="col-span-full py-24 text-center opacity-50 rounded-[32px] border" style={{ borderColor: theme.borderColor, backgroundColor: theme.cardBg }}>
-                                                    <h3 className="text-2xl font-bold mb-2">No exercises found</h3>
-                                                    <p>We couldn't find any target data for this category.</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                        {/* Search Bar with Glow */}
+                        <div className="relative w-full max-w-sm">
+                            <Search
+                                size={18}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200"
+                                style={{ color: searchQuery ? theme.accent : 'rgba(255,255,255,0.2)' }}
+                            />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search exercises, muscles..."
+                                className="w-full py-4 pl-12 pr-12 rounded-2xl text-sm bg-black/40 text-white placeholder-white/20 outline-none transition-all duration-300"
+                                style={{
+                                    border: `1px solid ${searchQuery ? theme.accent + '40' : 'rgba(255,255,255,0.1)'}`,
+                                    boxShadow: searchQuery ? `0 0 20px ${theme.accent}10, inset 0 0 10px ${theme.accent}05` : 'none',
+                                }}
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-white/10 transition-all"
+                                >
+                                    <X size={14} className="text-white/40" />
+                                </button>
+                            )}
                         </div>
                     </div>
-                </section>
 
-                {/* Global Workout Player Layer */}
-                {activePlaylist && (
-                    <WorkoutPlayer 
-                        playlist={activePlaylist} 
-                        initialIndex={activeStartIndex}
-                        onClose={() => setActivePlaylist(null)} 
-                    />
-                )}
+                    {/* Dual-Row Filters */}
+                    <div className="mt-8 space-y-4">
+                        {/* Muscle Row */}
+                        <div className="flex items-center gap-4">
+                            <span className="text-[10px] font-black uppercase tracking-widest opacity-30 shrink-0 min-w-[50px]">Muscle</span>
+                            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar flex-nowrap">
+                                {MUSCLE_FILTERS.map(m => (
+                                    <button
+                                        key={m}
+                                        onClick={() => {
+                                            if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+                                            setSelectedMuscle(selectedMuscle === m ? null : m);
+                                        }}
+                                        className="px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200"
+                                        style={{
+                                            background: selectedMuscle === m ? `${theme.accent}20` : 'rgba(255,255,255,0.03)',
+                                            border: `1px solid ${selectedMuscle === m ? theme.accent : 'rgba(255,255,255,0.05)'}`,
+                                            color: selectedMuscle === m ? theme.accent : 'rgba(255,255,255,0.4)',
+                                            boxShadow: selectedMuscle === m ? `0 0 15px ${theme.accent}20` : 'none'
+                                        }}
+                                    >
+                                        {m}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
-                {/* Mobile Navigation Bar */}
-                <MobileNav />
-            </motion.main>
-        </AnimatePresence>
+                        {/* Equipment Row */}
+                        <div className="flex items-center gap-4">
+                            <span className="text-[10px] font-black uppercase tracking-widest opacity-30 shrink-0 min-w-[50px]">Equipment</span>
+                            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar flex-nowrap">
+                                {EQUIPMENT_FILTERS.map(e => (
+                                    <button
+                                        key={e}
+                                        onClick={() => {
+                                            if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+                                            setSelectedEquipment(selectedEquipment === e ? null : e);
+                                        }}
+                                        className="px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-200"
+                                        style={{
+                                            background: selectedEquipment === e ? `${theme.accent}15` : 'rgba(255,255,255,0.03)',
+                                            border: `1px solid ${selectedEquipment === e ? theme.accent + '80' : 'rgba(255,255,255,0.05)'}`,
+                                            color: selectedEquipment === e ? theme.accent : 'rgba(255,255,255,0.4)',
+                                            boxShadow: selectedEquipment === e ? `0 0 15px ${theme.accent}10` : 'none'
+                                        }}
+                                    >
+                                        {e === 'Cable' ? 'Cables' : e}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            {/* ── CONTENT AREA ───────────────────────────────────────────────── */}
+            <section className="py-12 px-6 sm:px-8 lg:px-24 lg:pl-32">
+                <div className="max-w-[1800px] mx-auto">
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-4">
+                            <div className="h-px w-8 bg-current opacity-20" />
+                            <h2 className="text-sm font-black uppercase tracking-[0.4em] opacity-60">
+                                Results <span className="ml-2" style={{ color: theme.accent }}>{displayedExercises.length}</span>
+                            </h2>
+                        </div>
+                        
+                        {isFiltered && (
+                            <button 
+                                onClick={resetFilters}
+                                className="text-[10px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity flex items-center gap-2"
+                            >
+                                <X size={12} /> Clear Filters
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                        <AnimatePresence mode="popLayout">
+                            {displayedExercises.map((exercise, idx) => (
+                                <motion.div
+                                    key={exercise.id}
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.2) }}
+                                >
+                                    <ExerciseCard
+                                        exercise={exercise}
+                                        onStartWorkout={() => handleStartWorkout(idx, displayedExercises)}
+                                    />
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+
+                    {displayedExercises.length === 0 && (
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="py-32 text-center rounded-[40px] border border-dashed border-white/10 bg-white/[0.01]"
+                        >
+                            <Filter size={48} className="mx-auto mb-6 opacity-10" />
+                            <h3 className="text-2xl font-bold mb-2 uppercase tracking-tighter">Zero Hostiles Detected</h3>
+                            <p className="text-white/40 max-w-xs mx-auto text-sm">No exercises match your current filter parameters. Try expanding your search or clearing filters.</p>
+                            <button 
+                                onClick={resetFilters}
+                                className="mt-8 px-8 py-3 rounded-full bg-white text-black font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
+                            >
+                                Reset Arsenal
+                            </button>
+                        </motion.div>
+                    )}
+                </div>
+            </section>
+
+            {/* Global Workout Player Layer */}
+            {activePlaylist && (
+                <WorkoutPlayer
+                    playlist={activePlaylist}
+                    initialIndex={activeStartIndex}
+                    onClose={() => setActivePlaylist(null)}
+                />
+            )}
+
+            <MobileNav />
+        </main>
     );
 }

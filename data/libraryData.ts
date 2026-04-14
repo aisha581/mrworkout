@@ -987,3 +987,97 @@ export const EXERCISE_LIBRARY: Exercise[] = [
         videoUrl: 'https://btmopyfbuvylmdfwqfuo.supabase.co/storage/v1/object/public/exercise-library/suitcase-crunch-with-ball.mp4',
     },
 ];
+
+// ── Equipment types ───────────────────────────────────────────────────────────
+export type EquipmentType = 'Dumbbells' | 'Barbell' | 'Bodyweight' | 'Cable' | 'Machine';
+
+// Equipment lookup keyed by exercise id — keeps the Exercise objects clean.
+export const EXERCISE_EQUIPMENT: Record<string, EquipmentType> = {
+    '1a4b2afb-8d56-4d07-a66f-06fd89e96111': 'Barbell',    // Barbell Bench Press
+    '0beee2b1-7f8e-4939-93fc-30376e5c2333': 'Dumbbells',  // Incline Dumbbell Press
+    'f46873d1-b1a7-4519-86a5-fddbd35b1222': 'Cable',      // Cable Crossovers
+    '0dbdb01c-339a-4890-82c3-29a4c7b94444': 'Bodyweight', // Pull-Ups
+    '0e7b3126-30f1-4094-97ec-901e4e5ee555': 'Barbell',    // Barbell Rows
+    'c1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c': 'Cable',     // Lat Pulldowns
+    'e6f7a8b9-c0d1-4e2f-3a4b-5c6d7e8f9a0b': 'Barbell',   // Overhead Press
+    'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d': 'Dumbbells', // Lateral Raises
+    'b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e': 'Barbell',   // Barbell Squats
+    'd1e2f3a4-b5c6-4d7e-8f9a-0b1c2d3e4f5a': 'Machine',   // Leg Press
+    'c9d8e7f6-a5b4-4c3d-2e1f-0a9b8c7d6e5f': 'Barbell',   // Romanian Deadlifts
+    'c2d3e4f5-a6b7-4c8d-9e0f-1a2b3c4d5e6f': 'Dumbbells', // Bicep Curls
+    'e4f5a6b7-c8d9-4e0f-1a2b-3c4d5e6f7a8b': 'Cable',     // Tricep Pushdowns
+    'b7c8d9e0-f1a2-4b3c-4d5e-6f7a8b9c0d1e': 'Cable',     // Cable Crunches
+    'f1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c': 'Cable',     // Behind the Neck Lat Pulldown
+    'a2b3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6d': 'Bodyweight', // Side Leg Raises
+    'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e': 'Dumbbells', // Weighted Floor Crunch
+    'c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f': 'Dumbbells', // Straight Raises on Incline
+    'd4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a': 'Bodyweight', // Cocoons
+    'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b': 'Barbell',   // Barbell Front Raises
+    'f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c': 'Dumbbells', // Seated Curls
+    'a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d': 'Dumbbells', // Incline Dumbbell Dips Close Grip
+    'b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2e': 'Bodyweight', // Couch Hip Thrust
+    'c9d0e1f2-a3b4-4c5d-6e7f-8a9b0c1d2e3f': 'Bodyweight', // Calf Raises
+    'd0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4a': 'Barbell',   // Standing Military Press
+    'e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b': 'Barbell',   // Close Grip EZ Bar Curl
+    'f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6c': 'Cable',     // High Cable Biceps Curl
+    'a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d': 'Dumbbells', // Standing Kickback
+    'b4c5d6e7-f8a9-4b0c-1d2e-3f4a5b6c7d8e': 'Bodyweight', // Diamond Push Up
+    'c5d6e7f8-a9b0-4c1d-2e3f-4a5b6c7d8e9f': 'Bodyweight', // Cross Leg Diagonal Crunch
+    'd6e7f8a9-b0c1-4d2e-3f4a-5b6c7d8e9f0a': 'Bodyweight', // Plank Tucks
+    'e7f8a9b0-c1d2-4e3f-4a5b-6c7d8e9f0a1b': 'Bodyweight', // Weighted Bench Dips
+    'f8a9b0c1-d2e3-4f4a-5b6c-7d8e9f0a1b2c': 'Machine',   // Reverse Pec Deck
+    'a9b0c1d2-e3f4-4a5b-6c7d-8e9f0a1b2c3d': 'Dumbbells', // Concentration Curls
+    'b0c1d2e3-f4a5-4b6c-7d8e-9f0a1b2c3d4e': 'Bodyweight', // Dips
+    'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f': 'Barbell',   // Hip Thrusts
+    'd2e3f4a5-b6c7-4d8e-9f0a-1b2c3d4e5f6a': 'Bodyweight', // Bird Dog
+    'e3f4a5b6-c7d8-4e9f-0a1b-2c3d4e5f6a7b': 'Dumbbells', // Seated Dumbbell Shoulder Press
+    'f4a5b6c7-d8e9-4f0a-1b2c-3d4e5f6a7b8c': 'Dumbbells', // Dumbbell Curls
+    'a5b6c7d8-e9f0-4a1b-2c3d-4e5f6a7b8c9d': 'Barbell',   // Weighted Plate Bicep Curl
+    'b6c7d8e9-f0a1-4b2c-3d4e-5f6a7b8c9d0e': 'Bodyweight', // Chair Dips
+    'c7d8e9f0-a1b2-4c3d-4e5f-6a7b8c9d0e1f': 'Dumbbells', // Single Arm Dumbbell Row
+    'd8e9f0a1-b2c3-4d4e-5f6a-7b8c9d0e1f2a': 'Bodyweight', // Hyperextensions
+    'e9f0a1b2-c3d4-4e5f-6a7b-8c9d0e1f2a3b': 'Machine',   // Assisted Wide Grip Pull Up
+    'f0a1b2c3-d4e5-4f6a-7b8c-9d0e1f2a3b4c': 'Bodyweight', // Decline Push Up
+    'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e': 'Dumbbells', // Dumbbell Shrugs / Bulgarian Split Squat
+    'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6f': 'Dumbbells', // Lying Supine Dumbbell Curl
+    'c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7a': 'Bodyweight', // High Knees
+    'd4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8b': 'Bodyweight', // Reverse Crunch
+    'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9c': 'Bodyweight', // Close Push Up
+    'f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0d': 'Machine',   // Shoulder Press
+    'a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1e': 'Barbell',   // Preacher EZ Bar Curl
+    'b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2f': 'Barbell',   // Seated Overhead Triceps Extensions
+    'c9d0e1f2-a3b4-4c5d-6e7f-8a9b0c1d2e3a': 'Dumbbells', // Dumbbell Reverse Fly
+    'd0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4b': 'Bodyweight', // Plank
+    'e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5c': 'Bodyweight', // Fly Jacks
+    'f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6d': 'Cable',     // High to Low Cable Chest Fly
+    'a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7e': 'Machine',   // Machine Chest Press
+    'b4c5d6e7-f8a9-4b0c-1d2e-3f4a5b6c7d8f': 'Dumbbells', // Preacher Dumbbell Curl
+    'c5d6e7f8-a9b0-4c1d-2e3f-4a5b6c7d8e9a': 'Bodyweight', // Toe Touchers
+    'd6e7f8a9-b0c1-4d2e-3f4a-5b6c7d8e9f0b': 'Barbell',   // T-Bar Row
+    'e7f8a9b0-c1d2-4e3f-4a5b-6c7d8e9f0a1c': 'Dumbbells', // Seated Overhead Dumbbell Triceps Extension
+    'f8a9b0c1-d2e3-4f4a-5b6c-7d8e9f0a1b2d': 'Barbell',   // Barbell Deadlift
+    'a9b0c1d2-e3f4-4a5b-6c7d-8e9f0a1b2c3e': 'Dumbbells', // One Arm Dumbbell Row
+    'b0c1d2e3-f4a5-4b6c-7d8e-9f0a1b2c3d4f': 'Bodyweight', // Butt Up
+    'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5a': 'Barbell',   // Plate Bent Over Rows
+    'd2e3f4a5-b6c7-4d8e-9f0a-1b2c3d4e5f6b': 'Barbell',   // Wide Grip EZ Bar Curl
+    'e3f4a5b6-c7d8-4e9f-0a1b-2c3d4e5f6a7c': 'Dumbbells', // Bent Over Rear Shoulder Raise
+    'f4a5b6c7-d8e9-4f0a-1b2c-3d4e5f6a7b8d': 'Cable',     // Wide Grip Seated Cable Row
+    'a5b6c7d8-e9f0-4a1b-2c3d-4e5f6a7b8c9e': 'Dumbbells', // Decline Dumbbell Chest Press
+    'b6c7d8e9-f0a1-4b2c-3d4e-5f6a7b8c9d0f': 'Barbell',   // Plate Goblet Squat
+    'c7d8e9f0-a1b2-4c3d-4e5f-6a7b8c9d0e1a': 'Barbell',   // Barbell Curl Against Incline
+    'd8e9f0a1-b2c3-4d4e-5f6a-7b8c9d0e1f2b': 'Dumbbells', // Incline Dumbbell Chest Flies
+    'e9f0a1b2-c3d4-4e5f-6a7b-8c9d0e1f2a3c': 'Bodyweight', // Cat Cow
+    'f0a1b2c3-d4e5-4f6a-7b8c-9d0e1f2a3b4d': 'Dumbbells', // Lying Rear Delt Raises
+    'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6a': 'Barbell',   // Incline Barbell Triceps Extension
+    'c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7b': 'Bodyweight', // Atlas Push Up
+    'd4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8c': 'Barbell',   // Barbell Sumo Deadlift
+    'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9d': 'Cable',     // Seated Cable Row
+    'f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0e': 'Bodyweight', // Advanced Side Leg Lift
+    'a6b7c8d9-e0f1-4a2b-3c4d-5e6f7a8b9c0f': 'Dumbbells', // One Arm Tricep Kickback
+    'b7c8d9e0-f1a2-4b3c-4d5e-6f7a8b9c0d1f': 'Bodyweight', // Hanging Leg Raise
+    'c8d9e0f1-a2b3-4c4d-5e6f-7a8b9c0d1e2a': 'Bodyweight', // Squat
+    'd9e0f1a2-b3c4-4d5e-6f7a-8b9c0d1e2f3b': 'Barbell',   // Decline Barbell Bench Press
+    'e0f1a2b3-c4d5-4e6f-7a8b-9c0d1e2f3a4c': 'Cable',     // Cable Rope Hammer Curl
+    'f1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5f': 'Bodyweight', // Pike Push Up
+    'a2b3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6e': 'Bodyweight', // Suitcase Crunch with Ball
+};
