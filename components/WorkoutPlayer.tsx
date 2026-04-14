@@ -1,8 +1,7 @@
 "use client";
 
-import { useTheme } from '@/contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Pause, Plus, CheckCircle2, ChevronLeft, ChevronRight, FastForward, Activity } from 'lucide-react';
+import { ChevronLeft, Music, Zap, CheckCircle2, Plus } from 'lucide-react';
 import type { LiveExercise } from '@/app/library/page';
 import { useRef, useState, useEffect } from 'react';
 import VictoryScreen from './VictoryScreen';
@@ -14,10 +13,9 @@ interface WorkoutPlayerProps {
 }
 
 export default function WorkoutPlayer({ playlist, initialIndex, onClose }: WorkoutPlayerProps) {
-    const { theme } = useTheme();
     const videoRef = useRef<HTMLVideoElement>(null);
     const pipRef = useRef<HTMLVideoElement>(null);
-    
+
     // Core Navigation & State
     const [activeIndex, setActiveIndex] = useState(initialIndex);
     const exercise = playlist[activeIndex];
@@ -31,44 +29,35 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
     const [timeLeft, setTimeLeft] = useState(0);
     const [currentReps, setCurrentReps] = useState(0);
     const [currentSet, setCurrentSet] = useState(1);
-    const totalSets = 3;
-    
-    // Global Dash/Telemetry Trackers
-    const [totalVolume, setTotalVolume] = useState(0); 
-    const [timeUnderTension, setTimeUnderTension] = useState(0); 
-    const [completedSets, setCompletedSets] = useState(0);
+    const totalSets = 4;
 
+    // Global Trackers
+    const [totalVolume, setTotalVolume] = useState(0);
+    const [timeUnderTension, setTimeUnderTension] = useState(0);
+    const [completedSets, setCompletedSets] = useState(0);
     const [isPulsing, setIsPulsing] = useState(false);
     const tempoRef = useRef<HTMLDivElement>(null);
 
-    // Inter-Exercise Rest State Mechanics
+    // Rest State
     const [isResting, setIsResting] = useState(false);
     const [restTimer, setRestTimer] = useState<number | null>(null);
 
-    // Cross-fade Looping State
+    // Cross-fade Looping
     const [videoOpacity, setVideoOpacity] = useState(1);
-    
-    // Mobile Overlays
-    const [showMobileTip, setShowMobileTip] = useState(false);
+    const [isWorkoutComplete, setIsWorkoutComplete] = useState(false);
 
-    // Define next target safely
     const nextExercise = activeIndex < playlist.length - 1 ? playlist[activeIndex + 1] : null;
+    const nextVideoSrc = nextExercise?.videoUrl;
 
-    // Reset Core states when activeIndex changes
+    // Reset when exercise changes
     useEffect(() => {
         setIsSetStarted(false);
         setIsResting(false);
         setRestTimer(null);
         setProgress(0);
         setVideoOpacity(1);
-        setShowMobileTip(false);
-        
         if (exercise.defaultTime) setTimeLeft(exercise.defaultTime);
-        if (exercise.defaultReps) {
-             setCurrentReps(0);
-             setCurrentSet(1);
-        }
-
+        if (exercise.defaultReps) { setCurrentReps(0); setCurrentSet(1); }
         if (videoRef.current) {
             videoRef.current.currentTime = 0;
             videoRef.current.playbackRate = playbackRate;
@@ -76,53 +65,45 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
         }
     }, [activeIndex, exercise, playbackRate]);
 
-    // Synchronize HTMLVideoElement Playback Rate globally
+    // Sync playback rate
     useEffect(() => {
-        if (videoRef.current && !isResting) {
-            videoRef.current.playbackRate = playbackRate;
-        }
+        if (videoRef.current && !isResting) videoRef.current.playbackRate = playbackRate;
     }, [playbackRate, isResting]);
 
-    // Flawless Cross-Fade Engine (Restricts video precisely to 3.0s with a subtle opacity dip)
+    // Cross-fade engine
     useEffect(() => {
         let reqId: number;
-
         const handleCrossFadeWrap = () => {
             if (videoRef.current) {
                 const ct = videoRef.current.currentTime;
-                
-                // Track Tempo
                 if (tempoRef.current && !isResting) {
-                     const pct = Math.min((ct / 3.0) * 100, 100);
-                     tempoRef.current.style.background = `conic-gradient(from 0deg, #00FFFF ${pct}%, transparent ${pct}%, transparent 100%)`;
+                    const pct = Math.min((ct / 3.0) * 100, 100);
+                    tempoRef.current.style.background = `conic-gradient(from 0deg, #4CAF50 ${pct}%, transparent ${pct}%, transparent 100%)`;
                 }
-
-                // If approaching 3.0s timeline, dip opacity and seamlessly teleport under shadow
                 if (ct >= 2.8 && videoOpacity === 1) {
-                    setVideoOpacity(0.5); // Subtle dip
+                    setVideoOpacity(0.5);
                     setTimeout(() => {
                         if (videoRef.current) {
                             videoRef.current.currentTime = 0;
-                            setVideoOpacity(1); // Fade back in seamlessly
+                            setVideoOpacity(1);
                             if (!isResting) videoRef.current.play().catch(() => {});
                         }
-                    }, 200); // Wait for transition physics
+                    }, 200);
                 }
             }
             reqId = requestAnimationFrame(handleCrossFadeWrap);
         };
-
         reqId = requestAnimationFrame(handleCrossFadeWrap);
         return () => cancelAnimationFrame(reqId);
     }, [videoOpacity, isResting]);
 
-    // Timer Match Logic
+    // Timer countdown
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (isSetStarted && exercise?.defaultTime && timeLeft > 0 && !isResting) {
             interval = setInterval(() => {
                 setTimeLeft(prev => prev - 1);
-                setTimeUnderTension(prev => prev + 1); // Track global tension
+                setTimeUnderTension(prev => prev + 1);
             }, 1000);
         } else if (timeLeft === 0 && isSetStarted && exercise?.defaultTime && !isResting) {
             triggerRestOverlay();
@@ -130,7 +111,7 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
         return () => clearInterval(interval);
     }, [isSetStarted, timeLeft, exercise, isResting]);
 
-    // Rest State Engine (Auto-Flow into next exercise)
+    // Rest countdown
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (isResting && restTimer !== null && restTimer > 0) {
@@ -143,118 +124,75 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
 
     if (!exercise) return null;
 
-    // Actions
+    // ── Actions ────────────────────────────────────────────────────────────────
     const startSet = () => setIsSetStarted(true);
 
     const incrementRep = (e: React.MouseEvent) => {
         e.stopPropagation();
-        
-        // Haptic Feedback Integration for Mobile Devices
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-            navigator.vibrate(50);
-        }
-
-        // Trigger visual pulse
+        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
         setIsPulsing(true);
         setTotalVolume(prev => prev + 1);
         setTimeout(() => setIsPulsing(false), 300);
-
         setCurrentReps(prev => {
-            const nextVal = prev + 1;
-            
+            const next = prev + 1;
             try {
                 localStorage.setItem(`mrworkout_progress_${exercise.id}`, JSON.stringify({
-                    date: new Date().toISOString(),
-                    set: currentSet,
-                    reps: nextVal
+                    date: new Date().toISOString(), set: currentSet, reps: next
                 }));
-            } catch (e) {
-                console.warn('Local storage save failed', e);
-            }
-
-            if (exercise.defaultReps && nextVal >= exercise.defaultReps) {
+            } catch {}
+            if (exercise.defaultReps && next >= exercise.defaultReps) {
                 if (currentSet < totalSets) {
-                    setTimeout(() => {
-                         setCurrentSet(c => c + 1);
-                         setCurrentReps(0);
-                         setCompletedSets(prev => prev + 1); // Track successful sets
-                    }, 500);
+                    setTimeout(() => { setCurrentSet(c => c + 1); setCurrentReps(0); setCompletedSets(p => p + 1); }, 500);
                 } else {
-                    setTimeout(() => {
-                        setCompletedSets(prev => prev + 1);
-                        triggerRestOverlay();
-                    }, 400); 
+                    setTimeout(() => { setCompletedSets(p => p + 1); triggerRestOverlay(); }, 400);
                 }
                 return exercise.defaultReps;
             }
-            return Math.min(nextVal, exercise.defaultReps || 99);
+            return Math.min(next, exercise.defaultReps || 99);
         });
     };
 
     const triggerRestOverlay = () => {
-        if (nextExercise) {
-            setIsResting(true);
-            setRestTimer(exercise.defaultRest || 60);
-        } else {
-            // End of playlist
-            setIsResting(true);
-            setRestTimer(3);
-        }
+        setIsResting(true);
+        setRestTimer(nextExercise ? (exercise.defaultRest || 60) : 3);
     };
 
-    const [isWorkoutComplete, setIsWorkoutComplete] = useState(false);
-
     const handleCompleteBypass = () => {
-        if (activeIndex < playlist.length - 1) {
-            setActiveIndex(prev => prev + 1);
-        } else {
-            setIsWorkoutComplete(true);
-        }
+        if (activeIndex < playlist.length - 1) setActiveIndex(prev => prev + 1);
+        else setIsWorkoutComplete(true);
     };
 
     const handleNext = () => handleCompleteBypass();
-    const handlePrev = () => {
-        if (activeIndex > 0) setActiveIndex(prev => prev - 1);
-    };
-
-    const cyclePlaybackSpeed = () => {
-        setPlaybackRate(prev => {
-            if (prev === 1.0) return 0.5;
-            return 1.0;
-        });
-    };
+    const handlePrev = () => { if (activeIndex > 0) setActiveIndex(prev => prev - 1); };
+    const cyclePlaybackSpeed = () => setPlaybackRate(prev => prev === 1.0 ? 0.5 : 1.0);
 
     const handleTimeUpdate = () => {
         if (videoRef.current) {
-            const current = videoRef.current.currentTime;
-            const duration = videoRef.current.duration;
-            if (duration > 0) {
-                setProgress((current / duration) * 100);
-            }
+            const { currentTime, duration } = videoRef.current;
+            if (duration > 0) setProgress((currentTime / duration) * 100);
         }
     };
 
-    const videoSrc = exercise.videoUrl;
-
-    // PiP source mapped to next target
-    const nextVideoSrc = nextExercise?.videoUrl;
-
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const formatTime = (s: number) => {
+        const m = Math.floor(s / 60);
+        return `${m.toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
     };
 
-    const isComplete = (exercise.defaultTime && timeLeft === 0) || (exercise.defaultReps && currentReps >= exercise.defaultReps && currentSet === totalSets);
+    const isComplete =
+        (exercise.defaultTime && timeLeft === 0 && isSetStarted) ||
+        (exercise.defaultReps && currentReps >= exercise.defaultReps && currentSet === totalSets);
 
-    const displayTip = Array.isArray(exercise.savageTip) 
-        ? (exercise.savageTip[currentSet - 1] || exercise.savageTip[0]) 
-        : exercise.savageTip;
+    const displayTime = exercise.defaultTime
+        ? formatTime(isSetStarted ? timeLeft : exercise.defaultTime)
+        : formatTime(0);
 
+    const videoSrc = exercise.videoUrl;
+
+    // ── Victory Screen ─────────────────────────────────────────────────────────
     if (isWorkoutComplete) {
         return (
             <AnimatePresence>
-                <VictoryScreen 
+                <VictoryScreen
                     totalVolume={totalVolume}
                     timeUnderTension={timeUnderTension}
                     completedSets={completedSets}
@@ -265,356 +203,288 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
         );
     }
 
+    // ── Render ─────────────────────────────────────────────────────────────────
     return (
         <AnimatePresence>
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[500] bg-black overflow-hidden flex flex-col md:flex-row"
+                className="fixed inset-0 z-[500] overflow-hidden bg-black"
             >
-                {/* 1. Underlying Video Canvas (Full Mobile, Left Desktop) */}
-                <div className="absolute inset-0 z-0 md:relative md:w-[60%] md:h-full bg-black shrink-0 border-r border-white/5 overflow-hidden">
-                    <video
-                        ref={videoRef}
-                        src={videoSrc}
-                        className={`w-full h-full object-cover scale-[1.15] origin-center transition-all duration-300 will-change-transform ${isResting ? 'blur-md' : 'md:opacity-100'}`}
-                        style={{ opacity: isResting ? 0.3 : (videoOpacity === 1 ? 1 : 0.4) }}
-                        playsInline
-                        preload="auto"
-                        muted
-                        loop={false} // Custom Cross-fade Engine manages looping
-                        onTimeUpdate={handleTimeUpdate}
-                    />
-                    
-                    {/* Shadow overlays */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 pointer-events-none md:hidden" />
-                    
-                    {/* Manual Navigation Arrows (Embedded on video edges) */}
-                    {!isResting && (
-                        <>
-                            <div className="absolute inset-y-0 left-0 flex items-center px-2 md:px-6">
-                                {activeIndex > 0 && (
-                                    <button onClick={handlePrev} className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white/50 hover:text-white border border-white/10 transition-colors">
-                                        <ChevronLeft size={32} />
-                                    </button>
-                                )}
-                            </div>
-                            <div className="absolute inset-y-0 right-0 flex items-center justify-end px-2 md:px-6 z-20">
-                                {activeIndex < playlist.length - 1 && (
-                                    <button onClick={handleNext} className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white/50 hover:text-white border border-white/10 transition-colors">
-                                        <ChevronRight size={32} />
-                                    </button>
-                                )}
-                            </div>
-                        </>
+                {/* ── 1. Full-Screen Video ── */}
+                <video
+                    ref={videoRef}
+                    src={videoSrc}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{
+                        opacity: isResting ? 0.25 : (videoOpacity === 1 ? 1 : 0.5),
+                        transition: 'opacity 0.2s ease',
+                        filter: isResting ? 'blur(8px)' : 'none',
+                    }}
+                    playsInline
+                    preload="auto"
+                    muted
+                    loop={false}
+                    onTimeUpdate={handleTimeUpdate}
+                />
+
+                {/* ── 2. Gradient Overlays ── */}
+                {/* Top */}
+                <div className="absolute inset-x-0 top-0 h-52 bg-gradient-to-b from-black/75 via-black/30 to-transparent pointer-events-none z-10" />
+                {/* Bottom */}
+                <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/95 via-black/60 to-transparent pointer-events-none z-10" />
+
+                {/* ── 3. Header ── */}
+                <div className="absolute top-0 left-0 right-0 z-20 flex flex-col items-center pt-14 px-6">
+                    {/* Back button */}
+                    <button
+                        onClick={onClose}
+                        className="absolute left-5 top-[3.75rem] text-white p-1"
+                        style={{ top: '3.5rem' }}
+                    >
+                        <ChevronLeft size={30} strokeWidth={2} />
+                    </button>
+
+                    {/* Timer */}
+                    {exercise.defaultTime ? (
+                        <motion.div
+                            key={isSetStarted ? timeLeft : 'idle'}
+                            initial={{ scale: 1.05, opacity: 0.8 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            className="text-[5.5rem] font-black text-white leading-none tracking-tight"
+                            style={{ fontFamily: 'var(--font-archivo-black), sans-serif' }}
+                        >
+                            {displayTime}
+                        </motion.div>
+                    ) : (
+                        <div
+                            className="text-[5.5rem] font-black text-white leading-none tracking-tight"
+                            style={{ fontFamily: 'var(--font-archivo-black), sans-serif' }}
+                        >
+                            {String(currentReps).padStart(2, '0')}:{String(exercise.defaultReps || 0).padStart(2, '0')}
+                        </div>
                     )}
 
-                    {/* Rest Overlay with Picture in Picture */}
-                    <AnimatePresence>
-                        {isResting && restTimer !== null && (
-                            <motion.div 
+                    {/* Exercise name */}
+                    <p className="text-base text-white/75 font-medium mt-2 tracking-wide text-center px-12">
+                        {exercise.name}
+                    </p>
+                </div>
+
+                {/* ── 4. Right-Side Utility Buttons ── */}
+                <div className="absolute right-5 z-20 flex flex-col gap-3" style={{ top: '38%' }}>
+                    {/* Music */}
+                    <button className="w-12 h-12 rounded-[14px] flex items-center justify-center shadow-lg"
+                        style={{ backgroundColor: 'rgba(76,175,80,0.85)', backdropFilter: 'blur(12px)' }}>
+                        <Music size={20} className="text-white" />
+                    </button>
+
+                    {/* Speed toggle */}
+                    <button
+                        onClick={cyclePlaybackSpeed}
+                        className="w-12 h-12 rounded-[14px] flex items-center justify-center shadow-lg transition-all"
+                        style={{
+                            backgroundColor: playbackRate === 0.5 ? 'rgba(76,175,80,1)' : 'rgba(76,175,80,0.85)',
+                            backdropFilter: 'blur(12px)',
+                            boxShadow: playbackRate === 0.5 ? '0 0 16px rgba(76,175,80,0.6)' : undefined,
+                        }}
+                    >
+                        <Zap size={20} className="text-white" fill={playbackRate === 0.5 ? 'white' : 'none'} />
+                    </button>
+                </div>
+
+                {/* ── 5. Bottom Layer ── */}
+                <div className="absolute bottom-0 left-0 right-0 z-20 px-5 pb-7">
+
+                    {/* Info row: left stats · next exercise · exercise index */}
+                    <div className="flex items-end justify-between mb-4">
+
+                        {/* Left: duration + sets */}
+                        <div className="flex flex-col leading-tight">
+                            <span className="text-[2.6rem] font-black text-white leading-none"
+                                style={{ fontFamily: 'var(--font-archivo-black), sans-serif' }}>
+                                {exercise.defaultTime ? `${exercise.defaultTime} sec` : `${exercise.defaultReps} reps`}
+                            </span>
+                            <span className="text-[1.4rem] font-black text-white mt-0.5">
+                                Sets {currentSet}/{totalSets}
+                            </span>
+                        </div>
+
+                        {/* Center: Up Next thumbnail */}
+                        {nextExercise && (
+                            <div className="flex items-center gap-3 mx-4">
+                                <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/50 shrink-0 border border-white/10">
+                                    <video
+                                        ref={pipRef}
+                                        src={nextVideoSrc}
+                                        className="w-full h-full object-cover"
+                                        autoPlay
+                                        muted
+                                        loop
+                                        playsInline
+                                    />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-white/50 uppercase tracking-[0.15em] font-bold">Next</span>
+                                    <span className="text-sm font-bold text-white leading-snug max-w-[120px]">{nextExercise.name}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Right: exercise index */}
+                        <div className="text-white/55 text-base font-bold shrink-0">
+                            {activeIndex + 1}/{playlist.length}
+                        </div>
+                    </div>
+
+                    {/* Action button */}
+                    <AnimatePresence mode="wait">
+                        {!isSetStarted ? (
+                            <motion.button
+                                key="start"
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
+                                onClick={startSet}
+                                className="w-full py-[14px] rounded-2xl font-black uppercase tracking-[0.2em] text-[15px] text-white border border-white/25 transition-all active:scale-[0.98] hover:border-white/40"
+                                style={{ backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(16px)' }}
+                            >
+                                START SET
+                            </motion.button>
+                        ) : isComplete ? (
+                            <motion.button
+                                key="complete"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={handleNext}
+                                className="w-full py-[14px] rounded-2xl font-black uppercase tracking-[0.2em] text-[15px] bg-green-500 text-black flex items-center justify-center gap-3 hover:bg-green-400 transition-all active:scale-[0.98] shadow-[0_0_30px_rgba(34,197,94,0.35)]"
+                            >
+                                <CheckCircle2 size={20} />
+                                {nextExercise ? 'NEXT EXERCISE' : 'FINISH WORKOUT'}
+                            </motion.button>
+                        ) : exercise.defaultReps && !exercise.defaultTime ? (
+                            <motion.button
+                                key="rep"
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                onClick={incrementRep}
+                                className="w-full py-[14px] rounded-2xl font-black uppercase tracking-[0.2em] text-[15px] text-black flex items-center justify-center gap-3 transition-all active:scale-[0.97]"
+                                style={{
+                                    backgroundColor: isPulsing ? '#33ffff' : '#00FFFF',
+                                    boxShadow: isPulsing ? '0 0 24px rgba(0,255,255,0.5)' : '0 0 12px rgba(0,255,255,0.2)',
+                                    transition: 'background-color 0.15s, box-shadow 0.15s',
+                                }}
+                            >
+                                <Plus size={20} />
+                                LOG REP
+                                <span className="ml-1 opacity-60 font-bold text-sm">
+                                    {currentReps}/{exercise.defaultReps}
+                                </span>
+                            </motion.button>
+                        ) : (
+                            <motion.div
+                                key="active"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="absolute inset-0 z-30 flex flex-col items-center justify-center p-8 bg-black/40 backdrop-blur-sm"
+                                className="w-full py-[14px] rounded-2xl text-white/40 font-black uppercase tracking-[0.3em] text-sm text-center border border-white/10 animate-pulse"
+                                style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
                             >
-                                <div className="text-xl uppercase tracking-[0.5em] font-black mb-4 text-[#00FFFF]">
-                                    {nextExercise ? 'RECOVER' : 'FINISHED'}
-                                </div>
-                                <motion.div 
-                                    className="text-[120px] md:text-[180px] font-black leading-none text-white tracking-tighter drop-shadow-2xl"
-                                    style={{ fontFamily: 'var(--font-archivo-black)' }}
-                                    key={restTimer}
-                                    initial={{ scale: 1.2, opacity: 0.5 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ duration: 0.5, ease: "easeOut" }}
-                                >
-                                    {restTimer}
-                                </motion.div>
-
-                                <button 
-                                    onClick={handleCompleteBypass}
-                                    className="mt-8 px-10 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl text-white font-black uppercase text-sm tracking-widest border border-white/20 transition-colors"
-                                >
-                                    SKIP REST
-                                </button>
-
-                                {/* Picture in Picture Next Up Preview */}
-                                {nextExercise && nextVideoSrc && (
-                                    <motion.div 
-                                        initial={{ y: 50, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        transition={{ delay: 0.3 }}
-                                        className="absolute bottom-8 right-8 w-40 md:w-56 aspect-[9/16] bg-black rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl"
-                                    >
-                                        <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/80 to-transparent p-2 z-10">
-                                            <div className="text-[9px] uppercase tracking-widest text-[#00FFFF] font-black truncate">
-                                                NEXT: {nextExercise.name}
-                                            </div>
-                                        </div>
-                                        <video
-                                            ref={pipRef}
-                                            src={nextVideoSrc}
-                                            className="w-full h-full object-cover opacity-90"
-                                            playsInline
-                                            autoPlay
-                                            muted
-                                            loop
-                                        />
-                                    </motion.div>
-                                )}
+                                IN PROGRESS
                             </motion.div>
                         )}
                     </AnimatePresence>
+
+                    {/* Muscle legend */}
+                    <div className="flex items-center justify-center gap-6 mt-4">
+                        {[
+                            { label: 'Primary',   color: '#4CAF50' },
+                            { label: 'Secondary', color: '#9C27B0' },
+                            { label: 'Stretches', color: '#FFC107' },
+                        ].map(({ label, color }) => (
+                            <span key={label} className="flex items-center gap-1.5 text-[11px] text-white/55 font-medium">
+                                <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ backgroundColor: color }} />
+                                {label}
+                            </span>
+                        ))}
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="mt-4 h-[2px] bg-white/15 rounded-full overflow-hidden">
+                        <motion.div
+                            className="h-full bg-white rounded-full"
+                            style={{ width: `${((activeIndex + progress / 100) / playlist.length) * 100}%` }}
+                            layout
+                        />
+                    </div>
                 </div>
 
-                {/* 2. HUD Container (Overlay Mobile, Right Desktop) */}
-                <div className="relative z-10 w-full h-full flex flex-col md:w-[40%] md:bg-[#080808]">
-                    
-                    {/* Top Header Controls */}
-                    <div className="w-full flex justify-between items-start pt-12 px-6 safe-top md:p-12">
-                        <div className="flex flex-col drop-shadow-2xl md:drop-shadow-none">
-                            <h2 className="text-xl font-black uppercase tracking-tighter text-[#00FFFF]" style={{ fontFamily: 'var(--font-archivo-black)' }}>
-                                {exercise.category} TARGET
-                            </h2>
-                            {exercise.defaultTime && isSetStarted ? (
-                                <div className="text-[5rem] md:text-[7rem] font-black leading-none text-white tracking-tighter mt-2" style={{ fontFamily: 'var(--font-archivo-black)' }}>
-                                    {formatTime(timeLeft)}
-                                </div>
-                            ) : (
-                                <div className="text-[3rem] md:text-[5rem] font-black leading-none text-white tracking-tighter mt-2 pr-6 leading-[0.9]" style={{ fontFamily: 'var(--font-archivo-black)' }}>
-                                    {exercise.defaultTime ? formatTime(exercise.defaultTime) : exercise.name}
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-4 shrink-0">
-                            <button 
-                                onClick={cyclePlaybackSpeed}
-                                className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest border flex items-center justify-center gap-2 transition-all shadow-lg ${
-                                    playbackRate === 0.5 
-                                      ? 'bg-[#00FFFF]/10 text-[#00FFFF] border-[#00FFFF]/50 animate-pulse'
-                                      : 'bg-black/40 text-white border-white/20 hover:bg-white/10'
-                                }`}
-                            >
-                                <FastForward size={16} className={playbackRate === 0.5 ? "text-[#00FFFF]" : "opacity-50"} /> 
-                                {playbackRate === 0.5 ? 'SAVAGE FOCUS: ON' : 'SAVAGE FOCUS'}
-                            </button>
-                            <button 
-                                onClick={onClose}
-                                className="p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white border border-white/20 shadow-xl transition-colors"
-                            >
-                                <X size={24} />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="hidden md:block px-12 mt-4 shrink-0 transition-opacity duration-300">
-                         <div className="text-[10px] font-black uppercase tracking-[0.3em] mb-2" style={{ color: theme.accent }}>
-                              SAVAGE TIP
-                         </div>
-                         <p className="text-xl italic text-white/80 font-medium leading-relaxed border-l-4 pl-4 min-h-[4rem]" style={{ borderLeftColor: theme.accent }}>
-                              "{displayTip}"
-                         </p>
-                    </div>
-
-                    {/* Desktop-Only Workout Checklist (Game-style Quest Tracker) */}
-                    <div className="hidden md:flex flex-col flex-grow px-12 mt-6 overflow-y-auto custom-scrollbar relative">
-                        
-                        {/* Legend & Volume Wrap */}
-                        <div className="flex justify-between items-end mb-6 sticky top-0 bg-[#080808] py-2 z-10 border-b border-white/10 pb-4">
-                            <div className="flex flex-col gap-1.5">
-                                <div className="text-xs font-black uppercase tracking-[0.3em] text-white/40">
-                                    Anatomical Key
-                                </div>
-                                <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-white/60">
-                                    <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#00FFFF]" /> Primary</span>
-                                    <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500" /> Peak Tension</span>
-                                </div>
+                {/* ── 6. Rest Overlay ── */}
+                <AnimatePresence>
+                    {isResting && restTimer !== null && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm"
+                        >
+                            <div className="text-sm uppercase tracking-[0.5em] font-black mb-4 text-green-400">
+                                {nextExercise ? 'RECOVER' : 'FINISHED'}
                             </div>
-                            <div className="flex flex-col items-end">
-                                <div className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 flex items-center gap-1">
-                                    <Activity size={12} className="text-[#00FFFF]" /> Total Volume
-                                </div>
-                                <div className="text-2xl font-black text-white leading-none mt-1">
-                                    {totalVolume} <span className="text-sm text-white/40">REPS</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-4 pb-4">
-                            {playlist.map((item, idx) => {
-                                const isActive = idx === activeIndex;
-                                const isPast = idx < activeIndex;
-
-                                return (
-                                    <div 
-                                        key={item.id} 
-                                        className={`flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 border ${
-                                            isActive 
-                                            ? `border-[${theme.accent}] bg-[${theme.accent}]/10` 
-                                            : isPast 
-                                                ? 'border-white/5 opacity-50' 
-                                                : 'border-white/10 bg-black/50'
-                                        }`}
-                                        style={isActive ? { borderColor: theme.accent, backgroundColor: `${theme.accent}15` } : undefined}
-                                    >
-                                        <div className="w-10 h-10 rounded-full bg-black border border-white/10 flex items-center justify-center text-sm font-black shrink-0 relative overflow-hidden">
-                                            {isPast ? <CheckCircle2 size={16} className="text-[#00FFFF]" /> : (idx + 1)}
-                                            {isActive && (
-                                                <motion.div 
-                                                    className="absolute inset-0 bg-[#00FFFF]/20" 
-                                                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }} 
-                                                    transition={{ duration: 2, repeat: Infinity }} 
-                                                />
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <div className={`font-black uppercase tracking-wider ${isActive ? 'text-white' : 'text-white/60'}`}>
-                                                {item.name}
-                                            </div>
-                                            <div className="text-[10px] uppercase tracking-widest text-[#00FFFF] mt-0.5">
-                                                {item.targetMuscle}
-                                            </div>
-                                        </div>
-                                        
-                                        {!isPast && !isActive && (
-                                            <button onClick={() => setActiveIndex(idx)} className="ml-auto text-xs uppercase font-black text-white/30 hover:text-white px-3 py-1 bg-white/5 rounded-full backdrop-blur-sm transition-colors border border-white/5">
-                                                SKIP
-                                            </button>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Bottom Action HUD Deck */}
-                    <div className="mt-auto w-full pb-10 px-6 md:p-12 relative">
-                        
-                        <div className="md:hidden flex justify-between items-center bg-black/80 backdrop-blur-md rounded-2xl p-4 mb-4 border border-white/10 relative z-20">
-                            <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-black tracking-widest text-white/50 mb-1">Total Volume</span>
-                                <span className="text-sm font-black text-white uppercase tracking-wider">{totalVolume} Reps</span>
-                            </div>
-                            
-                            <button 
-                                onClick={() => setShowMobileTip(!showMobileTip)}
-                                className={`text-[10px] uppercase font-black px-4 py-2 rounded-full border transition-colors mx-4 ${showMobileTip ? 'bg-[#00FFFF] text-black border-transparent' : 'bg-[#00FFFF]/10 text-[#00FFFF] border-[#00FFFF]/30 hidden sm:block'}`}
+                            <motion.div
+                                className="text-[9rem] font-black leading-none text-white tracking-tighter"
+                                style={{ fontFamily: 'var(--font-archivo-black)' }}
+                                key={restTimer}
+                                initial={{ scale: 1.15, opacity: 0.5 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ duration: 0.4, ease: 'easeOut' }}
                             >
-                                {showMobileTip ? 'Hide Tip' : 'Read Tip'}
+                                {restTimer}
+                            </motion.div>
+
+                            <button
+                                onClick={handleCompleteBypass}
+                                className="mt-8 px-10 py-4 rounded-2xl text-white font-black uppercase text-sm tracking-widest border border-white/20 transition-all hover:bg-white/10"
+                                style={{ backgroundColor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}
+                            >
+                                SKIP REST
                             </button>
 
-                            {nextExercise && (
-                                <div className="text-right flex flex-col">
-                                    <span className="text-[10px] uppercase font-black tracking-widest text-[#00FFFF] mb-1">Up Next</span>
-                                    <span className="text-sm font-bold text-white/80 line-clamp-1">{nextExercise.name}</span>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Toggleable Mobile Tip Overlay */}
-                        <AnimatePresence>
-                            {showMobileTip && (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="md:hidden absolute bottom-[calc(100%-1rem)] left-6 right-6 lg:left-12 lg:right-12 z-30 p-6 rounded-3xl bg-black/95 backdrop-blur-3xl border border-[#00FFFF]/30 shadow-[0_0_40px_rgba(0,255,255,0.15)]"
+                            {/* PiP next exercise */}
+                            {nextExercise && nextVideoSrc && (
+                                <motion.div
+                                    initial={{ y: 50, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="absolute bottom-10 right-6 w-36 aspect-[9/16] bg-black rounded-2xl overflow-hidden border border-white/20 shadow-2xl"
                                 >
-                                    <div className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 text-[#00FFFF]">
-                                        SAVAGE TIP
+                                    <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/80 to-transparent p-2 z-10">
+                                        <div className="text-[9px] uppercase tracking-widest text-green-400 font-black truncate">
+                                            NEXT: {nextExercise.name}
+                                        </div>
                                     </div>
-                                    <p className="text-lg italic text-white font-medium leading-relaxed">
-                                        "{displayTip}"
-                                    </p>
+                                    <video
+                                        src={nextVideoSrc}
+                                        className="w-full h-full object-cover opacity-90"
+                                        playsInline autoPlay muted loop
+                                    />
                                 </motion.div>
                             )}
-                        </AnimatePresence>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                        {!isSetStarted ? (
-                            <div className="flex flex-col pb-4 h-24 justify-end">
-                                <button 
-                                    onClick={startSet}
-                                    className="w-full py-6 rounded-2xl text-black font-black uppercase tracking-[0.3em] text-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_50px_rgba(0,255,255,0.2)]"
-                                    style={{ backgroundColor: theme.accent }}
-                                >
-                                    START SET
-                                </button>
-                            </div>
-                        ) : (
-                            <div className={`bg-black/80 shadow-2xl backdrop-blur-3xl border rounded-[32px] p-6 lg:p-8 relative overflow-hidden transition-all duration-300 ${isPulsing ? 'border-[#00FFFF] shadow-[0_0_50px_rgba(0,255,255,0.3)]' : 'border-white/20'}`}>
-                                <div className="flex justify-between items-center relative z-10 w-full">
-                                    
-                                    <div className="flex flex-col">
-                                        <div className="text-xs uppercase text-white/50 tracking-[0.2em] font-black mb-1">
-                                            Current Set
-                                        </div>
-                                        <div className="text-xl text-white font-black mb-4 transition-all" key={`set-${currentSet}`}>
-                                            {currentSet} <span className="text-white/30">/ {totalSets}</span>
-                                        </div>
+                {/* Invisible prev/next swipe zones */}
+                {!isResting && activeIndex > 0 && (
+                    <button onClick={handlePrev} className="absolute left-0 top-1/4 bottom-1/4 w-12 z-20 opacity-0" aria-label="Previous exercise" />
+                )}
+                {!isResting && activeIndex < playlist.length - 1 && (
+                    <button onClick={handleNext} className="absolute right-0 top-1/4 bottom-1/4 w-12 z-20 opacity-0" aria-label="Next exercise" />
+                )}
 
-                                        {exercise.defaultReps && !exercise.defaultTime && (
-                                            <>
-                                                <div className="text-xs uppercase text-white/50 tracking-[0.2em] font-black mb-1">
-                                                    Reps
-                                                </div>
-                                                <div className="text-5xl font-black text-white leading-none" style={{ fontFamily: 'var(--font-archivo-black)' }}>
-                                                    {currentReps} <span className="text-2xl text-white/40">/ {exercise.defaultReps}</span>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-
-                                    {exercise.defaultTime ? (
-                                        <div className="flex items-center shrink-0 ml-4">
-                                            {isComplete ? (
-                                                <button onClick={handleNext} className="h-24 px-8 rounded-3xl bg-green-500 text-black font-black uppercase text-xl flex items-center gap-3 transition-transform hover:scale-105 shadow-[0_0_40px_rgba(34,197,94,0.4)] ring-4 ring-green-500/20">
-                                                    <CheckCircle2 size={32} /> {nextExercise ? 'NEXT' : 'DONE'}
-                                                </button>
-                                            ) : (
-                                                <div className="h-24 px-10 rounded-3xl bg-black/40 text-[#00FFFF] font-black uppercase text-xl border-2 tracking-[0.2em] border-[#00FFFF]/30 animate-pulse flex items-center">
-                                                    ACTIVE
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center shrink-0 ml-4 relative">
-                                            {!isComplete ? (
-                                                <div className="relative p-[3px] rounded-[1.8rem] overflow-hidden group">
-                                                     <div ref={tempoRef} className="absolute inset-0 opacity-70 group-hover:opacity-100 transition-opacity" />
-                                                     
-                                                     <button 
-                                                         onClick={incrementRep}
-                                                         className="relative z-10 min-w-[140px] h-[106px] px-8 rounded-3xl text-black font-black uppercase tracking-widest text-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex flex-col items-center justify-center gap-2 leading-none"
-                                                         style={{ backgroundColor: theme.accent }}
-                                                     >
-                                                         <Plus size={36} className="mb-1 opacity-80" />
-                                                         LOG REP
-                                                     </button>
-                                                </div>
-                                            ) : (
-                                                <button onClick={handleNext} className="min-w-[140px] h-28 px-8 rounded-3xl bg-green-500 text-black font-black uppercase tracking-widest text-xl flex flex-col items-center justify-center gap-2 shadow-[0_0_40px_rgba(34,197,94,0.4)] hover:scale-105 transition-all">
-                                                    <CheckCircle2 size={36} className="opacity-80" />
-                                                    {nextExercise ? 'NEXT' : 'DONE'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
-
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="absolute overflow-hidden bottom-0 left-0 right-0 h-1.5 bg-white/5 z-20 md:h-1">
-                    <motion.div
-                        className="h-full relative origin-left"
-                        style={{ width: `${((activeIndex + (progress/100)) / playlist.length) * 100}%`, backgroundColor: theme.accent }}
-                        layout
-                    />
-                </div>
             </motion.div>
         </AnimatePresence>
     );
