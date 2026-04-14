@@ -9,6 +9,12 @@ export interface Exercise {
     defaultReps?: number;
     defaultTime?: number; // In seconds
     defaultRest?: number; // In seconds
+    // Optional explicit muscle breakdown — falls back to category defaults if omitted
+    muscles?: {
+        primary: string;
+        secondary: string;
+        stretch: string;
+    };
 }
 
 export const EXERCISE_LIBRARY: Exercise[] = [
