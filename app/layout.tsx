@@ -23,6 +23,8 @@ export const metadata: Metadata = {
     description: "Savage Fitness Tracking",
 };
 
+import MobileNav from "@/components/MobileNav";
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -52,6 +54,7 @@ export default function RootLayout({
                             <MusicPlayer />
                             <CircuitPlayer />
                             {children}
+                            <MobileNav />
                         </CircuitProvider>
                     </WorkoutProvider>
                 </ThemeProvider>

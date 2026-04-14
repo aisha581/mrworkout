@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
-import MobileNav from '@/components/MobileNav';
 import ExerciseCard from '@/components/ExerciseCard';
 import WorkoutPlayer from '@/components/WorkoutPlayer';
 import { Search, X, Filter } from 'lucide-react';
@@ -289,7 +288,6 @@ export default function LibraryPage() {
                 />
             )}
 
-            <MobileNav />
         </main>
     );
 }

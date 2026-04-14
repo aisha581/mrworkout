@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { formatWorkoutSummary } from "@/utils/workoutParser";
 import dynamic from 'next/dynamic';
-import MobileNav from "@/components/MobileNav";
 import { useWorkout } from "@/contexts/WorkoutContext";
 
 import DailyGoalRing from "@/components/DailyGoalRing";
@@ -253,8 +252,6 @@ export default function Home() {
                     onClose={() => setShowToast(false)}
                 />
 
-                {/* Mobile Navigation Bar */}
-                <MobileNav />
             </motion.main>
         </AnimatePresence>
     );

@@ -178,7 +178,7 @@ export default function WaitlistPage() {
 
     const handleEnterClinic = () => {
         localStorage.setItem('savage_onboarded', 'true');
-        router.push('/dashboard');
+        router.push('/vault');
     };
 
     return (
