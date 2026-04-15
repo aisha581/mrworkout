@@ -22,6 +22,7 @@ interface CircuitContextType extends CircuitState {
     startCircuit: () => void;
     stopCircuit: () => void;
     startRest: () => void;
+    completeWorkout: () => void;
     handleLoopComplete: () => void;
     handleRestComplete: () => void;
     isComplete: boolean;
@@ -135,6 +136,11 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
         setIsCircuitActive(false);
     };
 
+    const completeWorkout = () => {
+        setIsCircuitActive(false);
+        setIsComplete(true);
+    };
+
     const handleLoopComplete = () => {
         if (loopCount < 3) {
             setLoopCount(prev => prev + 1);
@@ -190,6 +196,7 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
                 startCircuit,
                 stopCircuit,
                 startRest,
+                completeWorkout,
                 handleLoopComplete,
                 handleRestComplete,
                 clearComplete,

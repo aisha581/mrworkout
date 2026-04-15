@@ -19,6 +19,7 @@ export default function CircuitPlayer() {
         clearComplete,
         stopCircuit,
         startRest,
+        completeWorkout,
         queue,
         currentIndex,
         isResting,
@@ -56,7 +57,12 @@ export default function CircuitPlayer() {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timerInterval.current!);
-                    startRest();
+                    // Skip rest if this is the last exercise
+                    if (queue[currentIndex + 1]) {
+                        startRest();
+                    } else {
+                        completeWorkout();
+                    }
                     return 0;
                 }
                 return prev - 1;
@@ -122,7 +128,11 @@ export default function CircuitPlayer() {
                 setTimeLeft(prev => {
                     if (prev <= 1) {
                         clearInterval(timerInterval.current!);
-                        startRest();
+                        if (queue[currentIndex + 1]) {
+                            startRest();
+                        } else {
+                            completeWorkout();
+                        }
                         return 0;
                     }
                     return prev - 1;

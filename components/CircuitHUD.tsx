@@ -16,25 +16,42 @@ export default function CircuitHUD({ timeLeft, totalTime, nextExercise }: Circui
 
     if (!currentExercise) return null;
 
-    const isUrgent = timeLeft <= 10;
+    const isUrgent    = timeLeft <= 10;
+    const isSingleSet = queue.length === 1;
 
     return (
         <div className="absolute inset-0 pointer-events-none z-30">
 
-            {/* Top-right: Next Up */}
-            <motion.div
-                key={currentIndex}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="absolute top-12 right-5 p-3.5 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 max-w-[160px]"
-            >
-                <p className="text-[9px] uppercase font-black tracking-[0.2em] text-[#00FFFF]/60 mb-1">
-                    Next Up
-                </p>
-                <p className="font-black text-sm uppercase tracking-tight leading-tight">
-                    {nextExercise ? nextExercise.name : 'FINISH LINE'}
-                </p>
-            </motion.div>
+            {/* Top-right: Next Up (hidden for single-exercise sessions) */}
+            {isSingleSet ? (
+                <motion.div
+                    key="single"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="absolute top-12 right-5 px-4 py-2.5 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10"
+                >
+                    <p className="text-[9px] uppercase font-black tracking-[0.2em] text-[#00FFFF]/60 mb-0.5">
+                        Mode
+                    </p>
+                    <p className="font-black text-xs uppercase tracking-tight text-[#00FFFF]">
+                        Savage Single Set
+                    </p>
+                </motion.div>
+            ) : (
+                <motion.div
+                    key={currentIndex}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="absolute top-12 right-5 p-3.5 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 max-w-[160px]"
+                >
+                    <p className="text-[9px] uppercase font-black tracking-[0.2em] text-[#00FFFF]/60 mb-1">
+                        Next Up
+                    </p>
+                    <p className="font-black text-sm uppercase tracking-tight leading-tight">
+                        {nextExercise ? nextExercise.name : 'FINISH LINE'}
+                    </p>
+                </motion.div>
+            )}
 
             {/* Bottom: exercise name + set info + countdown ring */}
             <div className="absolute bottom-8 left-0 right-0 px-6 flex items-end justify-between">

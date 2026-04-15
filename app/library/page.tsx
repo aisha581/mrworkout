@@ -3,10 +3,11 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import ExerciseCard from '@/components/ExerciseCard';
-import WorkoutPlayer from '@/components/WorkoutPlayer';
+import { useCircuit } from '@/contexts/CircuitContext';
 import { Search, X, Filter } from 'lucide-react';
 import type { Exercise } from '@/data/libraryData';
 import { EXERCISE_EQUIPMENT, type EquipmentType } from '@/data/libraryData';
@@ -23,11 +24,12 @@ const EQUIPMENT_FILTERS: EquipmentType[] = ['Dumbbells', 'Barbell', 'Cable', 'Bo
 export default function LibraryPage() {
     const { theme } = useTheme();
 
-    const [exercises,           setExercises]         = useState<LiveExercise[]>([]);
-    const [isLoading,           setIsLoading]         = useState(true);
-    const [activePlaylist,      setActivePlaylist]    = useState<LiveExercise[] | null>(null);
-    const [activeStartIndex,    setActiveStartIndex]  = useState<number>(0);
-    const [searchQuery,         setSearchQuery]       = useState('');
+    const { setQueue, startCircuit } = useCircuit();
+    const router = useRouter();
+
+    const [exercises,         setExercises]       = useState<LiveExercise[]>([]);
+    const [isLoading,         setIsLoading]       = useState(true);
+    const [searchQuery,       setSearchQuery]     = useState('');
     const [selectedMuscle,      setSelectedMuscle]    = useState<string | null>(null);
     const [selectedEquipment,   setSelectedEquipment] = useState<EquipmentType | null>(null);
 
@@ -84,11 +86,11 @@ export default function LibraryPage() {
     }, [exercises, searchQuery, selectedMuscle, selectedEquipment]);
 
     // ── Handlers ──────────────────────────────────────────────────────────────
-    const handleStartWorkout = useCallback((idx: number, list: LiveExercise[]) => {
+    const handleStartWorkout = useCallback((exercise: LiveExercise) => {
         navigator.vibrate?.([30, 20, 30]);
-        setActivePlaylist(list);
-        setActiveStartIndex(idx);
-    }, []);
+        setQueue([exercise]);
+        router.push('/playground');
+    }, [setQueue, router]);
 
     const resetFilters = () => {
         setSelectedMuscle(null);
@@ -262,7 +264,7 @@ export default function LibraryPage() {
                                     >
                                         <ExerciseCard
                                             exercise={exercise}
-                                            onStartWorkout={() => handleStartWorkout(idx, displayedExercises)}
+                                            onStartWorkout={handleStartWorkout}
                                         />
                                     </motion.div>
                                 ))}
@@ -290,14 +292,6 @@ export default function LibraryPage() {
                 </div>
             </section>
 
-            {/* Global Workout Player Layer */}
-            {activePlaylist && (
-                <WorkoutPlayer
-                    playlist={activePlaylist}
-                    initialIndex={activeStartIndex}
-                    onClose={() => setActivePlaylist(null)}
-                />
-            )}
 
         </main>
     );
