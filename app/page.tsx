@@ -1,374 +1,221 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
+import BioMetrics from "@/components/BioMetrics";
+import VaultGrid from "@/components/VaultGrid";
+import LuxuryCard from "@/components/LuxuryCard";
+import Toast from "@/components/Toast";
+import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, VolumeX, Users, Activity, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import WelcomeOverlay from "@/components/WelcomeOverlay";
+import { useState, useEffect } from "react";
+import { formatWorkoutSummary } from "@/utils/workoutParser";
+import { useWorkout } from "@/contexts/WorkoutContext";
 
-const OVERLAY_TEXTS = [
-    { text: "We'll build your plan.", time: 0 },
-    { text: "Your goal, your level, your schedule.", time: 2.0 },
-    { text: "Workouts that tell you exactly what to do.", time: 5.0 },
-    { text: "Targeting the right muscles, the right way.", time: 8.0 },
-    { text: "Track reps, calories, and streaks.", time: 11.0 },
-    { text: "No guessing. No wasted time.", time: 14.0 },
-    { text: "Ready to transform?", time: 17.0 }
-];
+import DailyGoalRing from "@/components/DailyGoalRing";
+import FloatingMic from "@/components/FloatingMic";
+import MuscleHeatmap from "@/components/MuscleHeatmap";
+import SavageTip from "@/components/SavageTip";
+import ExerciseCard from "@/components/ExerciseCard";
+import CircuitBuilder from "@/components/CircuitBuilder";
+import DailyChallengeWidget from "@/components/DailyChallengeWidget";
+import type { LiveExercise } from "@/app/library/page";
 
-export default function WaitlistPage() {
-    const router = useRouter();
-    const [isMuted, setIsMuted] = useState(true);
-    const [currentTextIdx, setCurrentTextIdx] = useState(-1);
-    const [email, setEmail] = useState("");
-    const [name, setName] = useState("");
-    const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
-    const [isFinalAction, setIsFinalAction] = useState(false);
-    const [showTapOverlay, setShowTapOverlay] = useState(true);
-    const [showWelcome, setShowWelcome] = useState(false);
-    
-    // Media Ready States
-    const [videoReady, setVideoReady] = useState(false);
-    const [audioReady, setAudioReady] = useState(false);
-    
-    // Hybrid Hero: Audio can start even if video is buffering, but button shows loading state
-    const isAudioReady = audioReady;
+export default function Home() {
+    const { theme } = useTheme();
 
-    const audioRef = useRef<HTMLAudioElement>(null);
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const emailInputRef = useRef<HTMLInputElement>(null);
+    const { workoutHistory, addWorkout, startRestTimer } = useWorkout();
 
-    // Caption Logic + Pre-fetching
+    const [showToast,    setShowToast]    = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
+    const [coreExercises, setCoreExercises] = useState<LiveExercise[]>([]);
+
     useEffect(() => {
-        // Pre-fetch welcome page early for zero-latency redirect
-        router.prefetch("/welcome");
-        
-        const audio = audioRef.current;
-        if (!audio) return;
-
-        const handleTimeUpdate = () => {
-            const currentTime = audio.currentTime;
-            
-            let activeIdx = -1;
-            for (let i = 0; i < OVERLAY_TEXTS.length; i++) {
-                if (currentTime >= OVERLAY_TEXTS[i].time) {
-                    activeIdx = i;
+        const fetchLibrary = async () => {
+            try {
+                const res = await fetch('/api/library');
+                if (res.ok) {
+                    const data: LiveExercise[] = await res.json();
+                    const targetIds = ['pushup', 'squat', 'lunge'];
+                    const filtered  = data.filter(ex => targetIds.includes(ex.id));
+                    const ordered   = targetIds
+                        .map(id => filtered.find(ex => ex.id === id))
+                        .filter(Boolean) as LiveExercise[];
+                    setCoreExercises(ordered);
                 }
-            }
-            
-            if (activeIdx !== currentTextIdx) {
-                setCurrentTextIdx(activeIdx);
-                if (activeIdx === OVERLAY_TEXTS.length - 1) {
-                    setIsFinalAction(true);
-                    emailInputRef.current?.focus();
-                }
+            } catch (error) {
+                console.error("Failed to fetch library:", error);
             }
         };
-
-        audio.addEventListener("timeupdate", handleTimeUpdate);
-        return () => audio.removeEventListener("timeupdate", handleTimeUpdate);
-    }, [currentTextIdx]);
-
-    // DRIFT CORRECTION
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (videoRef.current && audioRef.current && !audioRef.current.muted && videoReady) {
-                const diff = Math.abs(audioRef.current.currentTime - videoRef.current.currentTime);
-                if (diff > 0.1) {
-                    audioRef.current.currentTime = videoRef.current.currentTime;
-                }
-            }
-        }, 2000);
+        fetchLibrary();
+        const interval = setInterval(fetchLibrary, 3000);
         return () => clearInterval(interval);
-    }, [videoReady]);
+    }, []);
 
-    const masterPlay = () => {
-        if (audioRef.current) {
-            audioRef.current.currentTime = 0;
-            audioRef.current.play().catch(console.error);
-        }
-        if (videoRef.current) {
-            videoRef.current.currentTime = 0;
-            videoRef.current.play().catch(console.error);
-        }
-    };
-
-    const handleEnableAudio = () => {
-        if (audioRef.current) {
-            audioRef.current.muted = false;
-            setIsMuted(false);
-            setShowTapOverlay(false);
-            masterPlay();
-        }
-    };
-
-    const handleToggleMute = () => {
-        if (audioRef.current) {
-            audioRef.current.muted = !audioRef.current.muted;
-            setIsMuted(audioRef.current.muted);
-            if (!audioRef.current.muted) {
-                setShowTapOverlay(false);
-                masterPlay();
-            }
-        }
-    };
-
-    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    const referredBy = searchParams?.get('ref');
-    const role = searchParams?.get('role') || 'athlete';
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        console.log("[SIGNUP_DIAGNOSTIC] handleSubmit START");
-        e.preventDefault();
-        
-        if (!email) {
-            console.warn("[SIGNUP_DIAGNOSTIC] ABORT: Email field is empty");
-            return;
-        }
-
-        if (status === "submitting") {
-            console.warn("[SIGNUP_DIAGNOSTIC] ABORT: Already submitting");
-            return;
-        }
-
-        console.log("[SIGNUP_DIAGNOSTIC] PROCESSING: ", { email, name, role, source: 'web' });
-        setStatus("submitting");
-        
-        try {
-            const signupUrl = "/api/signup";
-            console.log("[SIGNUP_DIAGNOSTIC] FETCH START -> ", signupUrl);
-            
-            const response = await fetch(signupUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    email: email.toLowerCase().trim(), 
-                    name: name.trim(), 
-                    referredBy, 
-                    role, 
-                    source: 'web' 
-                })
-            });
-
-            console.log("[SIGNUP_DIAGNOSTIC] FETCH END. Status: ", response.status);
-            const result = await response.json();
-            console.log("[SIGNUP_DIAGNOSTIC] PAYLOAD: ", result);
-
-            if (result.success) {
-                setStatus("success");
-                
-                if (typeof navigator !== 'undefined' && navigator.vibrate) {
-                    navigator.vibrate([50, 20, 50]);
-                }
-
-                // 2. Controlled Redirect after success
-                setTimeout(() => {
-                    const welcomeUrl = result.redirect || `/welcome?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
-                    router.push(welcomeUrl);
-                }, 1500);
-            } else {
-                throw new Error(result.error || "Submission failed");
-            }
-
-        } catch (err: any) {
-            console.error("[SUBMIT_ERROR]", err);
-            setStatus("error");
-        }
-    };
-
-    const handleEnterClinic = () => {
-        localStorage.setItem('savage_onboarded', 'true');
-        router.push('/vault');
+    const handleWorkoutLogged = (intent: any) => {
+        addWorkout(intent);
+        startRestTimer(60);
+        setToastMessage(`Logged ${formatWorkoutSummary(intent)} to The Vault.`);
+        setShowToast(true);
     };
 
     return (
-        <div className="flex flex-col lg:flex-row h-[100dvh] w-full overflow-hidden bg-[#0a0a0a] text-white font-sans pb-[80px] lg:pb-0">
-            
-            {/* Optimized Hero Section: Static WebP for Performance */}
-            <div className="relative w-full lg:w-1/2 h-[45dvh] lg:h-full bg-black flex items-center justify-center overflow-hidden border-b lg:border-b-0 lg:border-r border-white/5">
-                <motion.div 
-                    initial={{ opacity: 0, scale: 1.1 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 1.5, ease: "easeOut" }}
-                    className="absolute inset-0 z-0"
-                >
-                    <img 
-                        src="/hero_clinic.png" 
-                        alt="The Clinic" 
-                        className="w-full h-full object-cover opacity-60"
-                    />
-                </motion.div>
+        <AnimatePresence mode="wait">
+            <motion.main
+                key={theme.mode}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+                className="min-h-screen relative overflow-hidden pb-24 lg:pb-0"
+            >
+                <Navbar />
+                <Sidebar />
 
-                {/* Sub-caption Text Overlay */}
-                <div className="absolute top-[10%] lg:top-[15%] w-full text-center px-8 z-20 pointer-events-none">
-                    <AnimatePresence mode="wait">
-                        {currentTextIdx !== -1 && (
-                            <motion.h2
-                                key={currentTextIdx}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.5 }}
-                                className="text-xl md:text-3xl font-black uppercase italic tracking-tighter"
-                                style={{ 
-                                    textShadow: "0 4px 12px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 255, 255, 0.3)",
-                                    fontFamily: 'var(--font-archivo-black), sans-serif'
+                {/* Background */}
+                <div
+                    className="fixed inset-0 -z-10 bg-[#060606]"
+                    style={{
+                        backgroundImage: `
+                            radial-gradient(circle at 15% 50%, rgba(2, 11, 20, 0.4), transparent 25%),
+                            radial-gradient(circle at 85% 30%, rgba(0, 230, 255, 0.03), transparent 25%),
+                            radial-gradient(circle at 50% 100%, rgba(2, 11, 20, 0.6), transparent 40%)
+                        `,
+                    }}
+                />
+
+                <section className="pt-28 pb-16 px-6 sm:px-8 lg:px-24 lg:pl-32">
+                    <div className="max-w-[1800px] mx-auto">
+
+                        {/* Welcome header */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2, duration: 0.8 }}
+                            className="mb-8"
+                        >
+                            <div className="flex items-start justify-between mb-8">
+                                <div>
+                                    <h1
+                                        className="text-5xl lg:text-7xl font-bold mb-3 uppercase"
+                                        style={{
+                                            letterSpacing: '-0.04em',
+                                            fontFamily: 'var(--font-archivo-black), sans-serif',
+                                        }}
+                                    >
+                                        Welcome back,{' '}
+                                        <br />
+                                        <span style={{ color: theme.accent }}>Savage</span>
+                                    </h1>
+                                    <p className="text-lg opacity-60">
+                                        Let's crush today's workout goals
+                                    </p>
+                                </div>
+
+                                <div className="hidden xl:flex items-center gap-5 bg-white/5 backdrop-blur-md pl-6 pr-3 py-3 rounded-full border border-white/10">
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-sm font-bold opacity-90 uppercase tracking-widest">7 Day Streak</span>
+                                        <span style={{ color: theme.accent }} className="text-xs font-semibold">Keep it burning 🔥</span>
+                                    </div>
+                                    <div
+                                        className="w-14 h-14 rounded-full border-2 flex items-center justify-center font-bold text-2xl shadow-lg"
+                                        style={{ borderColor: theme.accent, backgroundColor: `${theme.accent}15`, color: theme.accent }}
+                                    >
+                                        S
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        <DailyChallengeWidget />
+                        <CircuitBuilder />
+
+                        {/* Core Movements */}
+                        <div className="mb-12">
+                            <h2
+                                className="text-3xl font-bold mb-6 tracking-tighter uppercase"
+                                style={{
+                                    fontFamily: 'var(--font-archivo-black), sans-serif',
+                                    textShadow: theme.mode === 'savage' ? `0 0 20px ${theme.accent}40` : 'none',
                                 }}
                             >
-                                {OVERLAY_TEXTS[currentTextIdx].text}
-                            </motion.h2>
-                        )}
-                    </AnimatePresence>
-                </div>
-
-                {/* Status Indicator */}
-                <div className="absolute bottom-8 left-8 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-black/40 backdrop-blur-md">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ffff] animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white/60">SYSTEM LIVE</span>
-                </div>
-            </div>
-
-            {/* Right Panel: Form Area */}
-            <div className="relative w-full lg:w-1/2 h-[55dvh] lg:h-full bg-[#0a0a0a] flex flex-col items-center justify-center px-8 lg:px-24">
-                
-                <div className="absolute inset-y-0 right-0 w-1 bg-gradient-to-l from-[#00ffff]/10 to-transparent pointer-events-none" />
-
-                <div className="w-full max-w-lg relative z-10 flex flex-col gap-10 text-center lg:text-left">
-                    
-                    {/* Social Proof Status Line */}
-                    <div className="flex flex-col lg:flex-row items-center gap-3 lg:gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] shadow-inner backdrop-blur-3xl">
-                        <div className="flex -space-x-2">
-                             {[1,2,3].map(i => (
-                                <div key={i} className="w-8 h-8 rounded-full border-2 border-[#0a0a0a] bg-zinc-800 flex items-center justify-center overflow-hidden">
-                                    <div className="w-full h-full bg-gradient-to-br from-zinc-700 to-zinc-900" />
-                                </div>
-                             ))}
-                        </div>
-                        <div className="flex flex-col text-center lg:text-left">
-                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#00ffff] opacity-80">
-                                CLINIC STATUS: PRE-LAUNCH
-                            </span>
-                            <span className="text-xs font-black uppercase tracking-tighter text-white">
-                                1,248 ATHLETES ENLISTED
-                            </span>
-                        </div>
-                    </div>
-
-                    <AnimatePresence mode="wait">
-                        {status === "success" ? (
-                            <motion.div 
-                                key="success"
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="flex flex-col items-center lg:items-start gap-6"
-                            >
-                                <div className="w-24 h-24 rounded-full bg-[#00ffff]/20 border-4 border-[#00ffff] flex items-center justify-center shadow-[0_0_50px_rgba(0,255,255,0.3)]">
-                                    <motion.div
-                                        initial={{ pathLength: 0 }}
-                                        animate={{ pathLength: 1 }}
-                                        transition={{ duration: 0.5, delay: 0.2 }}
-                                    >
-                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00ffff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                    </motion.div>
-                                </div>
-                                <div className="text-center lg:text-left">
-                                    <h2 className="text-4xl lg:text-6xl font-black uppercase italic tracking-tighter mb-2" style={{ fontFamily: 'var(--font-archivo-black), sans-serif' }}>
-                                        YOU'RE IN <br />
-                                        <span className="text-[#00ffff]">THE CLINIC</span>
-                                    </h2>
-                                    <p className="text-[#00ffff] font-bold uppercase tracking-widest text-sm opacity-80">
-                                        Check your inbox for your credentials shortly.
-                                    </p>
-                                </div>
-                            </motion.div>
-                        ) : (
-                            <motion.div 
-                                key="form"
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="space-y-8"
-                            >
-                                <div>
-                                    <h1 className="text-4xl lg:text-6xl font-black uppercase italic leading-[0.9] tracking-tighter mb-4" style={{ fontFamily: 'var(--font-archivo-black), sans-serif' }}>
-                                        DROP YOUR EMAIL <br />
-                                        <span className="text-[#00ffff]" style={{ textShadow: '0 0 30px rgba(0,255,255,0.4)' }}>FOR EARLY ACCESS</span>
-                                    </h1>
-                                    <p className="text-white/40 font-medium tracking-[0.05em] text-sm lg:text-base max-w-sm mx-auto lg:mx-0">
-                                        Be the first to build with Savage coaching. Limited spots for Phase O release.
-                                    </p>
-                                </div>
-
-                                <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div className="space-y-4">
-                                        <div className="relative group">
-                                            <input
-                                                type="text"
-                                                placeholder="FULL NAME"
-                                                value={name}
-                                                onChange={(e) => setName(e.target.value)}
-                                                required
-                                                className="w-full bg-white/[0.03] backdrop-blur-xl border-2 border-white/10 rounded-2xl py-6 px-8 outline-none transition-all focus:border-[#00ffff]/40 focus:bg-white/[0.08] text-xl font-bold tracking-widest placeholder:text-white/10 uppercase"
+                                Core <span style={{ color: theme.accent }}>Movements</span>
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {coreExercises.length > 0 ? (
+                                    coreExercises.map((exercise, idx) => (
+                                        <div key={exercise.id} className="h-full">
+                                            <ExerciseCard
+                                                exercise={exercise}
+                                                delay={0.3 + idx * 0.1}
+                                                onStartWorkout={() => {}}
                                             />
                                         </div>
-
-                                        <div className="relative group">
-                                            <input
-                                                ref={emailInputRef}
-                                                type="email"
-                                                placeholder="ATHLETE@DOMAIN.COM"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                                required
-                                                className="w-full bg-white/[0.03] backdrop-blur-xl border-2 border-white/10 rounded-2xl py-6 px-8 outline-none transition-all focus:border-[#00ffff]/40 focus:bg-white/[0.08] text-xl font-bold tracking-widest placeholder:text-white/10 uppercase"
-                                            />
-                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="col-span-3 h-48 rounded-[24px] border border-white/5 bg-black/20 flex items-center justify-center text-white/40">
+                                        Loading Armory Data...
                                     </div>
+                                )}
+                            </div>
+                        </div>
 
-                                    <motion.button
-                                        type="submit"
-                                        disabled={status === "submitting"}
-                                        className="w-full py-6 rounded-2xl font-black text-2xl tracking-tighter uppercase transition-all shadow-xl bg-[#00ffff] text-black hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_0_50px_rgba(0,255,255,0.5)] flex items-center justify-center gap-3"
-                                    >
-                                        {status === "submitting" ? (
-                                            <>
-                                                <Loader2 className="animate-spin" />
-                                                VERIFYING STATUS...
-                                            </>
-                                        ) : "JOIN THE CLINIC"}
-                                    </motion.button>
+                        {/* Bento Grid — Heatmap centre */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+                            <div className="lg:col-span-4 space-y-6">
+                                <LuxuryCard className="p-8 rounded-[32px] h-full" delay={0.6}>
+                                    <div className="text-sm opacity-50 mb-2">Current Streak</div>
+                                    <div className="flex items-baseline gap-2 mb-1">
+                                        <span className="text-5xl font-semibold" style={{ color: theme.accent }}>28</span>
+                                        <span className="text-2xl opacity-50">days</span>
+                                    </div>
+                                    <div className="text-xs opacity-40">Personal best: 45 days</div>
+                                </LuxuryCard>
+                            </div>
 
-                                    <AnimatePresence>
-                                        {status === "error" && (
-                                            <motion.p 
-                                                initial={{ opacity: 0, y: -10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className="text-red-500 text-center font-bold text-xs uppercase tracking-widest bg-red-500/10 py-3 rounded-lg border border-red-500/20"
-                                            >
-                                                Connection lost. Try again, Athlete.
-                                            </motion.p>
-                                        )}
-                                    </AnimatePresence>
-                                </form>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                            {/* ── Wireframe Mannequin ── */}
+                            <div className="lg:col-span-4 h-full">
+                                <MuscleHeatmap />
+                            </div>
 
-                    {/* Footer */}
-                    <div className="pt-8 border-t border-white/5 opacity-30 mx-auto lg:mx-0">
-                        <p className="text-[10px] uppercase font-bold tracking-[0.3em]">
-                            Powered by Mr. Workout | Savage Protocol v.1
-                        </p>
+                            <div className="lg:col-span-4 flex flex-col gap-6">
+                                <DailyGoalRing progress={73} label="Daily Target" sublabel="5 of 7 Workouts" />
+                                <SavageTip delay={0.7} />
+                            </div>
+                        </div>
+
+                        {/* The Vault */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5, duration: 0.8 }}
+                        >
+                            <h2 className="text-2xl font-semibold mb-6" style={{ letterSpacing: '-0.02em' }}>
+                                The Vault
+                            </h2>
+                            <VaultGrid dynamicWorkouts={workoutHistory} />
+                        </motion.div>
+
+                        {/* Mobile Bio Metrics */}
+                        <div className="xl:hidden mt-12">
+                            <LuxuryCard className="p-8 rounded-[32px]" delay={0.7}>
+                                <h3 className="text-lg font-semibold mb-6" style={{ letterSpacing: '-0.02em' }}>
+                                    Today's Metrics
+                                </h3>
+                                <BioMetrics />
+                            </LuxuryCard>
+                        </div>
+
                     </div>
-                </div>
-            </div>
+                </section>
 
-            <style jsx global>{`
-                @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap');
-                :root {
-                    --font-archivo-black: 'Archivo Black', sans-serif;
-                }
-            `}</style>
-        </div>
+                <FloatingMic />
+                <Toast
+                    message={toastMessage}
+                    isVisible={showToast}
+                    onClose={() => setShowToast(false)}
+                />
+            </motion.main>
+        </AnimatePresence>
     );
 }
