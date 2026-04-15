@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Viewport height — works around iOS Safari's dynamic URL bar ──────────── */
+/* 100dvh shrinks when the URL bar is visible; 100svh is the "small" viewport  */
+/* (most conservative, always below URL bar); -webkit-fill-available is the    */
+/* legacy iOS Safari fix. Stack all three so every engine gets the right value.*/
+html {
+  height: -webkit-fill-available;
+  height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  min-height: 100dvh;
+}
+
+/* ── Design tokens ────────────────────────────────────────────────────────── */
 :root {
   --bg-primary: linear-gradient(135deg, #FFC0E1 0%, #E8CAF0 25%, #C8B3E5 50%, #B8C5E8 75%, #B8D4E8 100%);
   --accent: #FF9AC1;
@@ -38,4 +54,50 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* ── Scrollbar suppression utilities ──────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar  { display: none; }
+.no-scrollbar,
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Glitch transition keyframes ──────────────────────────────────────────── */
+/*
+  Two-layer effect:
+  1. glitch-flash: rapid opacity spikes simulate a CRT phosphor burst
+  2. glitch-scan:  a bright horizontal scanline sweeps top→bottom
+  Both run for ~220 ms total and leave no trace after completion.
+*/
+@keyframes glitch-flash {
+  0%   { opacity: 0;    }
+  8%   { opacity: 0.85; }
+  16%  { opacity: 0.1;  }
+  28%  { opacity: 0.6;  }
+  40%  { opacity: 0;    }
+  55%  { opacity: 0.35; }
+  70%  { opacity: 0;    }
+  100% { opacity: 0;    }
+}
+
+@keyframes glitch-scan {
+  0%   { transform: translateY(-10%); opacity: 1; }
+  100% { transform: translateY(110%); opacity: 0; }
+}
+
+/* Used by GlitchOverlay component */
+.glitch-overlay {
+  animation: glitch-flash 0.22s linear forwards;
+}
+
+.glitch-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(0, 255, 255, 0.4);
+  animation: glitch-scan 0.18s linear forwards;
 }

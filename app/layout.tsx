@@ -1,4 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+
+export const viewport: Viewport = {
+    viewportFit: 'cover',
+    width: 'device-width',
+    initialScale: 1,
+};
 import { Inter, Archivo_Black } from "next/font/google";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import "./globals.css";
@@ -10,6 +16,7 @@ import PRCelebration from "@/components/PRCelebration";
 import MusicPlayer from "@/components/MusicPlayer";
 import CircuitPlayer from "@/components/CircuitPlayer";
 import WelcomeOverlay from "@/components/WelcomeOverlay";
+import GlitchOverlay from "@/components/GlitchOverlay";
 
 const inter = Inter({ subsets: ["latin"] });
 const archivoBlack = Archivo_Black({
@@ -54,6 +61,7 @@ export default function RootLayout({
                             <MusicPlayer />
                             <CircuitPlayer />
                             {children}
+                            <GlitchOverlay />
                             <MobileNav />
                         </CircuitProvider>
                     </WorkoutProvider>

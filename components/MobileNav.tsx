@@ -29,8 +29,11 @@ export default function MobileNav() {
             initial={{ y: 100 }}
             animate={{ y: isPlayerOpen ? 100 : 0 }}
             transition={{ type: 'spring', stiffness: 120, damping: 25 }}
-            className="fixed bottom-0 left-0 right-0 z-[100] lg:hidden px-6 pb-8 pt-4 isolate"
-            style={{ pointerEvents: isPlayerOpen ? 'none' : 'auto' }}
+            className="fixed bottom-0 left-0 right-0 z-[100] lg:hidden px-6 pt-4 isolate"
+            style={{
+                paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 0px))',
+                pointerEvents: isPlayerOpen ? 'none' : 'auto',
+            }}
         >
             {/* Premium Glassmorphism Container */}
             <div 
