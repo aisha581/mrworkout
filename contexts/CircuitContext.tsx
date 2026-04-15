@@ -12,6 +12,7 @@ interface CircuitState {
     isCircuitActive: boolean;
     totalTime: number;
     restTimeRemaining: number;
+    isComplete: boolean;
 }
 
 interface CircuitContextType extends CircuitState {
@@ -20,8 +21,11 @@ interface CircuitContextType extends CircuitState {
     setQueue: (queue: LiveExercise[]) => void;
     startCircuit: () => void;
     stopCircuit: () => void;
+    startRest: () => void;
     handleLoopComplete: () => void;
     handleRestComplete: () => void;
+    isComplete: boolean;
+    clearComplete: () => void;
 }
 
 const STORAGE_KEY = 'mw_routine';
@@ -56,7 +60,8 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
     const [isResting, setIsResting] = useState(false);
     const [isCircuitActive, setIsCircuitActive] = useState(false);
     const [totalTime, setTotalTime] = useState(0);
-    const [restTimeRemaining, setRestTimeRemaining] = useState(60);
+    const [restTimeRemaining, setRestTimeRemaining] = useState(30);
+    const [isComplete, setIsComplete] = useState(false);
 
     // Total workout timer
     useEffect(() => {
@@ -110,14 +115,24 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
         setLoopCount(1);
         setIsResting(false);
         setIsCircuitActive(true);
+        setIsComplete(false);
         setTotalTime(0);
-
-        // Request fullscreen if possible (handled in UI component usually, but state is here)
     };
 
     const stopCircuit = () => {
         setIsCircuitActive(false);
         setIsResting(false);
+        setIsComplete(false);
+    };
+
+    const startRest = () => {
+        setRestTimeRemaining(30);
+        setIsResting(true);
+    };
+
+    const clearComplete = () => {
+        setIsComplete(false);
+        setIsCircuitActive(false);
     };
 
     const handleLoopComplete = () => {
@@ -145,11 +160,13 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
 
     const handleRestComplete = () => {
         setIsResting(false);
-        if (currentSet < 3) {
-            setCurrentSet(prev => prev + 1);
-            setLoopCount(1);
+        const nextIndex = currentIndex + 1;
+        if (nextIndex >= queue.length) {
+            // All exercises done
+            setIsCircuitActive(false);
+            setIsComplete(true);
         } else {
-            setCurrentIndex(prev => prev + 1);
+            setCurrentIndex(nextIndex);
             setCurrentSet(1);
             setLoopCount(1);
         }
@@ -166,13 +183,16 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
                 isCircuitActive,
                 totalTime,
                 restTimeRemaining,
+                isComplete,
                 addToQueue,
                 removeFromQueue,
                 setQueue,
                 startCircuit,
                 stopCircuit,
+                startRest,
                 handleLoopComplete,
                 handleRestComplete,
+                clearComplete,
             }}
         >
             {children}
