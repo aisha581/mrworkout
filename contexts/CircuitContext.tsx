@@ -24,10 +24,32 @@ interface CircuitContextType extends CircuitState {
     handleRestComplete: () => void;
 }
 
+const STORAGE_KEY = 'mw_routine';
+
+function loadRoutine(): LiveExercise[] {
+    if (typeof window === 'undefined') return [];
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? (JSON.parse(raw) as LiveExercise[]) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveRoutine(queue: LiveExercise[]) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(queue)); } catch {}
+}
+
 const CircuitContext = createContext<CircuitContextType | undefined>(undefined);
 
 export function CircuitProvider({ children }: { children: ReactNode }) {
     const [queue, setQueueState] = useState<LiveExercise[]>([]);
+
+    // Hydrate from localStorage once on mount (client only)
+    useEffect(() => {
+        const saved = loadRoutine();
+        if (saved.length > 0) setQueueState(saved);
+    }, []);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [currentSet, setCurrentSet] = useState(1);
     const [loopCount, setLoopCount] = useState(1);
@@ -61,14 +83,23 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
     }, [isResting, restTimeRemaining]);
 
     const addToQueue = (exercise: LiveExercise) => {
-        setQueueState(prev => [...prev, exercise]);
+        setQueueState(prev => {
+            const next = [...prev, exercise];
+            saveRoutine(next);
+            return next;
+        });
     };
 
     const removeFromQueue = (id: string) => {
-        setQueueState(prev => prev.filter(ex => ex.id !== id));
+        setQueueState(prev => {
+            const next = prev.filter(ex => ex.id !== id);
+            saveRoutine(next);
+            return next;
+        });
     };
 
     const setQueue = (newQueue: LiveExercise[]) => {
+        saveRoutine(newQueue);
         setQueueState(newQueue);
     };
 

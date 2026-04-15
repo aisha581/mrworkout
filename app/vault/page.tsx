@@ -10,14 +10,13 @@ import Navbar from '@/components/Navbar';
 
 export default function VaultPage() {
     const { theme } = useTheme();
-    const { queue, removeFromQueue, startCircuit } = useCircuit();
+    const { queue, removeFromQueue } = useCircuit();
     const router = useRouter();
 
     const handleStart = () => {
         if (queue.length === 0) return;
         navigator.vibrate?.([30, 20, 60]);
-        startCircuit();
-        router.push('/library');
+        router.push('/playground');
     };
 
     return (
