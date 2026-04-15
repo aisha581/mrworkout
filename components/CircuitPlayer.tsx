@@ -4,8 +4,9 @@ import { useCircuit } from '@/contexts/CircuitContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSavageSounds } from '@/hooks/useSavageSounds';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Pause, Maximize } from 'lucide-react';
+import { X, Play, Pause } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import CircuitHUD from './CircuitHUD';
 import RecoveryScreen from './RecoveryScreen';
 
@@ -22,6 +23,7 @@ export default function CircuitPlayer() {
 
     const { theme } = useTheme();
     const { playThud, playPing } = useSavageSounds();
+    const router = useRouter();
 
     const containerRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -60,7 +62,22 @@ export default function CircuitPlayer() {
         }
     }, [isCircuitActive, isResting, currentIndex]);
 
+    // Fallback loop guard — some mobile browsers drop the loop attribute.
+    // If the video ends without looping, restart it manually.
+    useEffect(() => {
+        const v = videoRef.current;
+        if (!v) return;
+        const restart = () => { v.currentTime = 0; v.play().catch(() => {}); };
+        v.addEventListener('ended', restart);
+        return () => v.removeEventListener('ended', restart);
+    }, [currentIndex, isCircuitActive]);
+
     if (!isCircuitActive) return null;
+
+    const handleExit = () => {
+        stopCircuit();
+        router.push('/vault');
+    };
 
     const togglePlay = () => {
         if (videoRef.current) {
@@ -113,11 +130,11 @@ export default function CircuitPlayer() {
                                 src={currentExercise.videoUrl}
                                 className="w-full h-full object-cover"
                                 onTimeUpdate={handleTimeUpdate}
-                                onEnded={onVideoEnded}
                                 playsInline
                                 preload="auto"
                                 muted
                                 autoPlay
+                                loop
                             />
                         ) : (
                             <div className="text-[#00FFFF] text-center">
@@ -143,12 +160,14 @@ export default function CircuitPlayer() {
                     </div>
                 )}
 
-                {/* Floating Exit Button */}
+                {/* Exit button — always visible, top-left, returns to Vault */}
                 <button
-                    onClick={stopCircuit}
-                    className="absolute top-10 left-1/2 -translate-x-1/2 z-[600] p-4 rounded-full bg-black/40 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 transition-all opacity-0 hover:opacity-100"
+                    onClick={handleExit}
+                    className="absolute top-12 left-5 z-[600] flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-black/50 border border-white/10 text-white/70 active:scale-95 transition-transform"
+                    style={{ touchAction: 'manipulation' }}
                 >
-                    <X size={24} />
+                    <X size={18} />
+                    <span className="text-xs font-black uppercase tracking-widest">Exit</span>
                 </button>
             </motion.div>
         </AnimatePresence>
