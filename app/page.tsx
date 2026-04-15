@@ -8,7 +8,7 @@ import LuxuryCard from "@/components/LuxuryCard";
 import Toast from "@/components/Toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { formatWorkoutSummary } from "@/utils/workoutParser";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import dynamic from "next/dynamic";
@@ -36,6 +36,7 @@ export default function Home() {
     const { theme } = useTheme();
     const { workoutHistory, addWorkout, startRestTimer } = useWorkout();
 
+    // ── State ──────────────────────────────────────────────────────────────────
     const [showToast,         setShowToast]         = useState(false);
     const [toastMessage,      setToastMessage]      = useState('');
     const [coreExercises,     setCoreExercises]     = useState<LiveExercise[]>([]);
@@ -45,14 +46,26 @@ export default function Home() {
     const [isChallengeOpen,   setIsChallengeOpen]   = useState(false);
     const [challengeTimeLeft, setChallengeTimeLeft] = useState('');
 
-    // Fetch library → core exercises + daily challenge
+    // ── Chest pop state ────────────────────────────────────────────────────────
+    // isBursting: the accent-circle that expands from chest on tap
+    const [isBursting,   setIsBursting]   = useState(false);
+    const [burstOrigin,  setBurstOrigin]  = useState({ x: 0, y: 0 });
+
+    // ── Refs for canvas ↔ DOM bridge ───────────────────────────────────────────
+    // chestButtonRef: the DOM node whose style (left, top, opacity, boxShadow)
+    // is mutated directly inside useFrame — zero React re-renders.
+    const chestButtonRef  = useRef<HTMLDivElement>(null);
+    // rotationLocked: set true while finger is down on chest button so the
+    // canvas's pointerdown handler skips starting a rotation drag.
+    const rotationLocked  = useRef(false);
+
+    // ── Library fetch ──────────────────────────────────────────────────────────
     useEffect(() => {
         const fetchLibrary = async () => {
             try {
                 const res = await fetch('/api/library');
                 if (!res.ok) return;
                 const data: LiveExercise[] = await res.json();
-
                 const targetIds = ['pushup', 'squat', 'lunge'];
                 const filtered  = data.filter(ex => targetIds.includes(ex.id));
                 const ordered   = targetIds
@@ -67,7 +80,7 @@ export default function Home() {
         return () => clearInterval(iv);
     }, []);
 
-    // Read last-played exercise from localStorage
+    // ── Last exercise from localStorage ───────────────────────────────────────
     useEffect(() => {
         try {
             const raw = localStorage.getItem('mw_last_exercise');
@@ -75,12 +88,30 @@ export default function Home() {
         } catch {}
     }, []);
 
-    // Daily challenge countdown
+    // ── Challenge countdown ────────────────────────────────────────────────────
     useEffect(() => {
         setChallengeTimeLeft(getTimeUntilNextChallenge());
         const iv = setInterval(() => setChallengeTimeLeft(getTimeUntilNextChallenge()), 1000);
         return () => clearInterval(iv);
     }, []);
+
+    // ── Chest pop handler ──────────────────────────────────────────────────────
+    const handleChestTap = useCallback(() => {
+        if (!dailyChallenge) return;
+        navigator.vibrate?.([15, 10, 25]);
+
+        // Capture the button's current screen position for the burst origin
+        const btn = chestButtonRef.current;
+        if (btn) {
+            const rect = btn.getBoundingClientRect();
+            setBurstOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+        }
+
+        // Launch burst + challenge simultaneously — the burst is purely decorative,
+        // ChallengePlayer opens on top via its own z-[600] overlay.
+        setIsBursting(true);
+        setIsChallengeOpen(true);
+    }, [dailyChallenge]);
 
     const handleWorkoutLogged = (intent: any) => {
         addWorkout(intent);
@@ -89,6 +120,7 @@ export default function Home() {
         setShowToast(true);
     };
 
+    // ─────────────────────────────────────────────────────────────────────────
     return (
         <AnimatePresence mode="wait">
             <motion.main
@@ -102,46 +134,104 @@ export default function Home() {
                 <Navbar />
                 <Sidebar />
 
-                {/* ══════════════════════════════════════════════════════════
+                {/* ════════════════════════════════════════════════════════
                     HERO — full-viewport 3D scene
-                ══════════════════════════════════════════════════════════ */}
+                ════════════════════════════════════════════════════════ */}
                 <div className="relative w-full overflow-hidden" style={{ height: '100dvh' }}>
 
                     {/* Industrial dark floor */}
                     <div className="absolute inset-0 bg-[#060606]" />
 
-                    {/* Subtle accent glow centred behind model */}
+                    {/* Accent radial glow behind model */}
                     <div
                         className="absolute inset-0 z-[1] pointer-events-none"
-                        style={{
-                            background: `radial-gradient(ellipse 55% 65% at 50% 58%, ${theme.accent}07 0%, transparent 70%)`,
-                        }}
+                        style={{ background: `radial-gradient(ellipse 55% 65% at 50% 58%, ${theme.accent}07 0%, transparent 70%)` }}
                     />
 
-                    {/* Grid texture overlay for industrial feel */}
+                    {/* Industrial grid texture */}
                     <div
-                        className="absolute inset-0 z-[1] pointer-events-none opacity-[0.025]"
+                        className="absolute inset-0 z-[1] pointer-events-none opacity-[0.022]"
                         style={{
-                            backgroundImage: `
-                                linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
-                                linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)
-                            `,
+                            backgroundImage: [
+                                'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px)',
+                                'linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+                            ].join(','),
                             backgroundSize: '60px 60px',
                         }}
                     />
 
                     {/* 3D Canvas */}
                     <div className="absolute inset-0 z-[2]">
-                        <MannequinCanvas accentColor={theme.accent} />
+                        <MannequinCanvas
+                            accentColor={theme.accent}
+                            chestButtonRef={chestButtonRef}
+                            rotationLocked={rotationLocked}
+                        />
                     </div>
 
-                    {/* Bottom gradient fade into page background */}
+                    {/* Bottom gradient fade */}
                     <div
                         className="absolute inset-x-0 bottom-0 h-56 pointer-events-none z-[3]"
-                        style={{ background: `linear-gradient(to top, #060606 0%, transparent 100%)` }}
+                        style={{ background: 'linear-gradient(to top, #060606 0%, transparent 100%)' }}
                     />
 
-                    {/* ── Welcome text — top-left below navbar ── */}
+                    {/* ── Chest button — positioned by useFrame each tick ── */}
+                    {/*
+                      display, left, top, opacity, boxShadow are ALL controlled
+                      imperatively by MannequinCanvas's useFrame.
+                      Initial display:none prevents a flash at (0,0) on first paint.
+                      transform: translate(-50%,-50%) keeps it centred on the 3D point.
+                      pointer-events managed by canvas code (none when facing away).
+                    */}
+                    <div
+                        ref={chestButtonRef}
+                        onClick={handleChestTap}
+                        onPointerDown={() => { rotationLocked.current = true; }}
+                        onPointerUp={()   => { rotationLocked.current = false; }}
+                        onPointerCancel={() => { rotationLocked.current = false; }}
+                        className="absolute z-[20] flex flex-col items-center gap-1 cursor-pointer select-none"
+                        style={{
+                            display:        'none',              // canvas reveals on first frame
+                            width:          56,
+                            height:         56,
+                            transform:      'translate(-50%, -50%)',
+                            borderRadius:   '50%',
+                            alignItems:     'center',
+                            justifyContent: 'center',
+                            background:     'rgba(0,0,0,0.55)',
+                            border:         `1px solid ${theme.accent}50`,
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            touchAction:    'manipulation',
+                            transition:     'transform 0.08s ease',
+                        }}
+                        onTouchStart={() => {
+                            if (chestButtonRef.current)
+                                chestButtonRef.current.style.transform = 'translate(-50%,-50%) scale(0.86)';
+                        }}
+                        onTouchEnd={() => {
+                            if (chestButtonRef.current)
+                                chestButtonRef.current.style.transform = 'translate(-50%,-50%) scale(1)';
+                        }}
+                    >
+                        <Zap size={20} fill={theme.accent} style={{ color: theme.accent }} />
+                        {/* Micro-label — fades with the button */}
+                        <span
+                            className="absolute font-black uppercase tracking-widest pointer-events-none"
+                            style={{
+                                bottom: -18,
+                                fontSize: 7,
+                                letterSpacing: '0.18em',
+                                color: theme.accent,
+                                opacity: 0.7,
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            Challenge
+                        </span>
+                    </div>
+
+                    {/* ── Welcome text — top-left, below navbar ── */}
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -156,70 +246,32 @@ export default function Home() {
                             className="text-5xl lg:text-7xl font-black uppercase leading-[0.92]"
                             style={{
                                 letterSpacing: '-0.04em',
-                                fontFamily: 'var(--font-archivo-black), sans-serif',
-                                textShadow: theme.mode === 'savage'
-                                    ? `0 0 50px ${theme.accent}25`
-                                    : 'none',
+                                fontFamily:    'var(--font-archivo-black), sans-serif',
+                                textShadow:    theme.mode === 'savage' ? `0 0 50px ${theme.accent}25` : 'none',
                             }}
                         >
                             Welcome<br />
                             <span style={{ color: theme.accent }}>Savage</span>
                         </h1>
                         <p className="text-sm opacity-35 mt-2.5 font-medium tracking-wide">
-                            Let's crush today.
+                            Tap the chest to start your challenge.
                         </p>
                     </motion.div>
 
-                    {/* ── Floating action buttons — bottom ── */}
+                    {/* ── Bottom FABs ─────────────────────────────────────── */}
                     <div
-                        className="absolute inset-x-0 z-[10] flex items-end justify-between"
+                        className="absolute inset-x-0 z-[10] flex items-end justify-end"
                         style={{
-                            bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 20px) + 3.5rem)',
+                            bottom:  'calc(max(env(safe-area-inset-bottom, 0px), 20px) + 3.5rem)',
                             padding: '0 clamp(1.5rem, 5vw, 7rem)',
                         }}
                     >
-                        {/* Daily Challenge pill */}
-                        <motion.button
-                            initial={{ opacity: 0, y: 24 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5, type: 'spring', stiffness: 180, damping: 22 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => dailyChallenge && setIsChallengeOpen(true)}
-                            className="flex items-center gap-3 px-5 py-3.5 rounded-2xl backdrop-blur-2xl"
-                            style={{
-                                background:   'rgba(0,0,0,0.7)',
-                                border:       `1px solid ${theme.accent}30`,
-                                boxShadow:    `0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)`,
-                                touchAction:  'manipulation',
-                            }}
-                        >
-                            <div
-                                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                                style={{ background: `${theme.accent}18`, border: `1px solid ${theme.accent}30` }}
-                            >
-                                <Zap size={17} style={{ color: theme.accent }} />
-                            </div>
-                            <div className="text-left">
-                                <p className="text-[8px] font-black uppercase tracking-[0.4em] opacity-35 leading-none mb-0.5">
-                                    Today
-                                </p>
-                                <p className="text-[13px] font-black uppercase tracking-tight leading-tight">
-                                    Daily Challenge
-                                </p>
-                                {challengeTimeLeft && (
-                                    <p className="text-[9px] font-mono opacity-25 leading-tight mt-0.5">
-                                        {challengeTimeLeft}
-                                    </p>
-                                )}
-                            </div>
-                        </motion.button>
-
-                        {/* Quick Start button */}
+                        {/* Quick Start — only visible when a last exercise exists */}
                         {lastExercise && (
                             <motion.button
                                 initial={{ opacity: 0, y: 24 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.65, type: 'spring', stiffness: 180, damping: 22 }}
+                                transition={{ delay: 0.5, type: 'spring', stiffness: 180, damping: 22 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => setQuickStartOpen(true)}
                                 className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest"
@@ -246,11 +298,36 @@ export default function Home() {
                     </motion.div>
                 </div>
 
-                {/* ══════════════════════════════════════════════════════════
+                {/* ════════════════════════════════════════════════════════
+                    CHEST POP — burst circle (z-[550], purely decorative)
+                    ChallengePlayer opens simultaneously on top at z-[600].
+                ════════════════════════════════════════════════════════ */}
+                <AnimatePresence>
+                    {isBursting && (
+                        <motion.div
+                            className="fixed rounded-full pointer-events-none"
+                            initial={{ width: 56, height: 56, x: -28, y: -28, scale: 1, opacity: 0.9 }}
+                            animate={{ scale: 55, opacity: 0 }}
+                            exit={{}}
+                            transition={{ duration: 0.55, ease: [0.15, 0, 0.05, 1] }}
+                            onAnimationComplete={() => setIsBursting(false)}
+                            style={{
+                                position:        'fixed',
+                                left:            burstOrigin.x,
+                                top:             burstOrigin.y,
+                                zIndex:          550,
+                                backgroundColor: theme.accent,
+                                transformOrigin: 'center center',
+                            }}
+                        />
+                    )}
+                </AnimatePresence>
+
+                {/* ════════════════════════════════════════════════════════
                     SCROLLABLE CONTENT — below the fold
-                ══════════════════════════════════════════════════════════ */}
+                ════════════════════════════════════════════════════════ */}
                 <div
-                    className="relative -z-10 pointer-events-none h-8"
+                    className="relative pointer-events-none h-8"
                     style={{ background: 'linear-gradient(to bottom, #060606, transparent)' }}
                 />
 
@@ -293,7 +370,7 @@ export default function Home() {
                             </div>
                         </div>
 
-                        {/* Bento Grid — heatmap centre */}
+                        {/* Bento Grid */}
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
                             <div className="lg:col-span-4 space-y-6">
                                 <LuxuryCard className="p-8 rounded-[32px] h-full" delay={0.6}>
@@ -305,11 +382,9 @@ export default function Home() {
                                     <div className="text-xs opacity-40">Personal best: 45 days</div>
                                 </LuxuryCard>
                             </div>
-
                             <div className="lg:col-span-4 h-full">
                                 <MuscleHeatmap />
                             </div>
-
                             <div className="lg:col-span-4 flex flex-col gap-6">
                                 <DailyGoalRing progress={73} label="Daily Target" sublabel="5 of 7 Workouts" />
                                 <SavageTip delay={0.7} />
@@ -356,6 +431,7 @@ export default function Home() {
                         onClose={() => setQuickStartOpen(false)}
                     />
                 )}
+                {/* ChallengePlayer: fixed inset-0 z-[600], opens over the burst circle */}
                 {isChallengeOpen && dailyChallenge && (
                     <ChallengePlayer
                         isOpen={isChallengeOpen}

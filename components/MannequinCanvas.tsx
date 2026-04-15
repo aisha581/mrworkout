@@ -5,31 +5,39 @@ import { useGLTF } from '@react-three/drei';
 import { Suspense, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-// Warm the loader cache before the component mounts
 useGLTF.preload('/models/mannequin.glb');
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Scene — everything that must live *inside* the Canvas
-// ─────────────────────────────────────────────────────────────────────────────
-function Scene({ color }: { color: string }) {
-    const { scene } = useGLTF('/models/mannequin.glb');
-    const { gl }    = useThree();
+// ── Pre-allocated vectors — reused every frame, zero GC pressure ──────────────
+// These live at module scope so they are created once and never garbage-collected.
+// Placing mutable objects inside useFrame would create one per call (60× / s).
+const _chestLocal = new THREE.Vector3(0, 0.65, 0.32); // group-local chest estimate
+const _chestWork  = new THREE.Vector3();               // scratch space for projection
 
-    // ── Object refs (mutated imperatively — zero React re-renders) ────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  Scene — everything inside the Canvas context
+// ─────────────────────────────────────────────────────────────────────────────
+interface SceneProps {
+    color:            string;
+    chestButtonRef:   React.RefObject<HTMLDivElement | null>;
+    rotationLocked:   React.RefObject<boolean>;
+}
+
+function Scene({ color, chestButtonRef, rotationLocked }: SceneProps) {
+    const { scene } = useGLTF('/models/mannequin.glb');
+    const { gl, size } = useThree();
+
     const groupRef     = useRef<THREE.Group>(null);
     const pulseLtRef   = useRef<THREE.PointLight>(null);
     const materialsRef = useRef<THREE.MeshBasicMaterial[]>([]);
 
-    // ── Rotation state ────────────────────────────────────────────────────────
-    //   showcaseRot: continuous slow spin, always ticking
-    //   dragOffset:  accumulated user drag; lerps → 0 after 10 s idle
+    // ── Rotation refs ─────────────────────────────────────────────────────────
     const showcaseRotRef  = useRef(0);
     const dragOffsetRef   = useRef(0);
     const isDraggingRef   = useRef(false);
     const lastPointerXRef = useRef(0);
     const lastInteractRef = useRef(Date.now());
 
-    // ── Build wireframe materials once (or on color change) ───────────────────
+    // ── Build wireframe materials ─────────────────────────────────────────────
     useEffect(() => {
         const mats: THREE.MeshBasicMaterial[] = [];
         scene.traverse((child) => {
@@ -42,35 +50,29 @@ function Scene({ color }: { color: string }) {
                 opacity:     0.72,
             });
             mesh.material      = mat;
-            mesh.frustumCulled = false; // prevent pop-in while rotating
+            mesh.frustumCulled = false;
             mats.push(mat);
         });
         materialsRef.current = mats;
-
-        // Cleanup — dispose on unmount or color change to avoid VRAM leaks
         return () => { mats.forEach(m => m.dispose()); };
     }, [scene, color]);
 
-    // ── Pointer events — wired to gl.domElement, not React synthetic system ───
-    //   { passive: true } tells the browser these handlers never call
-    //   preventDefault(), enabling optimised event batching on mobile.
+    // ── Pointer events ────────────────────────────────────────────────────────
     useEffect(() => {
         const el = gl.domElement;
 
         const onDown = (e: PointerEvent) => {
+            if (rotationLocked.current) return; // chest button owns this touch
             isDraggingRef.current   = true;
             lastPointerXRef.current = e.clientX;
             lastInteractRef.current = Date.now();
         };
-
         const onMove = (e: PointerEvent) => {
             if (!isDraggingRef.current) return;
-            const dx = e.clientX - lastPointerXRef.current;
-            dragOffsetRef.current  += dx * 0.007;
+            dragOffsetRef.current  += (e.clientX - lastPointerXRef.current) * 0.007;
             lastPointerXRef.current = e.clientX;
             lastInteractRef.current = Date.now();
         };
-
         const onUp = () => {
             isDraggingRef.current   = false;
             lastInteractRef.current = Date.now();
@@ -87,72 +89,88 @@ function Scene({ color }: { color: string }) {
             el.removeEventListener('pointerup',     onUp);
             el.removeEventListener('pointercancel', onUp);
         };
-    }, [gl]);
+    }, [gl, rotationLocked]);
 
-    // ── Main animation loop — runs inside rAF, zero React state touched ───────
+    // ── Main animation loop ───────────────────────────────────────────────────
     useFrame((state, delta) => {
-        const group  = groupRef.current;
-        const light  = pulseLtRef.current;
+        const group = groupRef.current;
+        const light = pulseLtRef.current;
         if (!group) return;
 
         const t = state.clock.elapsedTime;
 
-        // ── Breathing ──────────────────────────────────────────────────────────
-        //   Period: 4.2 s — comfortable, meditative breathing rate.
-        //   phase: 0 (exhale) → 1 (inhale), smooth sinusoid.
+        // ── Breathing ─────────────────────────────────────────────────────────
         const BREATH_HZ = (2 * Math.PI) / 4.2;
         const phase = (Math.sin(t * BREATH_HZ) + 1) * 0.5; // 0..1
 
-        //   Scale: extremely subtle chest swell (barely perceptible, just alive)
-        group.scale.set(
-            1.0 + phase * 0.007,   // lateral expansion
-            1.0 + phase * 0.015,   // vertical chest rise
-            1.0 + phase * 0.007,
-        );
-
-        //   Vertical drift: synced to breath so the model gently "lifts" on inhale
+        group.scale.set(1 + phase * 0.007, 1 + phase * 0.015, 1 + phase * 0.007);
         group.position.y = phase * 0.032 - 0.016;
 
-        //   Material opacity pulse: exhale → dim, inhale → bright
-        //   Range: 0.50 (exhale) → 0.88 (inhale)
         const opacity = 0.50 + phase * 0.38;
         for (const mat of materialsRef.current) mat.opacity = opacity;
-
-        //   Point light intensity synced to breath:
-        //   exhale → 0.6, inhale → 2.4
         if (light) light.intensity = 0.6 + phase * 1.8;
 
-        // ── Rotation ───────────────────────────────────────────────────────────
-        //   Showcase rotation: always-on slow spin (~35 s per revolution)
+        // ── Rotation ──────────────────────────────────────────────────────────
         showcaseRotRef.current += delta * 0.18;
-
-        //   Auto-center: if idle for 10 s, lerp drag offset → 0
         const idleSec = (Date.now() - lastInteractRef.current) / 1000;
         if (idleSec > 10 && !isDraggingRef.current) {
-            // delta-scaled lerp so the rate stays consistent regardless of fps
-            const lerpK = 1 - Math.pow(0.004, delta); // ≈ 0.02 at 60 fps, 0.04 at 30 fps
+            const lerpK = 1 - Math.pow(0.004, delta);
             dragOffsetRef.current *= (1 - lerpK);
         }
-
         group.rotation.y = showcaseRotRef.current + dragOffsetRef.current;
+
+        // ── Chest button projection ───────────────────────────────────────────
+        const btn = chestButtonRef.current;
+        if (!btn) return;
+
+        // Ensure matrix is current (useFrame runs before render, matrix may lag)
+        group.updateMatrixWorld(true);
+
+        // Transform chest-local → world
+        _chestWork.copy(_chestLocal);
+        group.localToWorld(_chestWork);
+
+        const chestWorldZ = _chestWork.z; // save before project() mutates it
+
+        // Hide when mannequin faces away (chest behind torso from camera view)
+        if (chestWorldZ < 0.05) {
+            btn.style.opacity = '0';
+            btn.style.pointerEvents = 'none';
+            return;
+        }
+
+        // Project world → NDC → CSS pixels
+        _chestWork.project(state.camera);
+        const canvasW = gl.domElement.clientWidth;
+        const canvasH = gl.domElement.clientHeight;
+        const screenX = (_chestWork.x *  0.5 + 0.5) * canvasW;
+        const screenY = (_chestWork.y * -0.5 + 0.5) * canvasH;
+
+        // ── Drive button DOM directly (zero re-renders) ───────────────────────
+        btn.style.display        = 'flex';
+        btn.style.left           = `${screenX}px`;
+        btn.style.top            = `${screenY}px`;
+        btn.style.pointerEvents  = 'auto';
+
+        // Opacity: fades in as chest comes more front-facing, also synced to breath
+        const facingAlpha = Math.min(1, (chestWorldZ - 0.05) / 0.2); // 0..1 as z: 0.05→0.25
+        btn.style.opacity = String((0.65 + phase * 0.35) * facingAlpha);
+
+        // Box-shadow pulse: tight core glow + wide halo, both synced to breath
+        const coreSize  = 8  + phase * 14;
+        const haloSize  = 18 + phase * 28;
+        const coreAlpha = Math.round((0.55 + phase * 0.45) * 255).toString(16).padStart(2, '0');
+        const haloAlpha = Math.round((0.20 + phase * 0.25) * 255).toString(16).padStart(2, '0');
+        btn.style.boxShadow = [
+            `0 0 ${coreSize}px ${coreSize / 2}px ${color}${coreAlpha}`,
+            `0 0 ${haloSize}px ${haloSize / 2}px ${color}${haloAlpha}`,
+        ].join(', ');
     });
 
     return (
         <>
-            {/* Pulse light — synced to breathing in useFrame above */}
-            <pointLight
-                ref={pulseLtRef}
-                position={[2, 2.5, 2.5]}
-                intensity={1.2}
-                color={color}
-            />
-            {/* Fill light — static, keeps the back of the model from going black */}
-            <pointLight
-                position={[-2.5, -1, -2]}
-                intensity={0.35}
-                color={color}
-            />
-
+            <pointLight ref={pulseLtRef} position={[2, 2.5, 2.5]} intensity={1.2} color={color} />
+            <pointLight position={[-2.5, -1, -2]} intensity={0.35} color={color} />
             <group ref={groupRef}>
                 <primitive object={scene} scale={1.55} />
             </group>
@@ -161,33 +179,25 @@ function Scene({ color }: { color: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Public component — just the Canvas shell
+//  Public component
 // ─────────────────────────────────────────────────────────────────────────────
-interface MannequinCanvasProps {
-    accentColor: string;
+export interface MannequinCanvasProps {
+    accentColor:    string;
+    chestButtonRef: React.RefObject<HTMLDivElement | null>;
+    rotationLocked: React.RefObject<boolean>;
 }
 
-export default function MannequinCanvas({ accentColor }: MannequinCanvasProps) {
+export default function MannequinCanvas({ accentColor, chestButtonRef, rotationLocked }: MannequinCanvasProps) {
     return (
         <Canvas
             camera={{ position: [0, 0.25, 4.2], fov: 46 }}
-            // Cap DPR at 1.5 — 2× screens get half-res (imperceptible on small
-            // screen, saves ~30 % fill-rate on Retina/AMOLED panels).
             dpr={[1, 1.5]}
-            // low-power hint tells the driver to prefer the integrated GPU
-            // on M-chip Macs and Android devices with hybrid GPU setups.
-            gl={{
-                antialias:        true,
-                alpha:            true,
-                powerPreference:  'low-power',
-            }}
+            gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}
             style={{ background: 'transparent' }}
         >
-            {/* Minimal ambient — just enough to prevent total darkness on back faces */}
             <ambientLight intensity={0.06} />
-
             <Suspense fallback={null}>
-                <Scene color={accentColor} />
+                <Scene color={accentColor} chestButtonRef={chestButtonRef} rotationLocked={rotationLocked} />
             </Suspense>
         </Canvas>
     );
