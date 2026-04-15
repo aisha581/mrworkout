@@ -24,6 +24,7 @@ export default function LibraryPage() {
     const { theme } = useTheme();
 
     const [exercises,           setExercises]         = useState<LiveExercise[]>([]);
+    const [isLoading,           setIsLoading]         = useState(true);
     const [activePlaylist,      setActivePlaylist]    = useState<LiveExercise[] | null>(null);
     const [activeStartIndex,    setActiveStartIndex]  = useState<number>(0);
     const [searchQuery,         setSearchQuery]       = useState('');
@@ -40,6 +41,7 @@ export default function LibraryPage() {
                     setExercises(prev =>
                         JSON.stringify(prev) === JSON.stringify(data) ? prev : data
                     );
+                    setIsLoading(false);
                 }
             } catch (error) {
                 console.error('Failed to fetch library:', error);
@@ -240,23 +242,32 @@ export default function LibraryPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                        <AnimatePresence mode="popLayout">
-                            {displayedExercises.map((exercise, idx) => (
-                                <motion.div
-                                    key={exercise.id}
-                                    layout
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.2) }}
-                                >
-                                    <ExerciseCard
-                                        exercise={exercise}
-                                        onStartWorkout={() => handleStartWorkout(idx, displayedExercises)}
-                                    />
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
+                        {isLoading ? (
+                            // ── Loading Skeletons ────────────────────────────
+                            // 8 placeholder cards prevent the "black void" while
+                            // the API response is in-flight (~200-400 ms).
+                            Array.from({ length: 8 }).map((_, i) => (
+                                <ExerciseCardSkeleton key={i} />
+                            ))
+                        ) : (
+                            <AnimatePresence mode="popLayout">
+                                {displayedExercises.map((exercise, idx) => (
+                                    <motion.div
+                                        key={exercise.id}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.2) }}
+                                    >
+                                        <ExerciseCard
+                                            exercise={exercise}
+                                            onStartWorkout={() => handleStartWorkout(idx, displayedExercises)}
+                                        />
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        )}
                     </div>
 
                     {displayedExercises.length === 0 && (
@@ -289,5 +300,58 @@ export default function LibraryPage() {
             )}
 
         </main>
+    );
+}
+
+// ── Exercise Card Skeleton ────────────────────────────────────────────────────
+// Matches the exact dimensions of ExerciseCard so the layout doesn't shift
+// when real cards replace the skeletons. Uses a shimmer animation to signal
+// "loading" without displaying a black void.
+function ExerciseCardSkeleton() {
+    return (
+        <div
+            className="rounded-[24px] overflow-hidden"
+            style={{
+                backgroundColor: '#181818',
+                border: '1px solid rgba(255,255,255,0.06)',
+            }}
+        >
+            {/* Video placeholder — h-48 matches ExerciseCard */}
+            <div className="relative h-48 w-full overflow-hidden bg-[#0f0f0f]">
+                <div className="absolute inset-0 skeleton-shimmer" />
+            </div>
+
+            {/* Text area */}
+            <div className="p-6 bg-[#0c0c0c] space-y-3">
+                {/* Title line */}
+                <div className="h-5 w-3/4 rounded-lg overflow-hidden bg-white/5">
+                    <div className="h-full w-full skeleton-shimmer" />
+                </div>
+                {/* Sub-title line */}
+                <div className="h-3.5 w-1/2 rounded-lg overflow-hidden bg-white/5">
+                    <div className="h-full w-full skeleton-shimmer" />
+                </div>
+                {/* Tip block */}
+                <div className="mt-4 h-14 w-full rounded-xl overflow-hidden bg-white/[0.03]">
+                    <div className="h-full w-full skeleton-shimmer" />
+                </div>
+            </div>
+
+            <style jsx>{`
+                @keyframes shimmer {
+                    0%   { transform: translateX(-100%); }
+                    100% { transform: translateX(100%);  }
+                }
+                .skeleton-shimmer {
+                    background: linear-gradient(
+                        90deg,
+                        transparent 0%,
+                        rgba(255, 255, 255, 0.04) 50%,
+                        transparent 100%
+                    );
+                    animation: shimmer 1.6s infinite;
+                }
+            `}</style>
+        </div>
     );
 }
