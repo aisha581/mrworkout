@@ -8,7 +8,7 @@ import LuxuryCard from "@/components/LuxuryCard";
 import Toast from "@/components/Toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { formatWorkoutSummary } from "@/utils/workoutParser";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import dynamic from "next/dynamic";
@@ -20,10 +20,15 @@ import SavageTip from "@/components/SavageTip";
 import ExerciseCard from "@/components/ExerciseCard";
 import CircuitBuilder from "@/components/CircuitBuilder";
 import WorkoutPlayer from "@/components/WorkoutPlayer";
-import ChallengePlayer from "@/components/ChallengePlayer";
 import MissionDrawer from "@/components/MissionDrawer";
+import WelcomeOverlay from "@/components/WelcomeOverlay";
 import type { LiveExercise } from "@/app/library/page";
-import { getDailyChallenge, type DailyChallenge } from "@/utils/dailyChallenge";
+import { useCircuit } from "@/contexts/CircuitContext";
+import { useRouter } from "next/navigation";
+import {
+    loadProfile, generateDailyMission,
+    type Goal, type UserProfile,
+} from "@/utils/missionGenerator";
 import { Zap, ChevronDown } from "lucide-react";
 
 // Canvas cannot be server-rendered — load only on the client
@@ -33,18 +38,26 @@ const MannequinCanvas = dynamic(() => import("@/components/MannequinCanvas"), {
 });
 
 export default function Home() {
-    const { theme } = useTheme();
+    const { theme }                          = useTheme();
     const { workoutHistory, addWorkout, startRestTimer } = useWorkout();
+    const { setQueue }                       = useCircuit();
+    const router                             = useRouter();
 
     // ── State ──────────────────────────────────────────────────────────────────
-    const [showToast,         setShowToast]         = useState(false);
-    const [toastMessage,      setToastMessage]      = useState('');
-    const [coreExercises,     setCoreExercises]     = useState<LiveExercise[]>([]);
-    const [lastExercise,      setLastExercise]      = useState<LiveExercise | null>(null);
-    const [quickStartOpen,    setQuickStartOpen]    = useState(false);
-    const [dailyChallenge,    setDailyChallenge]    = useState<DailyChallenge | null>(null);
-    const [isChallengeOpen,   setIsChallengeOpen]   = useState(false);
-    const [isMissionOpen,     setIsMissionOpen]     = useState(false);
+    const [showToast,       setShowToast]       = useState(false);
+    const [toastMessage,    setToastMessage]    = useState('');
+    const [coreExercises,   setCoreExercises]   = useState<LiveExercise[]>([]);
+    const [allExercises,    setAllExercises]    = useState<LiveExercise[]>([]);
+    const [lastExercise,    setLastExercise]    = useState<LiveExercise | null>(null);
+    const [quickStartOpen,  setQuickStartOpen]  = useState(false);
+    const [isMissionOpen,   setIsMissionOpen]   = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _workoutHistory = workoutHistory; // kept for VaultGrid below
+    const [showWelcome,     setShowWelcome]     = useState(false);
+
+    // Profile + generated mission
+    const [profile,          setProfile]         = useState<UserProfile | null>(null);
+    const [missionExercises, setMissionExercises] = useState<LiveExercise[]>([]);
 
     // ── Library fetch ──────────────────────────────────────────────────────────
     useEffect(() => {
@@ -53,19 +66,35 @@ export default function Home() {
                 const res = await fetch('/api/library');
                 if (!res.ok) return;
                 const data: LiveExercise[] = await res.json();
+                setAllExercises(data);
                 const targetIds = ['pushup', 'squat', 'lunge'];
-                const filtered  = data.filter(ex => targetIds.includes(ex.id));
                 const ordered   = targetIds
-                    .map(id => filtered.find(ex => ex.id === id))
+                    .map(id => data.find(ex => ex.id === id))
                     .filter(Boolean) as LiveExercise[];
                 setCoreExercises(ordered);
-                setDailyChallenge(getDailyChallenge(data));
             } catch {}
         };
         fetchLibrary();
         const iv = setInterval(fetchLibrary, 3000);
         return () => clearInterval(iv);
     }, []);
+
+    // ── Load profile + show welcome if first visit ─────────────────────────────
+    useEffect(() => {
+        const saved = loadProfile();
+        if (saved) {
+            setProfile(saved);
+        } else {
+            setShowWelcome(true);
+        }
+    }, []);
+
+    // ── Re-generate mission whenever profile or exercises change ───────────────
+    useEffect(() => {
+        if (profile && allExercises.length > 0) {
+            setMissionExercises(generateDailyMission(profile, allExercises));
+        }
+    }, [profile, allExercises]);
 
     // ── Last exercise from localStorage ───────────────────────────────────────
     useEffect(() => {
@@ -80,6 +109,14 @@ export default function Home() {
         navigator.vibrate?.([15, 10, 25]);
         setIsMissionOpen(true);
     }, []);
+
+    // ── Start mission: load queue → navigate to playground ────────────────────
+    const handleStartMission = useCallback(() => {
+        const exercises = missionExercises.length > 0 ? missionExercises : [];
+        if (exercises.length === 0) return;
+        setQueue(exercises);
+        router.push('/playground');
+    }, [missionExercises, setQueue, router]);
 
     const handleWorkoutLogged = (intent: any) => {
         addWorkout(intent);
@@ -328,21 +365,19 @@ export default function Home() {
                 <MissionDrawer
                     isOpen={isMissionOpen}
                     onClose={() => setIsMissionOpen(false)}
-                    challenge={dailyChallenge}
-                    onStartChallenge={() => {
-                        setIsMissionOpen(false);
-                        if (dailyChallenge) setIsChallengeOpen(true);
-                    }}
+                    goal={profile?.goal ?? null}
+                    missionExercises={missionExercises}
+                    onStartMission={handleStartMission}
                 />
 
-                {/* ChallengePlayer: launched after drawer closes */}
-                {isChallengeOpen && dailyChallenge && (
-                    <ChallengePlayer
-                        isOpen={isChallengeOpen}
-                        onClose={() => setIsChallengeOpen(false)}
-                        challenge={dailyChallenge}
-                    />
-                )}
+                {/* Welcome / onboarding overlay */}
+                <WelcomeOverlay
+                    isVisible={showWelcome}
+                    onEnter={() => {
+                        setShowWelcome(false);
+                        setProfile(loadProfile());
+                    }}
+                />
 
             </motion.main>
         </AnimatePresence>

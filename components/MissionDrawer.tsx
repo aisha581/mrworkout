@@ -1,25 +1,29 @@
 "use client";
 
-// Bottom-sheet drawer for the Daily Mission.
-// Opens when the user taps the glowing chest button on the 3D mannequin.
-// Drag the sheet down >100 px to dismiss.
-
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Trophy, Clock, X, ChevronDown } from 'lucide-react';
+import { Zap, X } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
-import type { DailyChallenge } from '@/utils/dailyChallenge';
 import { getTimeUntilNextChallenge } from '@/utils/dailyChallenge';
+import { GOAL_LABELS, GOAL_MESSAGES, type Goal } from '@/utils/missionGenerator';
+import type { LiveExercise } from '@/app/library/page';
 import { useState, useEffect } from 'react';
 
 interface MissionDrawerProps {
     isOpen:           boolean;
     onClose:          () => void;
-    challenge:        DailyChallenge | null;
-    onStartChallenge: () => void;
+    onStartMission:   () => void;
+    goal:             Goal | null;
+    missionExercises: LiveExercise[];
 }
 
-export default function MissionDrawer({ isOpen, onClose, challenge, onStartChallenge }: MissionDrawerProps) {
-    const { theme } = useTheme();
+export default function MissionDrawer({
+    isOpen,
+    onClose,
+    onStartMission,
+    goal,
+    missionExercises,
+}: MissionDrawerProps) {
+    const { theme }  = useTheme();
     const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
@@ -31,9 +35,10 @@ export default function MissionDrawer({ isOpen, onClose, challenge, onStartChall
 
     const handleStart = () => {
         onClose();
-        // Small delay lets the sheet animate out before ChallengePlayer opens
-        setTimeout(onStartChallenge, 180);
+        setTimeout(onStartMission, 180);
     };
+
+    const hasProfile = goal !== null && missionExercises.length > 0;
 
     return (
         <AnimatePresence>
@@ -52,7 +57,7 @@ export default function MissionDrawer({ isOpen, onClose, challenge, onStartChall
                     {/* Sheet */}
                     <motion.div
                         className="fixed bottom-0 left-0 right-0 z-[590] rounded-t-[36px] overflow-hidden"
-                        style={{ backgroundColor: '#0e0e0e', border: `1px solid rgba(255,255,255,0.07)` }}
+                        style={{ backgroundColor: '#0e0e0e', border: '1px solid rgba(255,255,255,0.07)' }}
                         initial={{ y: '100%' }}
                         animate={{ y: 0 }}
                         exit={{ y: '100%' }}
@@ -62,7 +67,6 @@ export default function MissionDrawer({ isOpen, onClose, challenge, onStartChall
                         dragElastic={{ top: 0, bottom: 0.4 }}
                         onDragEnd={(_, info) => { if (info.offset.y > 100) onClose(); }}
                     >
-                        {/* Safe-area bottom padding */}
                         <div style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
 
                             {/* Drag handle */}
@@ -70,7 +74,7 @@ export default function MissionDrawer({ isOpen, onClose, challenge, onStartChall
                                 <div className="w-10 h-1 rounded-full bg-white/20" />
                             </div>
 
-                            {/* Close button */}
+                            {/* Close */}
                             <button
                                 onClick={onClose}
                                 className="absolute top-5 right-5 p-2 rounded-full bg-white/5 border border-white/10 active:scale-90 transition-transform"
@@ -80,45 +84,71 @@ export default function MissionDrawer({ isOpen, onClose, challenge, onStartChall
 
                             <div className="px-7 pt-2 pb-8">
                                 {/* Label */}
-                                <p className="text-[9px] font-black uppercase tracking-[0.5em] mb-3"
+                                <p className="text-[9px] font-black uppercase tracking-[0.5em] mb-2"
                                    style={{ color: theme.accent, opacity: 0.8 }}>
                                     Daily Mission
                                 </p>
 
-                                {/* Exercise name */}
+                                {/* Title */}
                                 <h2
-                                    className="text-4xl font-black uppercase tracking-tighter leading-none mb-1"
+                                    className="text-3xl font-black uppercase tracking-tighter leading-tight mb-1"
                                     style={{ fontFamily: 'var(--font-archivo-black), sans-serif' }}
                                 >
-                                    {challenge?.exerciseId ?? 'SQUAT'}{' '}
-                                    <span className="opacity-30">AMRAP</span>
+                                    {hasProfile ? `Today's ${GOAL_LABELS[goal!]}` : "Today's Challenge"}
                                 </h2>
 
-                                <p className="text-sm opacity-40 mb-6 font-medium">
-                                    {challenge?.quote ?? 'Earn your rest.'}
+                                {/* Personalized subtitle */}
+                                <p className="text-xs opacity-40 mb-5 font-medium leading-snug">
+                                    {hasProfile
+                                        ? `Based on your goal to ${GOAL_LABELS[goal!].toUpperCase()} — ${GOAL_MESSAGES[goal!]}`
+                                        : 'Complete the daily AMRAP and earn your rest.'}
                                 </p>
 
-                                {/* Stats row */}
-                                <div className="grid grid-cols-3 gap-3 mb-7">
-                                    {[
-                                        { icon: Zap,    label: 'Target',    value: `${challenge?.targetReps ?? 60}+ Reps` },
-                                        { icon: Trophy, label: 'Savage Avg', value: `${challenge?.averageReps ?? 42} Reps` },
-                                        { icon: Clock,  label: 'Expires',   value: timeLeft || '—' },
-                                    ].map(({ icon: Icon, label, value }) => (
-                                        <div
-                                            key={label}
-                                            className="rounded-2xl p-3 flex flex-col gap-1"
-                                            style={{
-                                                background: `${theme.accent}0a`,
-                                                border:     `1px solid ${theme.accent}20`,
-                                            }}
-                                        >
-                                            <Icon size={14} style={{ color: theme.accent }} />
-                                            <p className="text-[8px] font-black uppercase tracking-widest opacity-40">{label}</p>
-                                            <p className="text-sm font-black leading-tight">{value}</p>
-                                        </div>
-                                    ))}
-                                </div>
+                                {/* Exercise list (personalized mode) */}
+                                {hasProfile ? (
+                                    <div className="flex flex-col gap-2 mb-5">
+                                        {missionExercises.map((ex, i) => (
+                                            <div
+                                                key={ex.id}
+                                                className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                                                style={{
+                                                    background: `${theme.accent}0a`,
+                                                    border:     `1px solid ${theme.accent}18`,
+                                                }}
+                                            >
+                                                <span
+                                                    className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0"
+                                                    style={{ background: `${theme.accent}22`, color: theme.accent }}
+                                                >
+                                                    {i + 1}
+                                                </span>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-black uppercase tracking-tight truncate">{ex.name}</p>
+                                                    <p className="text-[9px] opacity-30 mt-0.5">{ex.category} · {ex.targetMuscle}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <p className="text-[10px] opacity-20 font-medium text-center pt-1">
+                                            Mission resets in {timeLeft || '—'}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-3 mb-5">
+                                        {[
+                                            { label: 'Format',  value: 'AMRAP 60s'    },
+                                            { label: 'Expires', value: timeLeft || '—' },
+                                        ].map(({ label, value }) => (
+                                            <div
+                                                key={label}
+                                                className="flex-1 rounded-2xl p-3"
+                                                style={{ background: `${theme.accent}0a`, border: `1px solid ${theme.accent}20` }}
+                                            >
+                                                <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mb-1">{label}</p>
+                                                <p className="text-sm font-black leading-tight">{value}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
 
                                 {/* CTA */}
                                 <motion.button
@@ -132,7 +162,7 @@ export default function MissionDrawer({ isOpen, onClose, challenge, onStartChall
                                     }}
                                 >
                                     <Zap size={16} fill="currentColor" />
-                                    Start Challenge
+                                    {hasProfile ? 'Start Mission' : 'Start Challenge'}
                                 </motion.button>
                             </div>
                         </div>
