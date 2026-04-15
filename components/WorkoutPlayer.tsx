@@ -6,6 +6,7 @@ import type { LiveExercise } from '@/app/library/page';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import VictoryScreen from './VictoryScreen';
 import { getRandomSavageQuote } from '@/data/quotes';
+import { useWorkout } from '@/contexts/WorkoutContext';
 
 // ── Muscle legend — category fallback ────────────────────────────────────────
 const CATEGORY_MUSCLES: Record<string, { primary: string; secondary: string; stretch: string }> = {
@@ -47,6 +48,13 @@ interface WorkoutPlayerProps {
 
 export default function WorkoutPlayer({ playlist, initialIndex, onClose }: WorkoutPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const { setPlayerOpen } = useWorkout();
+
+    // Signal nav components to hide themselves while player is visible
+    useEffect(() => {
+        setPlayerOpen(true);
+        return () => setPlayerOpen(false);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Navigation ────────────────────────────────────────────────────────────
     const [activeIndex, setActiveIndex] = useState(initialIndex);
@@ -251,7 +259,7 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
     // ── Rest countdown ────────────────────────────────────────────────────────
     useEffect(() => {
         if (!isResting || restTimer === null) return;
-        if (restTimer <= 0) { advanceAfterRest(); return; }
+        if (restTimer <= 0) { navigator.vibrate?.([50, 30, 50]); advanceAfterRest(); return; }
         const iv = setInterval(() => setRestTimer(p => p! - 1), 1000);
         return () => clearInterval(iv);
     }, [isResting, restTimer]); // eslint-disable-line react-hooks/exhaustive-deps

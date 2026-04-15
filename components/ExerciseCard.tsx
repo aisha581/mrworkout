@@ -85,10 +85,10 @@ export default function ExerciseCard({ exercise, delay = 0, onStartWorkout }: Ex
 
             {!isInQueue && exercise.videoUrl && (
                 <button
-                    onClick={(e) => { 
-                        e.stopPropagation(); 
-                        if (typeof window !== 'undefined' && navigator.vibrate) navigator.vibrate(40);
-                        addToQueue(exercise); 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.vibrate?.([20, 10, 20]);
+                        addToQueue(exercise);
                     }}
                     className="absolute top-4 right-4 z-20 p-2.5 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center"
                     style={{ 
@@ -125,7 +125,12 @@ export default function ExerciseCard({ exercise, delay = 0, onStartWorkout }: Ex
             {/* ── Video thumbnail area ──────────────────────────────────────── */}
             <div
                 className="w-full h-48 relative overflow-hidden bg-[#0a0a0a] shrink-0 cursor-pointer border-b border-white/10"
-                onClick={() => { if (exercise.videoUrl) onStartWorkout(exercise); }}
+                onClick={() => {
+                    if (exercise.videoUrl) {
+                        try { localStorage.setItem('mw_last_exercise', JSON.stringify(exercise)); } catch {}
+                        onStartWorkout(exercise);
+                    }
+                }}
                 style={{ willChange: 'transform' }}
             >
                 {/*

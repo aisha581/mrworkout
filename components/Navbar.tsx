@@ -1,20 +1,23 @@
 "use client";
 
 import { useTheme } from '@/contexts/ThemeContext';
+import { useWorkout } from '@/contexts/WorkoutContext';
 import ThemeToggle from './ThemeToggle';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
 export default function Navbar() {
     const { theme } = useTheme();
+    const { isPlayerOpen } = useWorkout();
 
     return (
         <motion.nav
             initial={{ y: -100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+            animate={{ y: isPlayerOpen ? -100 : 0, opacity: isPlayerOpen ? 0 : 1 }}
             transition={{ type: 'spring', stiffness: 120, damping: 25 }}
             className="fixed top-0 left-0 right-0 z-50 backdrop-blur-2xl"
             style={{
+                pointerEvents: isPlayerOpen ? 'none' : 'auto',
                 backgroundColor: theme.mode === 'savage'
                     ? 'rgba(10, 10, 10, 0.4)'
                     : 'rgba(255, 255, 255, 0.4)',

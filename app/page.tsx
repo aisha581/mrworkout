@@ -19,16 +19,27 @@ import SavageTip from "@/components/SavageTip";
 import ExerciseCard from "@/components/ExerciseCard";
 import CircuitBuilder from "@/components/CircuitBuilder";
 import DailyChallengeWidget from "@/components/DailyChallengeWidget";
+import WorkoutPlayer from "@/components/WorkoutPlayer";
 import type { LiveExercise } from "@/app/library/page";
+import { Zap } from "lucide-react";
 
 export default function Home() {
     const { theme } = useTheme();
 
     const { workoutHistory, addWorkout, startRestTimer } = useWorkout();
 
-    const [showToast,    setShowToast]    = useState(false);
-    const [toastMessage, setToastMessage] = useState('');
-    const [coreExercises, setCoreExercises] = useState<LiveExercise[]>([]);
+    const [showToast,      setShowToast]      = useState(false);
+    const [toastMessage,   setToastMessage]   = useState('');
+    const [coreExercises,  setCoreExercises]  = useState<LiveExercise[]>([]);
+    const [lastExercise,   setLastExercise]   = useState<LiveExercise | null>(null);
+    const [quickStartOpen, setQuickStartOpen] = useState(false);
+
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem('mw_last_exercise');
+            if (raw) setLastExercise(JSON.parse(raw));
+        } catch {}
+    }, []);
 
     useEffect(() => {
         const fetchLibrary = async () => {
@@ -112,16 +123,35 @@ export default function Home() {
                                     </p>
                                 </div>
 
-                                <div className="hidden xl:flex items-center gap-5 bg-white/5 backdrop-blur-md pl-6 pr-3 py-3 rounded-full border border-white/10">
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-sm font-bold opacity-90 uppercase tracking-widest">7 Day Streak</span>
-                                        <span style={{ color: theme.accent }} className="text-xs font-semibold">Keep it burning 🔥</span>
-                                    </div>
-                                    <div
-                                        className="w-14 h-14 rounded-full border-2 flex items-center justify-center font-bold text-2xl shadow-lg"
-                                        style={{ borderColor: theme.accent, backgroundColor: `${theme.accent}15`, color: theme.accent }}
-                                    >
-                                        S
+                                <div className="flex flex-col items-end gap-3">
+                                    {lastExercise && (
+                                        <motion.button
+                                            initial={{ opacity: 0, x: 20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: 0.4 }}
+                                            onClick={() => setQuickStartOpen(true)}
+                                            className="flex items-center gap-2 px-5 py-3 rounded-full font-black text-xs uppercase tracking-widest active:scale-95 transition-transform"
+                                            style={{
+                                                background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent}cc)`,
+                                                color: '#000',
+                                                boxShadow: `0 0 20px ${theme.accent}50`,
+                                            }}
+                                        >
+                                            <Zap size={14} fill="currentColor" />
+                                            Quick Start
+                                        </motion.button>
+                                    )}
+                                    <div className="hidden xl:flex items-center gap-5 bg-white/5 backdrop-blur-md pl-6 pr-3 py-3 rounded-full border border-white/10">
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-sm font-bold opacity-90 uppercase tracking-widest">7 Day Streak</span>
+                                            <span style={{ color: theme.accent }} className="text-xs font-semibold">Keep it burning 🔥</span>
+                                        </div>
+                                        <div
+                                            className="w-14 h-14 rounded-full border-2 flex items-center justify-center font-bold text-2xl shadow-lg"
+                                            style={{ borderColor: theme.accent, backgroundColor: `${theme.accent}15`, color: theme.accent }}
+                                        >
+                                            S
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -215,6 +245,14 @@ export default function Home() {
                     isVisible={showToast}
                     onClose={() => setShowToast(false)}
                 />
+
+                {quickStartOpen && lastExercise && (
+                    <WorkoutPlayer
+                        playlist={[lastExercise]}
+                        initialIndex={0}
+                        onClose={() => setQuickStartOpen(false)}
+                    />
+                )}
             </motion.main>
         </AnimatePresence>
     );

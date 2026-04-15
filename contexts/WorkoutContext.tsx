@@ -18,6 +18,10 @@ interface WorkoutContextType {
     // Music Player State
     isMusicVisible: boolean;
     toggleMusic: () => void;
+
+    // Playground (WorkoutPlayer) visibility — lets Navbar/MobileNav hide themselves
+    isPlayerOpen: boolean;
+    setPlayerOpen: (open: boolean) => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
@@ -33,6 +37,9 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     // Music State
     const [isMusicVisible, setIsMusicVisible] = useState(false);
     const toggleMusic = () => setIsMusicVisible(prev => !prev);
+
+    // Playground open state
+    const [isPlayerOpen, setPlayerOpen] = useState(false);
 
     // Timer Effect
     useEffect(() => {
@@ -105,6 +112,8 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
                 stopRestTimer,
                 isMusicVisible,
                 toggleMusic,
+                isPlayerOpen,
+                setPlayerOpen,
             }}
         >
             {children}
