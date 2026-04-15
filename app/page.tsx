@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { formatWorkoutSummary } from "@/utils/workoutParser";
 import { useWorkout } from "@/contexts/WorkoutContext";
+import dynamic from "next/dynamic";
 
 import DailyGoalRing from "@/components/DailyGoalRing";
 import FloatingMic from "@/components/FloatingMic";
@@ -20,20 +21,53 @@ import ExerciseCard from "@/components/ExerciseCard";
 import CircuitBuilder from "@/components/CircuitBuilder";
 import DailyChallengeWidget from "@/components/DailyChallengeWidget";
 import WorkoutPlayer from "@/components/WorkoutPlayer";
+import ChallengePlayer from "@/components/ChallengePlayer";
 import type { LiveExercise } from "@/app/library/page";
-import { Zap } from "lucide-react";
+import { getDailyChallenge, getTimeUntilNextChallenge, type DailyChallenge } from "@/utils/dailyChallenge";
+import { Zap, ChevronDown } from "lucide-react";
+
+// Canvas cannot be server-rendered — load only on the client
+const MannequinCanvas = dynamic(() => import("@/components/MannequinCanvas"), {
+    ssr: false,
+    loading: () => <div className="w-full h-full bg-[#060606]" />,
+});
 
 export default function Home() {
     const { theme } = useTheme();
-
     const { workoutHistory, addWorkout, startRestTimer } = useWorkout();
 
-    const [showToast,      setShowToast]      = useState(false);
-    const [toastMessage,   setToastMessage]   = useState('');
-    const [coreExercises,  setCoreExercises]  = useState<LiveExercise[]>([]);
-    const [lastExercise,   setLastExercise]   = useState<LiveExercise | null>(null);
-    const [quickStartOpen, setQuickStartOpen] = useState(false);
+    const [showToast,         setShowToast]         = useState(false);
+    const [toastMessage,      setToastMessage]      = useState('');
+    const [coreExercises,     setCoreExercises]     = useState<LiveExercise[]>([]);
+    const [lastExercise,      setLastExercise]      = useState<LiveExercise | null>(null);
+    const [quickStartOpen,    setQuickStartOpen]    = useState(false);
+    const [dailyChallenge,    setDailyChallenge]    = useState<DailyChallenge | null>(null);
+    const [isChallengeOpen,   setIsChallengeOpen]   = useState(false);
+    const [challengeTimeLeft, setChallengeTimeLeft] = useState('');
 
+    // Fetch library → core exercises + daily challenge
+    useEffect(() => {
+        const fetchLibrary = async () => {
+            try {
+                const res = await fetch('/api/library');
+                if (!res.ok) return;
+                const data: LiveExercise[] = await res.json();
+
+                const targetIds = ['pushup', 'squat', 'lunge'];
+                const filtered  = data.filter(ex => targetIds.includes(ex.id));
+                const ordered   = targetIds
+                    .map(id => filtered.find(ex => ex.id === id))
+                    .filter(Boolean) as LiveExercise[];
+                setCoreExercises(ordered);
+                setDailyChallenge(getDailyChallenge(data));
+            } catch {}
+        };
+        fetchLibrary();
+        const iv = setInterval(fetchLibrary, 3000);
+        return () => clearInterval(iv);
+    }, []);
+
+    // Read last-played exercise from localStorage
     useEffect(() => {
         try {
             const raw = localStorage.getItem('mw_last_exercise');
@@ -41,26 +75,11 @@ export default function Home() {
         } catch {}
     }, []);
 
+    // Daily challenge countdown
     useEffect(() => {
-        const fetchLibrary = async () => {
-            try {
-                const res = await fetch('/api/library');
-                if (res.ok) {
-                    const data: LiveExercise[] = await res.json();
-                    const targetIds = ['pushup', 'squat', 'lunge'];
-                    const filtered  = data.filter(ex => targetIds.includes(ex.id));
-                    const ordered   = targetIds
-                        .map(id => filtered.find(ex => ex.id === id))
-                        .filter(Boolean) as LiveExercise[];
-                    setCoreExercises(ordered);
-                }
-            } catch (error) {
-                console.error("Failed to fetch library:", error);
-            }
-        };
-        fetchLibrary();
-        const interval = setInterval(fetchLibrary, 3000);
-        return () => clearInterval(interval);
+        setChallengeTimeLeft(getTimeUntilNextChallenge());
+        const iv = setInterval(() => setChallengeTimeLeft(getTimeUntilNextChallenge()), 1000);
+        return () => clearInterval(iv);
     }, []);
 
     const handleWorkoutLogged = (intent: any) => {
@@ -78,84 +97,168 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-                className="min-h-screen relative overflow-hidden pb-24 lg:pb-0"
+                className="min-h-screen relative pb-24 lg:pb-0"
             >
                 <Navbar />
                 <Sidebar />
 
-                {/* Background */}
+                {/* ══════════════════════════════════════════════════════════
+                    HERO — full-viewport 3D scene
+                ══════════════════════════════════════════════════════════ */}
+                <div className="relative w-full overflow-hidden" style={{ height: '100dvh' }}>
+
+                    {/* Industrial dark floor */}
+                    <div className="absolute inset-0 bg-[#060606]" />
+
+                    {/* Subtle accent glow centred behind model */}
+                    <div
+                        className="absolute inset-0 z-[1] pointer-events-none"
+                        style={{
+                            background: `radial-gradient(ellipse 55% 65% at 50% 58%, ${theme.accent}07 0%, transparent 70%)`,
+                        }}
+                    />
+
+                    {/* Grid texture overlay for industrial feel */}
+                    <div
+                        className="absolute inset-0 z-[1] pointer-events-none opacity-[0.025]"
+                        style={{
+                            backgroundImage: `
+                                linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+                                linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)
+                            `,
+                            backgroundSize: '60px 60px',
+                        }}
+                    />
+
+                    {/* 3D Canvas */}
+                    <div className="absolute inset-0 z-[2]">
+                        <MannequinCanvas accentColor={theme.accent} />
+                    </div>
+
+                    {/* Bottom gradient fade into page background */}
+                    <div
+                        className="absolute inset-x-0 bottom-0 h-56 pointer-events-none z-[3]"
+                        style={{ background: `linear-gradient(to top, #060606 0%, transparent 100%)` }}
+                    />
+
+                    {/* ── Welcome text — top-left below navbar ── */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.25, duration: 0.7 }}
+                        className="absolute z-[10] select-none"
+                        style={{ top: '5.5rem', left: 'clamp(1.5rem, 5vw, 7rem)' }}
+                    >
+                        <p className="text-[9px] font-black uppercase tracking-[0.5em] opacity-25 mb-1.5">
+                            Ready To Go
+                        </p>
+                        <h1
+                            className="text-5xl lg:text-7xl font-black uppercase leading-[0.92]"
+                            style={{
+                                letterSpacing: '-0.04em',
+                                fontFamily: 'var(--font-archivo-black), sans-serif',
+                                textShadow: theme.mode === 'savage'
+                                    ? `0 0 50px ${theme.accent}25`
+                                    : 'none',
+                            }}
+                        >
+                            Welcome<br />
+                            <span style={{ color: theme.accent }}>Savage</span>
+                        </h1>
+                        <p className="text-sm opacity-35 mt-2.5 font-medium tracking-wide">
+                            Let's crush today.
+                        </p>
+                    </motion.div>
+
+                    {/* ── Floating action buttons — bottom ── */}
+                    <div
+                        className="absolute inset-x-0 z-[10] flex items-end justify-between"
+                        style={{
+                            bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 20px) + 3.5rem)',
+                            padding: '0 clamp(1.5rem, 5vw, 7rem)',
+                        }}
+                    >
+                        {/* Daily Challenge pill */}
+                        <motion.button
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5, type: 'spring', stiffness: 180, damping: 22 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => dailyChallenge && setIsChallengeOpen(true)}
+                            className="flex items-center gap-3 px-5 py-3.5 rounded-2xl backdrop-blur-2xl"
+                            style={{
+                                background:   'rgba(0,0,0,0.7)',
+                                border:       `1px solid ${theme.accent}30`,
+                                boxShadow:    `0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)`,
+                                touchAction:  'manipulation',
+                            }}
+                        >
+                            <div
+                                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                                style={{ background: `${theme.accent}18`, border: `1px solid ${theme.accent}30` }}
+                            >
+                                <Zap size={17} style={{ color: theme.accent }} />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-[8px] font-black uppercase tracking-[0.4em] opacity-35 leading-none mb-0.5">
+                                    Today
+                                </p>
+                                <p className="text-[13px] font-black uppercase tracking-tight leading-tight">
+                                    Daily Challenge
+                                </p>
+                                {challengeTimeLeft && (
+                                    <p className="text-[9px] font-mono opacity-25 leading-tight mt-0.5">
+                                        {challengeTimeLeft}
+                                    </p>
+                                )}
+                            </div>
+                        </motion.button>
+
+                        {/* Quick Start button */}
+                        {lastExercise && (
+                            <motion.button
+                                initial={{ opacity: 0, y: 24 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.65, type: 'spring', stiffness: 180, damping: 22 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setQuickStartOpen(true)}
+                                className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest"
+                                style={{
+                                    background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}bb 100%)`,
+                                    color:       '#000',
+                                    boxShadow:   `0 0 28px ${theme.accent}50, 0 8px 32px rgba(0,0,0,0.45)`,
+                                    touchAction: 'manipulation',
+                                }}
+                            >
+                                <Zap size={14} fill="currentColor" />
+                                Quick Start
+                            </motion.button>
+                        )}
+                    </div>
+
+                    {/* Scroll indicator */}
+                    <motion.div
+                        animate={{ y: [0, 5, 0] }}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[10] pointer-events-none"
+                    >
+                        <ChevronDown size={18} className="opacity-15" />
+                    </motion.div>
+                </div>
+
+                {/* ══════════════════════════════════════════════════════════
+                    SCROLLABLE CONTENT — below the fold
+                ══════════════════════════════════════════════════════════ */}
                 <div
-                    className="fixed inset-0 -z-10 bg-[#060606]"
-                    style={{
-                        backgroundImage: `
-                            radial-gradient(circle at 15% 50%, rgba(2, 11, 20, 0.4), transparent 25%),
-                            radial-gradient(circle at 85% 30%, rgba(0, 230, 255, 0.03), transparent 25%),
-                            radial-gradient(circle at 50% 100%, rgba(2, 11, 20, 0.6), transparent 40%)
-                        `,
-                    }}
+                    className="relative -z-10 pointer-events-none h-8"
+                    style={{ background: 'linear-gradient(to bottom, #060606, transparent)' }}
                 />
 
-                <section className="pt-28 pb-16 px-6 sm:px-8 lg:px-24 lg:pl-32">
+                <section
+                    className="py-12 px-6 sm:px-8 lg:px-24 lg:pl-32"
+                    style={{ backgroundColor: theme.bg }}
+                >
                     <div className="max-w-[1800px] mx-auto">
-
-                        {/* Welcome header */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2, duration: 0.8 }}
-                            className="mb-8"
-                        >
-                            <div className="flex items-start justify-between mb-8">
-                                <div>
-                                    <h1
-                                        className="text-5xl lg:text-7xl font-bold mb-3 uppercase"
-                                        style={{
-                                            letterSpacing: '-0.04em',
-                                            fontFamily: 'var(--font-archivo-black), sans-serif',
-                                        }}
-                                    >
-                                        Welcome back,{' '}
-                                        <br />
-                                        <span style={{ color: theme.accent }}>Savage</span>
-                                    </h1>
-                                    <p className="text-lg opacity-60">
-                                        Let's crush today's workout goals
-                                    </p>
-                                </div>
-
-                                <div className="flex flex-col items-end gap-3">
-                                    {lastExercise && (
-                                        <motion.button
-                                            initial={{ opacity: 0, x: 20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: 0.4 }}
-                                            onClick={() => setQuickStartOpen(true)}
-                                            className="flex items-center gap-2 px-5 py-3 rounded-full font-black text-xs uppercase tracking-widest active:scale-95 transition-transform"
-                                            style={{
-                                                background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent}cc)`,
-                                                color: '#000',
-                                                boxShadow: `0 0 20px ${theme.accent}50`,
-                                            }}
-                                        >
-                                            <Zap size={14} fill="currentColor" />
-                                            Quick Start
-                                        </motion.button>
-                                    )}
-                                    <div className="hidden xl:flex items-center gap-5 bg-white/5 backdrop-blur-md pl-6 pr-3 py-3 rounded-full border border-white/10">
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-sm font-bold opacity-90 uppercase tracking-widest">7 Day Streak</span>
-                                            <span style={{ color: theme.accent }} className="text-xs font-semibold">Keep it burning 🔥</span>
-                                        </div>
-                                        <div
-                                            className="w-14 h-14 rounded-full border-2 flex items-center justify-center font-bold text-2xl shadow-lg"
-                                            style={{ borderColor: theme.accent, backgroundColor: `${theme.accent}15`, color: theme.accent }}
-                                        >
-                                            S
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
 
                         <DailyChallengeWidget />
                         <CircuitBuilder />
@@ -190,7 +293,7 @@ export default function Home() {
                             </div>
                         </div>
 
-                        {/* Bento Grid — Heatmap centre */}
+                        {/* Bento Grid — heatmap centre */}
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
                             <div className="lg:col-span-4 space-y-6">
                                 <LuxuryCard className="p-8 rounded-[32px] h-full" delay={0.6}>
@@ -203,7 +306,6 @@ export default function Home() {
                                 </LuxuryCard>
                             </div>
 
-                            {/* ── Wireframe Mannequin ── */}
                             <div className="lg:col-span-4 h-full">
                                 <MuscleHeatmap />
                             </div>
@@ -246,6 +348,7 @@ export default function Home() {
                     onClose={() => setShowToast(false)}
                 />
 
+                {/* ── Modals ── */}
                 {quickStartOpen && lastExercise && (
                     <WorkoutPlayer
                         playlist={[lastExercise]}
@@ -253,6 +356,14 @@ export default function Home() {
                         onClose={() => setQuickStartOpen(false)}
                     />
                 )}
+                {isChallengeOpen && dailyChallenge && (
+                    <ChallengePlayer
+                        isOpen={isChallengeOpen}
+                        onClose={() => setIsChallengeOpen(false)}
+                        challenge={dailyChallenge}
+                    />
+                )}
+
             </motion.main>
         </AnimatePresence>
     );
