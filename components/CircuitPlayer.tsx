@@ -1,10 +1,9 @@
 "use client";
 
 import { useCircuit } from '@/contexts/CircuitContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useSavageSounds } from '@/hooks/useSavageSounds';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Home } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import CircuitHUD from './CircuitHUD';
@@ -107,10 +106,14 @@ export default function CircuitPlayer() {
         router.push('/vault');
     };
 
-    const handleReturnHome = () => {
-        clearComplete();
-        router.push('/');
-    };
+    // Navigate to summary screen when workout finishes
+    useEffect(() => {
+        if (isComplete) {
+            clearComplete();
+            router.push('/summary');
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isComplete]);
 
     // ── Toggle play/pause ─────────────────────────────────────────────────────
     const togglePlay = () => {
@@ -142,61 +145,7 @@ export default function CircuitPlayer() {
         setIsPlaying(!isPlaying);
     };
 
-    if (!isCircuitActive && !isComplete) return null;
-
-    // ── Workout Complete overlay ──────────────────────────────────────────────
-    if (isComplete) {
-        return (
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="fixed inset-0 z-[500] bg-[#060606] flex flex-col items-center justify-center px-8 text-center"
-            >
-                {/* Glow */}
-                <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,229,204,0.12) 0%, transparent 70%)' }}
-                />
-                <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                    className="relative z-10 flex flex-col items-center gap-6"
-                >
-                    <p className="text-[10px] font-black uppercase tracking-[0.6em] opacity-40">
-                        Session Complete
-                    </p>
-                    <h1
-                        className="text-6xl font-black uppercase leading-none"
-                        style={{
-                            fontFamily:   'var(--font-archivo-black), sans-serif',
-                            letterSpacing: '-0.03em',
-                            color:         '#00E5CC',
-                            textShadow:   '0 0 60px rgba(0,229,204,0.5)',
-                        }}
-                    >
-                        Workout<br />Complete
-                    </h1>
-                    <p className="text-sm opacity-40 font-medium">
-                        {queue.length} exercise{queue.length !== 1 ? 's' : ''} destroyed.
-                    </p>
-                    <motion.button
-                        whileTap={{ scale: 0.96 }}
-                        onClick={handleReturnHome}
-                        className="mt-4 flex items-center gap-3 px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm text-black"
-                        style={{
-                            background:  'linear-gradient(135deg, #00E5CC 0%, #00B5A0 100%)',
-                            boxShadow:   '0 0 40px rgba(0,229,204,0.4)',
-                            touchAction: 'manipulation',
-                        }}
-                    >
-                        <Home size={16} />
-                        Return to Home
-                    </motion.button>
-                </motion.div>
-            </motion.div>
-        );
-    }
+    if (!isCircuitActive) return null;
 
     // ── Active workout ────────────────────────────────────────────────────────
     return (

@@ -29,7 +29,8 @@ import {
     loadProfile, generateDailyMission,
     type Goal, type UserProfile,
 } from "@/utils/missionGenerator";
-import { Zap, ChevronDown } from "lucide-react";
+import { getUserStats, getRankInfo, type UserStats } from "@/utils/userStats";
+import { Zap, ChevronDown, Flame, Trophy } from "lucide-react";
 
 // Canvas cannot be server-rendered — load only on the client
 const MannequinCanvas = dynamic(() => import("@/components/MannequinCanvas"), {
@@ -58,6 +59,9 @@ export default function Home() {
     // Profile + generated mission
     const [profile,          setProfile]         = useState<UserProfile | null>(null);
     const [missionExercises, setMissionExercises] = useState<LiveExercise[]>([]);
+
+    // Persistent user stats (XP, streak)
+    const [vitals, setVitals] = useState(() => getUserStats());
 
     // ── Library fetch ──────────────────────────────────────────────────────────
     useEffect(() => {
@@ -95,6 +99,9 @@ export default function Home() {
             setMissionExercises(generateDailyMission(profile, allExercises));
         }
     }, [profile, allExercises]);
+
+    // ── Refresh vitals after hydration ────────────────────────────────────────
+    useEffect(() => { setVitals(getUserStats()); }, []);
 
     // ── Last exercise from localStorage ───────────────────────────────────────
     useEffect(() => {
@@ -235,6 +242,9 @@ export default function Home() {
                             </motion.button>
                         )}
                     </div>
+
+                    {/* ── Vitals strip — bottom-left, above scroll indicator ── */}
+                    <VitalsStrip vitals={vitals} accentColor={theme.accent} />
 
                     {/* Scroll indicator */}
                     <motion.div
@@ -381,6 +391,61 @@ export default function Home() {
 
             </motion.main>
         </AnimatePresence>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Vitals Strip — shown in hero over the 3D mannequin
+// ─────────────────────────────────────────────────────────────────────────────
+interface VitalsStripProps {
+    vitals:      UserStats;
+    accentColor: string;
+}
+
+function VitalsStrip({ vitals, accentColor }: VitalsStripProps) {
+    const rankInfo = getRankInfo(vitals.totalXP);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="absolute z-[10] flex items-center gap-3"
+            style={{
+                bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 20px) + 3.5rem)',
+                left:   'clamp(1.5rem, 5vw, 7rem)',
+            }}
+        >
+            {/* Streak pill */}
+            <div
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl backdrop-blur-md"
+                style={{
+                    background: 'rgba(6,6,6,0.55)',
+                    border:     '1px solid rgba(255,255,255,0.08)',
+                }}
+            >
+                <Flame size={13} color="#FF8C00" fill="#FF8C00" />
+                <span className="text-xs font-black uppercase tracking-widest" style={{ color: '#FF8C00' }}>
+                    {vitals.currentStreak}
+                </span>
+                <span className="text-[10px] opacity-40 font-bold uppercase tracking-widest">streak</span>
+            </div>
+
+            {/* Points pill */}
+            <div
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl backdrop-blur-md"
+                style={{
+                    background: 'rgba(6,6,6,0.55)',
+                    border:     '1px solid rgba(255,255,255,0.08)',
+                }}
+            >
+                <Trophy size={13} color="#FFD700" />
+                <span className="text-xs font-black uppercase tracking-widest" style={{ color: accentColor }}>
+                    {vitals.totalXP}
+                </span>
+                <span className="text-[10px] opacity-40 font-bold uppercase tracking-widest">xp · lv{rankInfo.level}</span>
+            </div>
+        </motion.div>
     );
 }
 

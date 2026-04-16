@@ -1,0 +1,114 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  userStats.ts — persistent XP + streak tracking via localStorage
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STATS_KEY = 'mw_user_stats';
+const XP_PER_WORKOUT = 100;
+
+export interface UserStats {
+    totalWorkouts: number;
+    totalXP: number;
+    currentStreak: number;
+    lastWorkoutDate: string | null; // ISO date string YYYY-MM-DD
+}
+
+export interface RankInfo {
+    level: number;
+    levelName: string;
+    minXP: number;
+    maxXP: number | null;    // null = top tier
+    progress: number;        // 0-100 % toward next level
+    xpToNext: number | null; // null = max level
+}
+
+// ── Rank tiers ────────────────────────────────────────────────────────────────
+const RANKS: { level: number; name: string; minXP: number }[] = [
+    { level: 1, name: 'Iron',     minXP: 0    },
+    { level: 2, name: 'Bronze',   minXP: 500  },
+    { level: 3, name: 'Silver',   minXP: 1000 },
+    { level: 4, name: 'Gold',     minXP: 2000 },
+    { level: 5, name: 'Platinum', minXP: 3500 },
+    { level: 6, name: 'Diamond',  minXP: 6000 },
+];
+
+export function getRankInfo(xp: number): RankInfo {
+    let currentRank = RANKS[0];
+    for (const rank of RANKS) {
+        if (xp >= rank.minXP) currentRank = rank;
+        else break;
+    }
+
+    const rankIndex = RANKS.indexOf(currentRank);
+    const nextRank  = RANKS[rankIndex + 1] ?? null;
+
+    const progress = nextRank
+        ? Math.min(100, Math.round(((xp - currentRank.minXP) / (nextRank.minXP - currentRank.minXP)) * 100))
+        : 100;
+
+    const xpToNext = nextRank ? nextRank.minXP - xp : null;
+
+    return {
+        level:     currentRank.level,
+        levelName: currentRank.name,
+        minXP:     currentRank.minXP,
+        maxXP:     nextRank ? nextRank.minXP : null,
+        progress,
+        xpToNext,
+    };
+}
+
+// ── Read / write helpers ───────────────────────────────────────────────────────
+function todayISO(): string {
+    return new Date().toISOString().split('T')[0];
+}
+
+export function getUserStats(): UserStats {
+    if (typeof window === 'undefined') {
+        return { totalWorkouts: 0, totalXP: 0, currentStreak: 0, lastWorkoutDate: null };
+    }
+    try {
+        const raw = localStorage.getItem(STATS_KEY);
+        if (!raw) return { totalWorkouts: 0, totalXP: 0, currentStreak: 0, lastWorkoutDate: null };
+        return JSON.parse(raw) as UserStats;
+    } catch {
+        return { totalWorkouts: 0, totalXP: 0, currentStreak: 0, lastWorkoutDate: null };
+    }
+}
+
+export function incrementWorkoutStats(xpGained = XP_PER_WORKOUT): UserStats {
+    if (typeof window === 'undefined') {
+        return { totalWorkouts: 0, totalXP: 0, currentStreak: 0, lastWorkoutDate: null };
+    }
+    const stats  = getUserStats();
+    const today  = todayISO();
+    const last   = stats.lastWorkoutDate;
+
+    // Streak logic: +1 if last workout was yesterday or today, else reset to 1
+    let newStreak = stats.currentStreak;
+    if (!last) {
+        newStreak = 1;
+    } else {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayISO = yesterday.toISOString().split('T')[0];
+
+        if (last === today) {
+            // Already worked out today — don't double-count streak
+            newStreak = stats.currentStreak;
+        } else if (last === yesterdayISO) {
+            newStreak = stats.currentStreak + 1;
+        } else {
+            newStreak = 1; // streak broken
+        }
+    }
+
+    const updated: UserStats = {
+        totalWorkouts:   stats.totalWorkouts + 1,
+        totalXP:         stats.totalXP + xpGained,
+        currentStreak:   newStreak,
+        lastWorkoutDate: today,
+    };
+
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(updated)); } catch {}
+    return updated;
+}

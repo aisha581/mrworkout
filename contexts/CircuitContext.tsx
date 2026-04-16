@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { LiveExercise } from '@/app/library/page';
+import { incrementWorkoutStats } from '@/utils/userStats';
+
+const SUMMARY_KEY = 'mw_last_summary';
 
 interface CircuitState {
     queue: LiveExercise[];
@@ -137,6 +140,19 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
     };
 
     const completeWorkout = () => {
+        // Persist summary data for the /summary page
+        const workoutName = queue.length > 0
+            ? (queue.length === 1 ? queue[0].name : `${queue.length}-Exercise Circuit`)
+            : 'Workout';
+        try {
+            localStorage.setItem(SUMMARY_KEY, JSON.stringify({
+                exerciseCount: queue.length,
+                xpGained:      100,
+                workoutName,
+            }));
+        } catch {}
+        // Increment persistent XP + streak
+        incrementWorkoutStats(100);
         setIsCircuitActive(false);
         setIsComplete(true);
     };

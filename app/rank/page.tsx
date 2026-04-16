@@ -3,8 +3,9 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSavagePoints } from '@/hooks/useSavagePoints';
 import { motion } from 'framer-motion';
-import { useState, useMemo } from 'react';
-import { Crown, Trophy, Users, Globe2, Flame } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Crown, Trophy, Users, Globe2, Flame, Zap } from 'lucide-react';
+import { getUserStats, getRankInfo } from '@/utils/userStats';
 
 interface Competitor {
     id: string;
@@ -47,6 +48,16 @@ export default function LeaderboardPage() {
     const { theme } = useTheme();
     const { totalPoints } = useSavagePoints();
     const [view, setView] = useState<'global' | 'friends'>('global');
+    const [userXP, setUserXP] = useState(0);
+    const [userStreak, setUserStreak] = useState(0);
+
+    useEffect(() => {
+        const stats = getUserStats();
+        setUserXP(stats.totalXP);
+        setUserStreak(stats.currentStreak);
+    }, []);
+
+    const rankInfo = getRankInfo(userXP);
 
     // Merge User + Mocks and Sort
     const rankedData = useMemo(() => {
@@ -55,7 +66,7 @@ export default function LeaderboardPage() {
         // Inject physical user into the matrix
         const dataWithUser: Competitor[] = [
             ...baseClass,
-            { id: 'user', name: 'YOU', points: totalPoints, isUser: true, streak: 7 } // Hardcoding 7 streak to match the dummy header for now
+            { id: 'user', name: 'YOU', points: totalPoints, isUser: true, streak: userStreak }
         ];
 
         return dataWithUser.sort((a, b) => b.points - a.points);
@@ -81,15 +92,55 @@ export default function LeaderboardPage() {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="flex flex-col items-center text-center"
+                        className="flex flex-col items-center text-center w-full"
                     >
                         <h1
                             className="text-4xl sm:text-5xl font-black italic tracking-tighter uppercase mb-1"
                             style={{ fontFamily: 'var(--font-archivo-black)', textShadow: '0 4px 20px rgba(0,230,255,0.3)' }}
                         >
-                            Silver League
+                            {rankInfo.levelName} League
                         </h1>
-                        <p className="text-[#00E6FF] font-bold tracking-widest text-sm opacity-80 mb-6">RESETS IN 3D 12H</p>
+                        <p className="text-[#00E6FF] font-bold tracking-widest text-sm opacity-80 mb-4">
+                            LEVEL {rankInfo.level}
+                        </p>
+
+                        {/* XP Progress bar */}
+                        <div className="w-full max-w-xs mb-4">
+                            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest opacity-40 mb-1.5">
+                                <span>{userXP} XP</span>
+                                {rankInfo.xpToNext !== null
+                                    ? <span>{rankInfo.xpToNext} to next</span>
+                                    : <span>Max Level</span>
+                                }
+                            </div>
+                            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${rankInfo.progress}%` }}
+                                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                                    className="h-full rounded-full"
+                                    style={{ background: 'linear-gradient(90deg, #00E6FF, #00B5A0)' }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* XP + Streak pills */}
+                        <div className="flex gap-3 mb-5">
+                            <div
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
+                                style={{ background: 'rgba(0,230,255,0.08)', border: '1px solid rgba(0,230,255,0.2)', color: '#00E6FF' }}
+                            >
+                                <Zap size={12} fill="currentColor" /> {userXP} XP
+                            </div>
+                            {userStreak > 0 && (
+                                <div
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
+                                    style={{ background: 'rgba(255,140,0,0.08)', border: '1px solid rgba(255,140,0,0.2)', color: '#FF8C00' }}
+                                >
+                                    <Flame size={12} fill="currentColor" /> {userStreak}D Streak
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
 
                     {/* View Toggle */}
