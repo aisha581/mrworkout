@@ -111,6 +111,11 @@ export default function OnboardingPage() {
     const finish = () => {
         if (!goal || !focus || !level || !schedule) return;
         saveProfile({ goal, focusArea: focus, level, weeklySchedule: schedule });
+        fetch('/api/user/profile', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ goal, focusArea: focus, level, weeklySchedule: schedule }),
+        }).catch(() => {});
         router.replace('/');
     };
 

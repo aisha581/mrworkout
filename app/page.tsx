@@ -257,7 +257,7 @@ export default function Home() {
                             style={{ top: '5.5rem', right: 'clamp(1.5rem, 5vw, 7rem)' }}
                         >
                             <button
-                                onClick={() => router.push('/upgrade')}
+                                onClick={() => router.push('/join')}
                                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl backdrop-blur-md"
                                 style={{
                                     background: 'rgba(255,215,0,0.1)',

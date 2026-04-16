@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
                 trial_period_days: 7,
                 metadata: { plan: plan ?? "monthly" },
             },
-            success_url: `${baseUrl}/prime/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url:  `${baseUrl}/prime`,
+            success_url: `${baseUrl}/join/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url:  `${baseUrl}/join`,
         });
 
         return NextResponse.json({ url: session.url });

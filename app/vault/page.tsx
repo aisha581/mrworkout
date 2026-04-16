@@ -131,7 +131,7 @@ export default function VaultPage() {
                     >
                         <motion.button
                             whileTap={{ scale: isPro ? 0.97 : 1 }}
-                            onClick={isPro ? handleStart : () => router.push('/upgrade')}
+                            onClick={isPro ? handleStart : () => router.push('/join')}
                             className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm text-black flex items-center justify-center gap-3 relative overflow-hidden"
                             style={{
                                 background:  isPro
