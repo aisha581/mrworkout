@@ -2,15 +2,17 @@
 
 import { useCircuit } from '@/contexts/CircuitContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useIsPro } from '@/hooks/useIsPro';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Trash2, Play, Database, Plus } from 'lucide-react';
+import { Trash2, Play, Database, Plus, Lock, Crown } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 
 export default function VaultPage() {
     const { theme } = useTheme();
     const { queue, removeFromQueue } = useCircuit();
+    const { isPro } = useIsPro();
     const router = useRouter();
 
     const handleStart = () => {
@@ -128,22 +130,46 @@ export default function VaultPage() {
                         className="mt-6"
                     >
                         <motion.button
-                            whileTap={{ scale: 0.97 }}
-                            onClick={handleStart}
-                            className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm text-black flex items-center justify-center gap-3"
+                            whileTap={{ scale: isPro ? 0.97 : 1 }}
+                            onClick={isPro ? handleStart : () => router.push('/upgrade')}
+                            className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm text-black flex items-center justify-center gap-3 relative overflow-hidden"
                             style={{
-                                background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}cc 100%)`,
-                                boxShadow:   `0 0 40px ${theme.accent}50, 0 8px 32px rgba(0,0,0,0.4)`,
+                                background:  isPro
+                                    ? `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}cc 100%)`
+                                    : 'rgba(255,255,255,0.07)',
+                                boxShadow:   isPro
+                                    ? `0 0 40px ${theme.accent}50, 0 8px 32px rgba(0,0,0,0.4)`
+                                    : 'none',
+                                border:      isPro ? 'none' : '1px solid rgba(255,255,255,0.15)',
+                                color:       isPro ? '#000' : '#fff',
                                 touchAction: 'manipulation',
                             }}
                         >
-                            <Play size={16} fill="currentColor" />
-                            Start Workout · {queue.length} Exercise{queue.length !== 1 ? 's' : ''}
+                            {isPro ? (
+                                <>
+                                    <Play size={16} fill="currentColor" />
+                                    Start Workout · {queue.length} Exercise{queue.length !== 1 ? 's' : ''}
+                                </>
+                            ) : (
+                                <>
+                                    <Lock size={15} />
+                                    Custom Routine — Pro Only
+                                    <Crown size={14} color="#FFD700" style={{ marginLeft: 4 }} />
+                                </>
+                            )}
                         </motion.button>
 
-                        <p className="text-center text-[10px] opacity-20 mt-3 font-medium">
-                            Exercises play in order. Rest between sets.
-                        </p>
+                        {!isPro && (
+                            <p className="text-center text-[10px] opacity-30 mt-2 font-medium">
+                                Start a 7-day free trial to unlock custom circuits.
+                            </p>
+                        )}
+
+                        {isPro && (
+                            <p className="text-center text-[10px] opacity-20 mt-3 font-medium">
+                                Exercises play in order. Rest between sets.
+                            </p>
+                        )}
                     </motion.div>
                 )}
 

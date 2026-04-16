@@ -1,16 +1,19 @@
 import type { Metadata, Viewport } from "next";
 
 export const viewport: Viewport = {
-    viewportFit: 'cover',
-    width: 'device-width',
-    initialScale: 1,
+    viewportFit:   'cover',
+    width:         'device-width',
+    initialScale:  1,
+    themeColor:    '#00E5CC',
 };
+
 import { Inter, Archivo_Black } from "next/font/google";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import "./globals.css";
 import ThemeEffect from "@/components/ThemeEffect";
 import { WorkoutProvider } from "@/contexts/WorkoutContext";
 import { CircuitProvider } from "@/contexts/CircuitContext";
+import NextAuthProvider from "@/components/NextAuthProvider";
 import RestTimer from "@/components/RestTimer";
 import PRCelebration from "@/components/PRCelebration";
 import MusicPlayer from "@/components/MusicPlayer";
@@ -26,8 +29,17 @@ const archivoBlack = Archivo_Black({
 });
 
 export const metadata: Metadata = {
-    title: "Mr. Workout",
-    description: "Savage Fitness Tracking",
+    title:       "Mr. Workout",
+    description: "Savage Fitness Tracking — Build muscle, track PRs, level up.",
+    manifest:    "/manifest.webmanifest",
+    appleWebApp: {
+        capable:         true,
+        statusBarStyle:  "black-translucent",
+        title:           "Mr. Workout",
+    },
+    icons: {
+        apple: "/apple-icon",
+    },
 };
 
 import MobileNav from "@/components/MobileNav";
@@ -52,20 +64,22 @@ export default function RootLayout({
                         `,
                     }}
                 />
-                <ThemeProvider>
-                    <WorkoutProvider>
-                        <CircuitProvider>
-                            <ThemeEffect />
-                            <RestTimer />
-                            <PRCelebration />
-                            <MusicPlayer />
-                            <CircuitPlayer />
-                            {children}
-                            <GlitchOverlay />
-                            <MobileNav />
-                        </CircuitProvider>
-                    </WorkoutProvider>
-                </ThemeProvider>
+                <NextAuthProvider>
+                    <ThemeProvider>
+                        <WorkoutProvider>
+                            <CircuitProvider>
+                                <ThemeEffect />
+                                <RestTimer />
+                                <PRCelebration />
+                                <MusicPlayer />
+                                <CircuitPlayer />
+                                {children}
+                                <GlitchOverlay />
+                                <MobileNav />
+                            </CircuitProvider>
+                        </WorkoutProvider>
+                    </ThemeProvider>
+                </NextAuthProvider>
             </body>
         </html>
     );

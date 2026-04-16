@@ -30,7 +30,8 @@ import {
     type Goal, type UserProfile,
 } from "@/utils/missionGenerator";
 import { getUserStats, getRankInfo, type UserStats } from "@/utils/userStats";
-import { Zap, ChevronDown, Flame, Trophy } from "lucide-react";
+import { useIsPro } from "@/hooks/useIsPro";
+import { Zap, ChevronDown, Flame, Trophy, Lock, Crown } from "lucide-react";
 
 // Canvas cannot be server-rendered — load only on the client
 const MannequinCanvas = dynamic(() => import("@/components/MannequinCanvas"), {
@@ -62,6 +63,9 @@ export default function Home() {
 
     // Persistent user stats (XP, streak)
     const [vitals, setVitals] = useState(() => getUserStats());
+
+    // Pro status
+    const { isPro } = useIsPro();
 
     // ── Library fetch ──────────────────────────────────────────────────────────
     useEffect(() => {
@@ -242,6 +246,32 @@ export default function Home() {
                             </motion.button>
                         )}
                     </div>
+
+                    {/* ── Pro upgrade pill — top-right, only for free users ── */}
+                    {!isPro && (
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.7 }}
+                            className="absolute z-[10]"
+                            style={{ top: '5.5rem', right: 'clamp(1.5rem, 5vw, 7rem)' }}
+                        >
+                            <button
+                                onClick={() => router.push('/upgrade')}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl backdrop-blur-md"
+                                style={{
+                                    background: 'rgba(255,215,0,0.1)',
+                                    border:     '1px solid rgba(255,215,0,0.25)',
+                                    touchAction: 'manipulation',
+                                }}
+                            >
+                                <Crown size={12} color="#FFD700" fill="rgba(255,215,0,0.4)" />
+                                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#FFD700' }}>
+                                    Go Pro
+                                </span>
+                            </button>
+                        </motion.div>
+                    )}
 
                     {/* ── Vitals strip — bottom-left, above scroll indicator ── */}
                     <VitalsStrip vitals={vitals} accentColor={theme.accent} />
