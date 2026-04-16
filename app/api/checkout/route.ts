@@ -6,31 +6,27 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export async function POST(req: NextRequest) {
-    const { email } = await req.json();
+    const { email, plan } = await req.json();
 
     const baseUrl = process.env.NEXTAUTH_URL ?? "https://mrworkout.vercel.app";
 
+    // Select the price based on plan: "monthly" | "annual"
+    const priceId = plan === "annual"
+        ? process.env.STRIPE_ANNUAL_PRICE_ID!
+        : process.env.STRIPE_MONTHLY_PRICE_ID ?? process.env.STRIPE_PRICE_ID!;
+
     try {
         const session = await stripe.checkout.sessions.create({
-            mode:               "subscription",
-            payment_method_types: ["card"],
-
-            // Pre-fill email if user is signed in
+            mode:                  "subscription",
+            payment_method_types:  ["card"],
             ...(email ? { customer_email: email } : {}),
-
-            line_items: [
-                {
-                    price:    process.env.STRIPE_PRICE_ID!,
-                    quantity: 1,
-                },
-            ],
-
+            line_items: [{ price: priceId, quantity: 1 }],
             subscription_data: {
                 trial_period_days: 7,
+                metadata: { plan: plan ?? "monthly" },
             },
-
-            success_url: `${baseUrl}/upgrade/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url:  `${baseUrl}/upgrade`,
+            success_url: `${baseUrl}/prime/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url:  `${baseUrl}/prime`,
         });
 
         return NextResponse.json({ url: session.url });

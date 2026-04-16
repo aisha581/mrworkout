@@ -25,7 +25,6 @@ export const authOptions: NextAuthOptions = {
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) return null;
 
-                // Verify via Supabase Auth
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email:    credentials.email,
                     password: credentials.password,
@@ -54,16 +53,39 @@ export const authOptions: NextAuthOptions = {
 
     callbacks: {
         async jwt({ token, user, account }) {
-            if (user) token.uid = user.id;
+            // ── First sign-in: save to mw_users, detect new user ────────────
+            if (user?.email) {
+                token.uid = user.id;
 
-            // Check subscription status from Supabase
+                // Check if this email already exists in mw_users
+                const { data: existing } = await supabase
+                    .from("mw_users")
+                    .select("id")
+                    .eq("email", user.email)
+                    .maybeSingle();
+
+                token.isNewUser = !existing;
+
+                // Upsert the user record (name + email always kept fresh)
+                await supabase.from("mw_users").upsert(
+                    {
+                        email:    user.email,
+                        name:     user.name ?? "",
+                        provider: account?.provider ?? "credentials",
+                        image:    user.image ?? "",
+                    },
+                    { onConflict: "email" }
+                );
+            }
+
+            // ── Check subscription status (every token refresh) ──────────────
             if (token.email) {
                 try {
                     const { data } = await supabase
                         .from("mw_subscribers")
                         .select("is_pro")
                         .eq("email", token.email)
-                        .single();
+                        .maybeSingle();
                     token.isPro = data?.is_pro ?? false;
                 } catch {
                     token.isPro = false;
@@ -75,8 +97,9 @@ export const authOptions: NextAuthOptions = {
 
         async session({ session, token }) {
             if (session.user) {
-                (session.user as any).uid   = token.uid;
-                (session.user as any).isPro = token.isPro ?? false;
+                (session.user as any).uid       = token.uid;
+                (session.user as any).isPro     = token.isPro     ?? false;
+                (session.user as any).isNewUser = token.isNewUser ?? false;
             }
             return session;
         },

@@ -24,7 +24,7 @@ export default function LoginPage() {
 
     const handleGoogleSignIn = async () => {
         setLoading(true);
-        await signIn("google", { callbackUrl: "/" });
+        await signIn("google", { callbackUrl: "/auth-redirect" });
     };
 
     const handleCredentials = async (e: React.FormEvent) => {
@@ -57,7 +57,7 @@ export default function LoginPage() {
             setError("Invalid email or password.");
             setLoading(false);
         } else {
-            router.replace("/");
+            router.replace("/auth-redirect");
         }
     };
 

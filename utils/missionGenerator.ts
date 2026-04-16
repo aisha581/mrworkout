@@ -1,12 +1,16 @@
 import type { LiveExercise } from '@/app/library/page';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-export type Goal      = 'MASS' | 'SHRED' | 'POWER';
-export type FocusArea = 'UPPER' | 'LOWER' | 'FULL';
+export type Goal            = 'MASS' | 'SHRED' | 'POWER';
+export type FocusArea       = 'UPPER' | 'LOWER' | 'FULL';
+export type ExperienceLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+export type WeeklySchedule  = '3x' | '5x' | 'daily';
 
 export interface UserProfile {
-    goal:      Goal;
-    focusArea: FocusArea;
+    goal:             Goal;
+    focusArea:        FocusArea;
+    level?:           ExperienceLevel;
+    weeklySchedule?:  WeeklySchedule;
 }
 
 // ── localStorage helpers ──────────────────────────────────────────────────────
