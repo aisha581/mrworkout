@@ -7,6 +7,7 @@ import { getTimeUntilNextChallenge } from '@/utils/dailyChallenge';
 import { GOAL_LABELS, GOAL_MESSAGES, type Goal } from '@/utils/missionGenerator';
 import type { LiveExercise } from '@/app/library/page';
 import { useState, useEffect } from 'react';
+import { hapticHeavy } from '@/utils/haptic';
 
 interface MissionDrawerProps {
     isOpen:           boolean;
@@ -34,6 +35,7 @@ export default function MissionDrawer({
     }, [isOpen]);
 
     const handleStart = () => {
+        hapticHeavy();
         onClose();
         setTimeout(onStartMission, 180);
     };

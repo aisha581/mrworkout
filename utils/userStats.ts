@@ -75,6 +75,37 @@ export function getUserStats(): UserStats {
     }
 }
 
+/**
+ * recordDailyVisit — call on every app open.
+ * Increments streak if the user visited yesterday, resets if they missed a day.
+ * No-ops if they already have an activity logged today.
+ */
+export function recordDailyVisit(): UserStats {
+    if (typeof window === 'undefined') return getUserStats();
+    const stats = getUserStats();
+    const today = todayISO();
+
+    // Already recorded activity today — nothing to change
+    if (stats.lastWorkoutDate === today) return stats;
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayISO = yesterday.toISOString().split('T')[0];
+
+    const newStreak = stats.lastWorkoutDate === yesterdayISO
+        ? stats.currentStreak + 1
+        : 1;
+
+    const updated: UserStats = {
+        ...stats,
+        currentStreak:   newStreak,
+        lastWorkoutDate: today,
+    };
+
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(updated)); } catch {}
+    return updated;
+}
+
 export function incrementWorkoutStats(xpGained = XP_PER_WORKOUT): UserStats {
     if (typeof window === 'undefined') {
         return { totalWorkouts: 0, totalXP: 0, currentStreak: 0, lastWorkoutDate: null };

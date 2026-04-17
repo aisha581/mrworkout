@@ -29,8 +29,11 @@ import {
     loadProfile, generateDailyMission,
     type Goal, type UserProfile,
 } from "@/utils/missionGenerator";
-import { getUserStats, getRankInfo, type UserStats } from "@/utils/userStats";
+import { getUserStats, getRankInfo, recordDailyVisit, type UserStats } from "@/utils/userStats";
 import { useIsPro } from "@/hooks/useIsPro";
+import { hapticMedium, hapticLight } from "@/utils/haptic";
+import BiometricScan, { shouldShowScan } from "@/components/BiometricScan";
+import XPBar from "@/components/XPBar";
 import { Zap, ChevronDown, Flame, Trophy, Lock, Crown } from "lucide-react";
 
 // Canvas cannot be server-rendered — load only on the client
@@ -63,6 +66,9 @@ export default function Home() {
 
     // Persistent user stats (XP, streak)
     const [vitals, setVitals] = useState(() => getUserStats());
+
+    // Biometric scan overlay (first-visit only)
+    const [showScan, setShowScan] = useState(false);
 
     // Pro status
     const { isPro } = useIsPro();
@@ -104,8 +110,12 @@ export default function Home() {
         }
     }, [profile, allExercises]);
 
-    // ── Refresh vitals after hydration ────────────────────────────────────────
-    useEffect(() => { setVitals(getUserStats()); }, []);
+    // ── Refresh vitals, record daily visit, check scan flag ──────────────────
+    useEffect(() => {
+        const updated = recordDailyVisit();
+        setVitals(updated);
+        setShowScan(shouldShowScan());
+    }, []);
 
     // ── Last exercise from localStorage ───────────────────────────────────────
     useEffect(() => {
@@ -232,7 +242,7 @@ export default function Home() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.5, type: 'spring', stiffness: 180, damping: 22 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => setQuickStartOpen(true)}
+                                onClick={() => { hapticMedium(); setQuickStartOpen(true); }}
                                 className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest"
                                 style={{
                                     background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}bb 100%)`,
@@ -419,7 +429,19 @@ export default function Home() {
                     }}
                 />
 
+                {/* Biometric scan — first visit only */}
+                {showScan && (
+                    <BiometricScan
+                        accentColor={theme.accent}
+                        onComplete={() => setShowScan(false)}
+                    />
+                )}
+
             </motion.main>
+
+            {/* XP progress bar — fixed to screen bottom */}
+            <XPBar xp={vitals.totalXP} accentColor={theme.accent} />
+
         </AnimatePresence>
     );
 }
