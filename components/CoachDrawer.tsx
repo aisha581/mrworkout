@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Zap, Volume2, Loader2 } from "lucide-react";
-import { hapticLight, hapticMedium } from "@/utils/haptic";
+import { X, Send, Volume2, Loader2, Crown, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { hapticLight, hapticMedium, hapticHeavy } from "@/utils/haptic";
 import { loadProfile } from "@/utils/missionGenerator";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -85,14 +86,79 @@ function Bubble({
     );
 }
 
+// ── Upgrade gate ─────────────────────────────────────────────────────────────
+function UpgradeGate({ accent, onClose, onUpgrade }: {
+    accent: string; onClose: () => void; onUpgrade: () => void;
+}) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center px-8 text-center rounded-[26px] overflow-hidden"
+            style={{ background: "#0b0b0b" }}
+        >
+            <div
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: "radial-gradient(ellipse 70% 50% at 50% 40%, rgba(255,215,0,0.06) 0%, transparent 65%)" }}
+            />
+            <motion.div
+                animate={{ rotate: [0, -6, 6, -3, 3, 0] }}
+                transition={{ delay: 0.3, duration: 0.6 }}
+                className="relative z-10 w-20 h-20 rounded-[24px] flex items-center justify-center mb-5"
+                style={{
+                    background: "linear-gradient(135deg, rgba(255,215,0,0.14), rgba(255,165,0,0.06))",
+                    border:     "1px solid rgba(255,215,0,0.3)",
+                    boxShadow:  "0 0 50px rgba(255,215,0,0.18)",
+                }}
+            >
+                <Crown size={38} color="#FFD700" fill="rgba(255,215,0,0.3)" />
+            </motion.div>
+            <p className="relative z-10 text-[9px] font-black uppercase tracking-[0.55em] opacity-30 mb-2">
+                Daily limit reached
+            </p>
+            <h2
+                className="relative z-10 text-3xl font-black uppercase leading-tight mb-3"
+                style={{ fontFamily: "var(--font-archivo-black), sans-serif", letterSpacing: "-0.03em" }}
+            >
+                3 free messages<br />
+                <span style={{ color: "#FFD700" }}>used up</span>
+            </h2>
+            <p className="relative z-10 text-sm opacity-40 font-medium leading-relaxed mb-7 max-w-[240px]">
+                Upgrade to Savage Pro for unlimited access to Gym — every day, no limits.
+            </p>
+            <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={onUpgrade}
+                className="relative z-10 w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm text-black flex items-center justify-center gap-2.5"
+                style={{
+                    background:  "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+                    boxShadow:   "0 0 35px rgba(255,215,0,0.35)",
+                    touchAction: "manipulation",
+                }}
+            >
+                <Zap size={15} fill="currentColor" /> Unlock Savage Pro
+            </motion.button>
+            <button
+                onClick={onClose}
+                className="relative z-10 mt-4 text-xs opacity-25 hover:opacity-50 transition-opacity font-medium"
+            >
+                Maybe later
+            </button>
+        </motion.div>
+    );
+}
+
 // ── Main drawer ───────────────────────────────────────────────────────────────
 export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
+    const router = useRouter();
     const [messages,      setMessages]      = useState<Message[]>([]);
     const [input,         setInput]         = useState("");
     const [streaming,     setStreaming]      = useState(false);
     const [briefLoading,  setBriefLoading]  = useState(false);
     const [briefText,     setBriefText]     = useState<string | null>(null);
     const [noKey,         setNoKey]         = useState(false);
+    const [rateLimited,   setRateLimited]   = useState(false);
+    const [needsLogin,    setNeedsLogin]    = useState(false);
     const scrollRef  = useRef<HTMLDivElement>(null);
     const inputRef   = useRef<HTMLInputElement>(null);
     const abortRef   = useRef<AbortController | null>(null);
@@ -139,6 +205,8 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
         hapticMedium();
         setInput("");
         setNoKey(false);
+        setRateLimited(false);
+        setNeedsLogin(false);
 
         const history: Message[] = [...messages, { role: "user", content }];
         setMessages([...history, { role: "assistant", content: "" }]);
@@ -158,8 +226,25 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
             });
 
             if (!res.ok) {
-                const { error } = await res.json().catch(() => ({ error: "Request failed" }));
+                const body = await res.json().catch(() => ({ error: "server_error", message: "Request failed" }));
+                // Rate limit → show upgrade gate
+                if (res.status === 429) {
+                    hapticHeavy();
+                    setRateLimited(true);
+                    // Remove the empty assistant bubble
+                    setMessages(prev => prev.slice(0, -1));
+                    setStreaming(false);
+                    return;
+                }
+                // Not authenticated
+                if (res.status === 401) {
+                    setNeedsLogin(true);
+                    setMessages(prev => prev.slice(0, -1));
+                    setStreaming(false);
+                    return;
+                }
                 if (res.status === 503) setNoKey(true);
+                const { error } = body;
                 setMessages(prev => {
                     const copy = [...prev];
                     copy[copy.length - 1] = { role: "assistant", content: error ?? "Something went wrong." };
@@ -271,6 +356,21 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
                         dragElastic={{ top: 0, bottom: 0.35 }}
                         onDragEnd={(_, i) => { if (i.offset.y > 90) onClose(); }}
                     >
+                        {/* ── Rate limit gate (overlays entire drawer) ── */}
+                        <AnimatePresence>
+                            {rateLimited && (
+                                <UpgradeGate
+                                    accent={accent}
+                                    onClose={() => { setRateLimited(false); onClose(); }}
+                                    onUpgrade={() => {
+                                        hapticHeavy();
+                                        onClose();
+                                        router.push("/join");
+                                    }}
+                                />
+                            )}
+                        </AnimatePresence>
+
                         {/* Drag pill */}
                         <div className="flex justify-center pt-3 shrink-0">
                             <div className="w-9 h-[3px] rounded-full bg-white/15" />
@@ -353,7 +453,31 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
                                     style={{ background: "rgba(255,60,60,0.07)", border: "1px solid rgba(255,60,60,0.18)" }}
                                 >
                                     <p className="text-[11px] font-bold text-red-400">
-                                        Add OPENAI_API_KEY or ANTHROPIC_API_KEY to your Vercel environment to enable Gym.
+                                        Add OPENAI_API_KEY or ANTHROPIC_API_KEY to Vercel environment variables to enable Gym.
+                                    </p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Needs login */}
+                        <AnimatePresence>
+                            {needsLogin && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="mx-4 mt-3 px-4 py-3 rounded-2xl shrink-0 flex items-center gap-3"
+                                    style={{ background: "rgba(255,215,0,0.06)", border: "1px solid rgba(255,215,0,0.2)" }}
+                                >
+                                    <Crown size={14} color="#FFD700" className="shrink-0" />
+                                    <p className="text-[11px] font-bold" style={{ color: "#FFD700" }}>
+                                        Log in to chat with Gym.{" "}
+                                        <button
+                                            onClick={() => { onClose(); router.push("/login"); }}
+                                            className="underline"
+                                        >
+                                            Sign in →
+                                        </button>
                                     </p>
                                 </motion.div>
                             )}
