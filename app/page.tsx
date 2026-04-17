@@ -34,7 +34,9 @@ import { useIsPro } from "@/hooks/useIsPro";
 import { hapticMedium, hapticLight } from "@/utils/haptic";
 import BiometricScan, { shouldShowScan } from "@/components/BiometricScan";
 import XPBar from "@/components/XPBar";
-import { Zap, ChevronDown, Flame, Trophy, Lock, Crown } from "lucide-react";
+import CoachDrawer from "@/components/CoachDrawer";
+import { playBriefing } from "@/utils/audio";
+import { Zap, ChevronDown, Flame, Trophy, Lock, Crown, Volume2, Loader2, MessageCircle } from "lucide-react";
 
 // Canvas cannot be server-rendered — load only on the client
 const MannequinCanvas = dynamic(() => import("@/components/MannequinCanvas"), {
@@ -68,7 +70,11 @@ export default function Home() {
     const [vitals, setVitals] = useState(() => getUserStats());
 
     // Biometric scan overlay (first-visit only)
-    const [showScan, setShowScan] = useState(false);
+    const [showScan,    setShowScan]    = useState(false);
+    // Coach drawer
+    const [coachOpen,   setCoachOpen]   = useState(false);
+    // Daily briefing button state
+    const [briefPlaying, setBriefPlaying] = useState(false);
 
     // Pro status
     const { isPro } = useIsPro();
@@ -229,32 +235,79 @@ export default function Home() {
 
                     {/* ── Bottom FABs ─────────────────────────────────────── */}
                     <div
-                        className="absolute inset-x-0 z-[10] flex items-end justify-end"
+                        className="absolute inset-x-0 z-[10] flex items-end justify-between"
                         style={{
                             bottom:  'calc(max(env(safe-area-inset-bottom, 0px), 20px) + 3.5rem)',
                             padding: '0 clamp(1.5rem, 5vw, 7rem)',
                         }}
                     >
-                        {/* Quick Start — only visible when a last exercise exists */}
-                        {lastExercise && (
+                        {/* Hear Today's Mission */}
+                        <motion.button
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4, type: 'spring', stiffness: 180, damping: 22 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={async () => {
+                                if (briefPlaying) return;
+                                hapticMedium();
+                                setBriefPlaying(true);
+                                try { await playBriefing(); } catch {}
+                                setBriefPlaying(false);
+                            }}
+                            disabled={briefPlaying}
+                            className="flex items-center gap-2 px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest backdrop-blur-md disabled:opacity-50"
+                            style={{
+                                background:  'rgba(255,255,255,0.07)',
+                                border:      '1px solid rgba(255,255,255,0.1)',
+                                touchAction: 'manipulation',
+                            }}
+                        >
+                            {briefPlaying
+                                ? <Loader2 size={14} className="animate-spin" />
+                                : <Volume2 size={14} />
+                            }
+                            {briefPlaying ? 'Loading…' : "Today's Mission"}
+                        </motion.button>
+
+                        {/* Right cluster: Quick Start + Coach */}
+                        <div className="flex items-center gap-3">
+                            {lastExercise && (
+                                <motion.button
+                                    initial={{ opacity: 0, y: 24 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.5, type: 'spring', stiffness: 180, damping: 22 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => { hapticMedium(); setQuickStartOpen(true); }}
+                                    className="flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest"
+                                    style={{
+                                        background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}bb 100%)`,
+                                        color:       '#000',
+                                        boxShadow:   `0 0 28px ${theme.accent}50, 0 8px 32px rgba(0,0,0,0.45)`,
+                                        touchAction: 'manipulation',
+                                    }}
+                                >
+                                    <Zap size={14} fill="currentColor" />
+                                    Quick Start
+                                </motion.button>
+                            )}
+
+                            {/* Coach button */}
                             <motion.button
                                 initial={{ opacity: 0, y: 24 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5, type: 'spring', stiffness: 180, damping: 22 }}
+                                transition={{ delay: 0.6, type: 'spring', stiffness: 180, damping: 22 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => { hapticMedium(); setQuickStartOpen(true); }}
-                                className="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest"
+                                onClick={() => { hapticMedium(); setCoachOpen(true); }}
+                                className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-black"
                                 style={{
                                     background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}bb 100%)`,
-                                    color:       '#000',
-                                    boxShadow:   `0 0 28px ${theme.accent}50, 0 8px 32px rgba(0,0,0,0.45)`,
+                                    boxShadow:   `0 0 24px ${theme.accent}60`,
                                     touchAction: 'manipulation',
                                 }}
                             >
-                                <Zap size={14} fill="currentColor" />
-                                Quick Start
+                                <MessageCircle size={18} fill="currentColor" />
                             </motion.button>
-                        )}
+                        </div>
                     </div>
 
                     {/* ── Pro upgrade pill — top-right, only for free users ── */}
@@ -436,6 +489,13 @@ export default function Home() {
                         onComplete={() => setShowScan(false)}
                     />
                 )}
+
+                {/* Coach drawer */}
+                <CoachDrawer
+                    isOpen={coachOpen}
+                    onClose={() => setCoachOpen(false)}
+                    accent={theme.accent}
+                />
 
             </motion.main>
 
