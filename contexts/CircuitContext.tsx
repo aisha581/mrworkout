@@ -121,6 +121,8 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
         setIsCircuitActive(true);
         setIsComplete(false);
         setTotalTime(0);
+        // Trigger "Mission Initialized" audio via AudioManager
+        try { window.dispatchEvent(new CustomEvent("mw:mission-start")); } catch {}
     };
 
     const stopCircuit = () => {

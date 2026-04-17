@@ -2,11 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    X, Send, Zap, Mic, MicOff, Volume2, Loader2, ChevronDown,
-} from "lucide-react";
+import { X, Send, Zap, Volume2, Loader2 } from "lucide-react";
 import { hapticLight, hapticMedium } from "@/utils/haptic";
-import { playBriefing, stopAudio } from "@/utils/audio";
+import { loadProfile } from "@/utils/missionGenerator";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Message {
@@ -20,68 +18,65 @@ interface Props {
     accent:  string;
 }
 
-// ── Suggested prompts ─────────────────────────────────────────────────────────
+// ── Quick prompts ─────────────────────────────────────────────────────────────
 const QUICK_PROMPTS = [
     "What's today's mission?",
-    "How do I progress on muscle-ups?",
-    "Best moves for shredding fast?",
-    "I'm sore — should I train?",
+    "How do I progress muscle-ups?",
+    "Fix my plateau on push press",
+    "I'm sore — train or rest?",
 ];
 
-// ── Coach avatar ──────────────────────────────────────────────────────────────
-function CoachAvatar({ accent, size = 36 }: { accent: string; size?: number }) {
+// ── Gym avatar ────────────────────────────────────────────────────────────────
+function GymAvatar({ accent, size = 36 }: { accent: string; size?: number }) {
     return (
         <div
-            className="flex items-center justify-center rounded-xl shrink-0 font-black text-black"
+            className="flex items-center justify-center rounded-xl shrink-0 font-black text-black select-none"
             style={{
                 width:      size,
                 height:     size,
-                background: `linear-gradient(135deg, ${accent} 0%, ${accent}bb 100%)`,
-                fontSize:   size * 0.38,
-                boxShadow:  `0 0 16px ${accent}50`,
+                background: `linear-gradient(135deg, ${accent} 0%, ${accent}99 100%)`,
+                fontSize:   size * 0.36,
+                boxShadow:  `0 0 18px ${accent}55`,
+                fontFamily: "var(--font-archivo-black), sans-serif",
             }}
         >
-            C
+            G
         </div>
     );
 }
 
 // ── Message bubble ────────────────────────────────────────────────────────────
 function Bubble({
-    msg, accent, streaming,
-}: {
-    msg: Message; accent: string; streaming?: boolean;
-}) {
-    const isCoach = msg.role === "assistant";
+    msg, accent, isStreaming,
+}: { msg: Message; accent: string; isStreaming?: boolean }) {
+    const isGym = msg.role === "assistant";
     return (
         <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.22 }}
-            className={`flex gap-3 ${isCoach ? "items-start" : "items-end justify-end"}`}
+            transition={{ duration: 0.2 }}
+            className={`flex gap-2.5 ${isGym ? "items-start" : "items-end justify-end"}`}
         >
-            {isCoach && <CoachAvatar accent={accent} size={30} />}
-
+            {isGym && <GymAvatar accent={accent} size={28} />}
             <div
-                className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm font-medium leading-relaxed ${
-                    isCoach ? "rounded-tl-sm" : "rounded-br-sm"
+                className={`max-w-[84%] px-4 py-3 text-sm font-medium leading-relaxed rounded-2xl ${
+                    isGym ? "rounded-tl-sm" : "rounded-br-sm"
                 }`}
                 style={{
-                    background: isCoach
-                        ? "rgba(255,255,255,0.06)"
-                        : `linear-gradient(135deg, ${accent}22, ${accent}18)`,
-                    border: isCoach
+                    background: isGym
+                        ? "rgba(255,255,255,0.055)"
+                        : `linear-gradient(135deg, ${accent}22, ${accent}15)`,
+                    border: isGym
                         ? "1px solid rgba(255,255,255,0.07)"
-                        : `1px solid ${accent}35`,
-                    color: "#fff",
+                        : `1px solid ${accent}30`,
                 }}
             >
                 <span style={{ whiteSpace: "pre-wrap" }}>{msg.content}</span>
-                {streaming && (
+                {isStreaming && (
                     <motion.span
                         animate={{ opacity: [1, 0, 1] }}
-                        transition={{ duration: 0.8, repeat: Infinity }}
-                        className="inline-block w-1.5 h-4 ml-1 rounded-sm align-middle"
+                        transition={{ duration: 0.75, repeat: Infinity }}
+                        className="inline-block w-[5px] h-[14px] ml-1 rounded-sm align-middle"
                         style={{ background: accent }}
                     />
                 )}
@@ -92,29 +87,31 @@ function Bubble({
 
 // ── Main drawer ───────────────────────────────────────────────────────────────
 export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
-    const [messages,   setMessages]   = useState<Message[]>([]);
-    const [input,      setInput]      = useState("");
-    const [streaming,  setStreaming]  = useState(false);
-    const [briefing,   setBriefing]   = useState(false);
-    const [briefText,  setBriefText]  = useState<string | null>(null);
-    const [noKey,      setNoKey]      = useState(false);
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const inputRef  = useRef<HTMLInputElement>(null);
-    const abortRef  = useRef<AbortController | null>(null);
+    const [messages,      setMessages]      = useState<Message[]>([]);
+    const [input,         setInput]         = useState("");
+    const [streaming,     setStreaming]      = useState(false);
+    const [briefLoading,  setBriefLoading]  = useState(false);
+    const [briefText,     setBriefText]     = useState<string | null>(null);
+    const [noKey,         setNoKey]         = useState(false);
+    const scrollRef  = useRef<HTMLDivElement>(null);
+    const inputRef   = useRef<HTMLInputElement>(null);
+    const abortRef   = useRef<AbortController | null>(null);
+    const audioRef   = useRef<HTMLAudioElement | null>(null);
 
-    // Auto-scroll on new messages
+    // Auto-scroll
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [messages, streaming]);
+    }, [messages]);
 
-    // Focus input on open
+    // Focus on open, stop audio on close
     useEffect(() => {
         if (isOpen) {
-            setTimeout(() => inputRef.current?.focus(), 350);
+            setTimeout(() => inputRef.current?.focus(), 340);
         } else {
-            stopAudio();
+            audioRef.current?.pause();
+            abortRef.current?.abort();
         }
     }, [isOpen]);
 
@@ -123,50 +120,49 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
         if (isOpen && messages.length === 0) {
             setMessages([{
                 role:    "assistant",
-                content: "Savage. I'm The Coach.\n\nAsk me anything — programming, movement breakdowns, recovery, nutrition. I know all 89 Antigravity maneuvers and I'll tell you exactly what you need to hear.\n\nWhat do you need?",
+                content: "Gym here.\n\nI know every one of the 89 Antigravity maneuvers. Ask me about programming, technique, nutrition, or recovery — I'll give you the truth, not comfort.\n\nWhat do you need?",
             }]);
         }
     }, [isOpen, messages.length]);
 
-    const sendMessage = useCallback(async (text?: string) => {
+    const getProfileHeader = () => {
+        try {
+            const p = loadProfile();
+            if (!p) return "";
+            return encodeURIComponent(JSON.stringify({ goal: p.goal, focus: p.focusArea, level: p.level }));
+        } catch { return ""; }
+    };
+
+    const send = useCallback(async (text?: string) => {
         const content = (text ?? input).trim();
         if (!content || streaming) return;
-
         hapticMedium();
         setInput("");
         setNoKey(false);
 
-        const newMessages: Message[] = [
-            ...messages,
-            { role: "user", content },
-        ];
-        setMessages(newMessages);
+        const history: Message[] = [...messages, { role: "user", content }];
+        setMessages([...history, { role: "assistant", content: "" }]);
         setStreaming(true);
-
-        // Add empty assistant bubble that we'll fill in
-        setMessages(prev => [...prev, { role: "assistant", content: "" }]);
 
         abortRef.current = new AbortController();
 
         try {
-            const res = await fetch("/api/coach/chat", {
+            const res = await fetch("/api/chat", {
                 method:  "POST",
-                headers: { "Content-Type": "application/json" },
-                body:    JSON.stringify({
-                    messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-                }),
+                headers: {
+                    "Content-Type":    "application/json",
+                    "x-user-profile":  getProfileHeader(),
+                },
+                body:   JSON.stringify({ messages: history }),
                 signal: abortRef.current.signal,
             });
 
             if (!res.ok) {
-                const { error } = await res.json();
+                const { error } = await res.json().catch(() => ({ error: "Request failed" }));
                 if (res.status === 503) setNoKey(true);
                 setMessages(prev => {
                     const copy = [...prev];
-                    copy[copy.length - 1] = {
-                        role:    "assistant",
-                        content: error ?? "Something went wrong. Try again.",
-                    };
+                    copy[copy.length - 1] = { role: "assistant", content: error ?? "Something went wrong." };
                     return copy;
                 });
                 setStreaming(false);
@@ -175,37 +171,27 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
 
             const reader  = res.body!.getReader();
             const decoder = new TextDecoder();
-            let   buffer  = "";
+            let   buf     = "";
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split("\n");
-                buffer = lines.pop() ?? "";
+                buf += decoder.decode(value, { stream: true });
+                const lines = buf.split("\n");
+                buf = lines.pop() ?? "";
 
                 for (const line of lines) {
                     if (!line.startsWith("data: ")) continue;
-                    const payload = line.slice(6).trim();
-                    if (payload === "[DONE]") break;
+                    const raw = line.slice(6).trim();
+                    if (raw === "[DONE]") continue;
                     try {
-                        const { text: chunk, error } = JSON.parse(payload);
-                        if (error) {
-                            setMessages(prev => {
-                                const copy = [...prev];
-                                copy[copy.length - 1] = { role: "assistant", content: error };
-                                return copy;
-                            });
-                            break;
-                        }
+                        const { text: chunk } = JSON.parse(raw);
                         if (chunk) {
                             setMessages(prev => {
                                 const copy = [...prev];
-                                const last = copy[copy.length - 1];
                                 copy[copy.length - 1] = {
-                                    ...last,
-                                    content: last.content + chunk,
+                                    ...copy[copy.length - 1],
+                                    content: copy[copy.length - 1].content + chunk,
                                 };
                                 return copy;
                             });
@@ -217,10 +203,7 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
             if (err.name !== "AbortError") {
                 setMessages(prev => {
                     const copy = [...prev];
-                    copy[copy.length - 1] = {
-                        role:    "assistant",
-                        content: "Connection interrupted. Try again.",
-                    };
+                    copy[copy.length - 1] = { role: "assistant", content: "Connection interrupted." };
                     return copy;
                 });
             }
@@ -229,15 +212,33 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
         }
     }, [input, messages, streaming]);
 
-    const handleBriefing = async () => {
+    // Daily briefing: generate text then TTS
+    const handleBrief = async () => {
         hapticMedium();
-        setBriefing(true);
+        setBriefLoading(true);
         setBriefText(null);
+        audioRef.current?.pause();
         try {
-            const result = await playBriefing();
-            if (result.text) setBriefText(result.text);
+            // Generate briefing text via /api/coach/brief (reuses existing endpoint)
+            const res = await fetch("/api/coach/brief");
+            const ct  = res.headers.get("content-type") ?? "";
+
+            if (ct.includes("application/json")) {
+                const { text } = await res.json();
+                if (text) setBriefText(text);
+            } else {
+                // Audio blob from ElevenLabs
+                const blob = await res.blob();
+                const url  = URL.createObjectURL(blob);
+                const text = decodeURIComponent(res.headers.get("x-brief-text") ?? "");
+                if (text) setBriefText(text);
+                const audio = new Audio(url);
+                audioRef.current = audio;
+                audio.play().catch(() => {});
+                audio.onended = () => URL.revokeObjectURL(url);
+            }
         } catch {}
-        setBriefing(false);
+        setBriefLoading(false);
     };
 
     return (
@@ -246,121 +247,113 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
                 <>
                     {/* Backdrop */}
                     <motion.div
-                        className="fixed inset-0 z-[600] bg-black/50 backdrop-blur-[4px]"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[600] bg-black/55 backdrop-blur-[4px]"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         onClick={onClose}
                     />
 
-                    {/* Sheet */}
+                    {/* Drawer */}
                     <motion.div
                         className="fixed bottom-0 left-0 right-0 z-[610] flex flex-col"
                         style={{
-                            height:          "88dvh",
-                            background:      "#0c0c0c",
-                            borderRadius:    "28px 28px 0 0",
-                            border:          "1px solid rgba(255,255,255,0.07)",
-                            borderBottom:    "none",
+                            height:       "88dvh",
+                            background:   "#0b0b0b",
+                            borderRadius: "26px 26px 0 0",
+                            border:       "1px solid rgba(255,255,255,0.07)",
+                            borderBottom: "none",
                         }}
                         initial={{ y: "100%" }}
                         animate={{ y: 0 }}
                         exit={{ y: "100%" }}
-                        transition={{ type: "spring", stiffness: 300, damping: 36 }}
+                        transition={{ type: "spring", stiffness: 320, damping: 38 }}
+                        drag="y"
+                        dragConstraints={{ top: 0 }}
+                        dragElastic={{ top: 0, bottom: 0.35 }}
+                        onDragEnd={(_, i) => { if (i.offset.y > 90) onClose(); }}
                     >
                         {/* Drag pill */}
-                        <div className="flex justify-center pt-3 pb-1 shrink-0">
-                            <div className="w-10 h-1 rounded-full bg-white/15" />
+                        <div className="flex justify-center pt-3 shrink-0">
+                            <div className="w-9 h-[3px] rounded-full bg-white/15" />
                         </div>
 
-                        {/* Header */}
+                        {/* ── Header ── */}
                         <div
-                            className="flex items-center gap-3 px-5 py-4 shrink-0"
+                            className="flex items-center gap-3 px-5 py-3.5 shrink-0"
                             style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
                         >
-                            <CoachAvatar accent={accent} size={40} />
+                            <GymAvatar accent={accent} size={42} />
                             <div className="flex-1 min-w-0">
-                                <p className="text-[10px] font-black uppercase tracking-[0.45em] opacity-30">
-                                    Mr. Workout
+                                <p className="text-[9px] font-black uppercase tracking-[0.55em] opacity-25">
+                                    Mr. Workout AI
                                 </p>
                                 <h2
-                                    className="text-lg font-black uppercase leading-tight"
-                                    style={{ fontFamily: "var(--font-archivo-black), sans-serif", letterSpacing: "-0.02em" }}
+                                    className="text-xl font-black uppercase tracking-tight leading-none"
+                                    style={{ fontFamily: "var(--font-archivo-black), sans-serif" }}
                                 >
-                                    The Coach
+                                    GYM
                                 </h2>
+                                <p className="text-[10px] opacity-30 font-medium mt-0.5">
+                                    Your savage personal trainer
+                                </p>
                             </div>
 
-                            {/* Daily briefing button */}
+                            {/* Brief button */}
                             <motion.button
                                 whileTap={{ scale: 0.93 }}
-                                onClick={handleBriefing}
-                                disabled={briefing}
-                                className="flex items-center gap-2 px-3.5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest text-black disabled:opacity-50"
+                                onClick={handleBrief}
+                                disabled={briefLoading}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-40"
                                 style={{
-                                    background:  briefing
-                                        ? "rgba(255,255,255,0.1)"
-                                        : `linear-gradient(135deg, ${accent}, ${accent}cc)`,
-                                    color:       briefing ? "#fff" : "#000",
+                                    background:  `${accent}18`,
+                                    border:      `1px solid ${accent}35`,
+                                    color:       accent,
                                     touchAction: "manipulation",
                                 }}
                             >
-                                {briefing
-                                    ? <Loader2 size={12} className="animate-spin" />
-                                    : <Volume2 size={12} />
-                                }
-                                {briefing ? "Loading…" : "Brief"}
+                                {briefLoading ? <Loader2 size={11} className="animate-spin" /> : <Volume2 size={11} />}
+                                {briefLoading ? "…" : "Brief"}
                             </motion.button>
 
                             <button
                                 onClick={() => { hapticLight(); onClose(); }}
-                                className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.06] active:scale-90 transition-transform"
+                                className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.06] active:scale-90 transition-transform ml-1"
                             >
-                                <X size={16} className="opacity-50" />
+                                <X size={15} className="opacity-45" />
                             </button>
                         </div>
 
-                        {/* Brief text banner */}
+                        {/* Brief text */}
                         <AnimatePresence>
                             {briefText && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: "auto" }}
                                     exit={{ opacity: 0, height: 0 }}
-                                    className="px-5 py-3 shrink-0"
-                                    style={{
-                                        background:   `${accent}0f`,
-                                        borderBottom: `1px solid ${accent}20`,
-                                    }}
+                                    className="px-5 py-3 relative shrink-0"
+                                    style={{ background: `${accent}0d`, borderBottom: `1px solid ${accent}20` }}
                                 >
-                                    <p className="text-xs font-medium opacity-80 leading-relaxed italic">
+                                    <p className="text-[11px] font-medium opacity-75 leading-relaxed italic pr-6">
                                         "{briefText}"
                                     </p>
-                                    <button
-                                        onClick={() => setBriefText(null)}
-                                        className="absolute right-5 top-3 opacity-30"
-                                    >
-                                        <X size={12} />
+                                    <button onClick={() => setBriefText(null)} className="absolute top-3 right-5 opacity-25 hover:opacity-60">
+                                        <X size={11} />
                                     </button>
                                 </motion.div>
                             )}
                         </AnimatePresence>
 
-                        {/* No API key warning */}
+                        {/* No API key */}
                         <AnimatePresence>
                             {noKey && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: "auto" }}
                                     exit={{ opacity: 0, height: 0 }}
-                                    className="mx-5 mt-3 px-4 py-3 rounded-2xl shrink-0"
-                                    style={{
-                                        background: "rgba(255,80,80,0.08)",
-                                        border:     "1px solid rgba(255,80,80,0.2)",
-                                    }}
+                                    className="mx-4 mt-3 px-4 py-3 rounded-2xl shrink-0"
+                                    style={{ background: "rgba(255,60,60,0.07)", border: "1px solid rgba(255,60,60,0.18)" }}
                                 >
-                                    <p className="text-xs font-bold text-red-400">
-                                        ANTHROPIC_API_KEY not set. Add it to your Vercel environment variables to enable The Coach.
+                                    <p className="text-[11px] font-bold text-red-400">
+                                        Add OPENAI_API_KEY or ANTHROPIC_API_KEY to your Vercel environment to enable Gym.
                                     </p>
                                 </motion.div>
                             )}
@@ -369,30 +362,30 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
                         {/* Messages */}
                         <div
                             ref={scrollRef}
-                            className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4 overscroll-contain"
+                            className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3.5 overscroll-contain"
                         >
                             {messages.map((msg, i) => (
                                 <Bubble
                                     key={i}
                                     msg={msg}
                                     accent={accent}
-                                    streaming={streaming && i === messages.length - 1 && msg.role === "assistant"}
+                                    isStreaming={streaming && i === messages.length - 1 && msg.role === "assistant"}
                                 />
                             ))}
                         </div>
 
-                        {/* Quick prompts (only before user sends anything) */}
+                        {/* Quick prompts */}
                         {messages.length <= 1 && (
-                            <div className="px-5 pb-2 shrink-0">
-                                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                            <div className="px-4 pb-2 shrink-0 overflow-x-auto">
+                                <div className="flex gap-2 pb-1">
                                     {QUICK_PROMPTS.map(p => (
                                         <button
                                             key={p}
-                                            onClick={() => { hapticLight(); sendMessage(p); }}
-                                            className="shrink-0 px-3.5 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap"
+                                            onClick={() => { hapticLight(); send(p); }}
+                                            className="shrink-0 px-3 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap"
                                             style={{
                                                 background:  "rgba(255,255,255,0.05)",
-                                                border:      "1px solid rgba(255,255,255,0.09)",
+                                                border:      "1px solid rgba(255,255,255,0.08)",
                                                 touchAction: "manipulation",
                                             }}
                                         >
@@ -403,17 +396,20 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
                             </div>
                         )}
 
-                        {/* Input bar */}
+                        {/* Input */}
                         <div
-                            className="px-4 pb-[max(env(safe-area-inset-bottom,0px),16px)] pt-3 shrink-0"
-                            style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+                            className="px-4 pt-2.5 shrink-0"
+                            style={{
+                                borderTop:     "1px solid rgba(255,255,255,0.05)",
+                                paddingBottom: "max(env(safe-area-inset-bottom, 0px), 14px)",
+                            }}
                         >
                             <div
-                                className="flex items-center gap-3 px-4 rounded-2xl"
+                                className="flex items-center gap-2.5 px-4 rounded-2xl"
                                 style={{
                                     background: "rgba(255,255,255,0.05)",
-                                    border:     "1px solid rgba(255,255,255,0.09)",
-                                    minHeight:  "52px",
+                                    border:     "1px solid rgba(255,255,255,0.08)",
+                                    minHeight:  "50px",
                                 }}
                             >
                                 <input
@@ -421,27 +417,25 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
                                     type="text"
                                     value={input}
                                     onChange={e => setInput(e.target.value)}
-                                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                                    placeholder="Ask The Coach…"
+                                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+                                    placeholder="Ask Gym anything…"
                                     disabled={streaming}
-                                    className="flex-1 bg-transparent text-sm font-medium outline-none placeholder:opacity-25 disabled:opacity-50"
+                                    className="flex-1 bg-transparent text-sm font-medium outline-none placeholder:opacity-25 disabled:opacity-40"
                                     style={{ caretColor: accent }}
                                 />
                                 <motion.button
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={() => sendMessage()}
+                                    whileTap={{ scale: 0.88 }}
+                                    onClick={() => send()}
                                     disabled={!input.trim() || streaming}
-                                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 disabled:opacity-30 transition-all"
+                                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 disabled:opacity-25 transition-colors"
                                     style={{
-                                        background:  input.trim() && !streaming
-                                            ? `linear-gradient(135deg, ${accent}, ${accent}cc)`
-                                            : "rgba(255,255,255,0.08)",
+                                        background:  input.trim() && !streaming ? `linear-gradient(135deg, ${accent}, ${accent}bb)` : "rgba(255,255,255,0.07)",
                                         touchAction: "manipulation",
                                     }}
                                 >
                                     {streaming
-                                        ? <Loader2 size={15} className="animate-spin opacity-60" />
-                                        : <Send size={14} style={{ color: input.trim() ? "#000" : "#fff" }} />
+                                        ? <Loader2 size={14} className="animate-spin opacity-50" />
+                                        : <Send size={13} style={{ color: input.trim() ? "#000" : "#fff" }} />
                                     }
                                 </motion.button>
                             </div>

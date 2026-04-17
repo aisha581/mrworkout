@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(ls .vercel/)",
-      "Bash(cat .vercel/project.json)"
+      "Bash(cat .vercel/project.json)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in {**d.get\\('dependencies',{}\\),**d.get\\('devDependencies',{}\\)}.items\\(\\) if any\\(x in k for x in ['three','fiber','drei','r3f']\\)}, indent=2\\)\\)\")",
+      "Bash(npx tsc *)",
+      "Bash(sed -n '85,100p' app/library/page.tsx)",
+      "Bash(sed -n '290,310p' app/library/page.tsx)",
+      "Bash(node -e \"const Stripe = require\\('stripe'\\); const s = new Stripe\\('sk_test_fake'\\); console.log\\(Stripe.LATEST_API_VERSION ?? 'not exposed'\\)\")"
+    ],
+    "additionalDirectories": [
+      "/Users/fs/Downloads/Mr. Workout/app/(marketing)"
     ]
   }
 }

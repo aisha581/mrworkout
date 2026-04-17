@@ -43,6 +43,8 @@ export const metadata: Metadata = {
 };
 
 import MobileNav from "@/components/MobileNav";
+import FloatingCoach from "@/components/FloatingCoach";
+import AudioManager from "@/components/AudioManager";
 
 export default function RootLayout({
     children,
@@ -81,6 +83,8 @@ export default function RootLayout({
                                 {children}
                                 <GlitchOverlay />
                                 <MobileNav />
+                                <FloatingCoach />
+                                <AudioManager />
                             </CircuitProvider>
                         </WorkoutProvider>
                     </ThemeProvider>
