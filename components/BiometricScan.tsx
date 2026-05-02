@@ -3,8 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const SCAN_KEY = "mw_scan_shown";
-const DURATION = 3500; // ms
+// sessionStorage key — shows once per browser session (clears on tab close)
+const SCAN_KEY  = "mw_scan_session";
+const DURATION  = 3800; // ms
+const CYAN      = "#00FFFF";
 
 interface Props {
     accentColor: string;
@@ -12,22 +14,25 @@ interface Props {
 }
 
 export default function BiometricScan({ accentColor, onComplete }: Props) {
+    const color = CYAN; // always neon cyan regardless of theme
+
     const [progress,  setProgress]  = useState(0);
     const [phase,     setPhase]     = useState<"scanning" | "confirmed">("scanning");
     const [visible,   setVisible]   = useState(true);
     const [hasCamera, setHasCamera] = useState(false);
 
-    const startRef   = useRef<number | null>(null);
-    const rafRef     = useRef<number | null>(null);
-    const videoRef   = useRef<HTMLVideoElement>(null);
-    const streamRef  = useRef<MediaStream | null>(null);
+    const startRef  = useRef<number | null>(null);
+    const rafRef    = useRef<number | null>(null);
+    const videoRef  = useRef<HTMLVideoElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
 
-    // ── Camera request ────────────────────────────────────────────────────────
+    // ── Camera — useEffect guards SSR ─────────────────────────────────────────
     useEffect(() => {
+        if (typeof window === "undefined") return;
         if (!navigator.mediaDevices?.getUserMedia) return;
 
         navigator.mediaDevices
-            .getUserMedia({ video: { facingMode: "user", width: 300, height: 300 } })
+            .getUserMedia({ video: { facingMode: "user", width: 320, height: 320 } })
             .then((stream) => {
                 streamRef.current = stream;
                 if (videoRef.current) {
@@ -36,18 +41,17 @@ export default function BiometricScan({ accentColor, onComplete }: Props) {
                 }
                 setHasCamera(true);
             })
-            .catch(() => {
-                // Permission denied or no camera — proceed with animation-only mode
-                setHasCamera(false);
-            });
+            .catch(() => setHasCamera(false));
 
         return () => {
             streamRef.current?.getTracks().forEach((t) => t.stop());
         };
     }, []);
 
-    // ── Progress animation ────────────────────────────────────────────────────
+    // ── Progress rAF ──────────────────────────────────────────────────────────
     useEffect(() => {
+        if (typeof window === "undefined") return;
+
         startRef.current = performance.now();
 
         const tick = (now: number) => {
@@ -60,10 +64,10 @@ export default function BiometricScan({ accentColor, onComplete }: Props) {
             } else {
                 setPhase("confirmed");
                 streamRef.current?.getTracks().forEach((t) => t.stop());
-                try { localStorage.setItem(SCAN_KEY, "1"); } catch {}
+                try { sessionStorage.setItem(SCAN_KEY, "1"); } catch {}
                 setTimeout(() => {
                     setVisible(false);
-                    setTimeout(onComplete, 400);
+                    setTimeout(onComplete, 450);
                 }, 900);
             }
         };
@@ -80,37 +84,101 @@ export default function BiometricScan({ accentColor, onComplete }: Props) {
                 <motion.div
                     initial={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.45, ease: "easeOut" }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
                     className="fixed inset-0 z-[999] flex flex-col items-center justify-center overflow-hidden select-none"
-                    style={{ background: "#060606" }}
+                    style={{ background: "#050505" }}
                 >
-                    {/* Ambient glow */}
-                    <div
+                    {/* Full-screen ambient cyan glow */}
+                    <motion.div
                         className="absolute inset-0 pointer-events-none"
+                        animate={{ opacity: [0.6, 1, 0.6] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                         style={{
-                            background: `radial-gradient(ellipse 60% 55% at 50% 50%, ${accentColor}0c 0%, transparent 65%)`,
+                            background: `radial-gradient(ellipse 65% 60% at 50% 50%, ${color}0a 0%, transparent 70%)`,
                         }}
                     />
 
-                    {/* Grid */}
+                    {/* Dark grid */}
                     <div
-                        className="absolute inset-0 pointer-events-none opacity-[0.022]"
+                        className="absolute inset-0 pointer-events-none"
                         style={{
+                            opacity: 0.028,
                             backgroundImage:
-                                "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
+                                `linear-gradient(${color}80 1px, transparent 1px), linear-gradient(90deg, ${color}80 1px, transparent 1px)`,
                             backgroundSize: "40px 40px",
                         }}
                     />
 
+                    {/* Diagonal corner lines — top-left + bottom-right */}
+                    {[
+                        { top: 0,    left:  0,    transform: "none" },
+                        { bottom: 0, right: 0,    transform: "none" },
+                    ].map((pos, i) => (
+                        <motion.div
+                            key={i}
+                            className="absolute w-20 h-px pointer-events-none"
+                            animate={{ opacity: [0.2, 0.5, 0.2] }}
+                            transition={{ duration: 2.4, repeat: Infinity, delay: i * 1.2 }}
+                            style={{ ...pos, background: `linear-gradient(90deg, transparent, ${color}60, transparent)` }}
+                        />
+                    ))}
+
                     <div className="relative flex flex-col items-center gap-8 w-full max-w-xs px-8">
 
-                        {/* ── Scan circle ───────────────────────────────────── */}
-                        <div className="relative w-56 h-56">
+                        {/* HUD side tags */}
+                        <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className="absolute top-1/2 -translate-y-1/2 left-4 flex flex-col gap-2.5 pointer-events-none"
+                        >
+                            {["FACE·ID", "DEPTH·MAP", "NEURAL"].map((label, i) => (
+                                <motion.p
+                                    key={label}
+                                    animate={{ opacity: [0.12, 0.45, 0.12] }}
+                                    transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.5 }}
+                                    className="text-[7px] font-black uppercase tracking-[0.4em]"
+                                    style={{ color }}
+                                >
+                                    {label}
+                                </motion.p>
+                            ))}
+                        </motion.div>
 
-                            {/* Camera feed / fallback bg — clipped to circle */}
+                        <motion.div
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.6 }}
+                            className="absolute top-1/2 -translate-y-1/2 right-4 flex flex-col gap-2.5 pointer-events-none items-end"
+                        >
+                            {["BIOMETRIC", "IDENTITY", "SECURE"].map((label, i) => (
+                                <motion.p
+                                    key={label}
+                                    animate={{ opacity: [0.12, 0.4, 0.12] }}
+                                    transition={{ duration: 1.8, repeat: Infinity, delay: 0.8 + i * 0.5 }}
+                                    className="text-[7px] font-black uppercase tracking-[0.4em]"
+                                    style={{ color }}
+                                >
+                                    {label}
+                                </motion.p>
+                            ))}
+                        </motion.div>
+
+                        {/* ── Scan circle ─────────────────────────────────────── */}
+                        <div className="relative w-60 h-60">
+
+                            {/* Outer pulse ring */}
+                            <motion.div
+                                className="absolute inset-[-12px] rounded-full pointer-events-none"
+                                animate={{ scale: [1, 1.06, 1], opacity: [0.08, 0.18, 0.08] }}
+                                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                                style={{ border: `1px solid ${color}` }}
+                            />
+
+                            {/* Camera feed / fallback */}
                             <div
                                 className="absolute inset-0 rounded-full overflow-hidden"
-                                style={{ border: `1px solid ${accentColor}20` }}
+                                style={{ border: `1.5px solid ${color}30` }}
                             >
                                 {hasCamera ? (
                                     <video
@@ -119,72 +187,86 @@ export default function BiometricScan({ accentColor, onComplete }: Props) {
                                         playsInline
                                         muted
                                         className="w-full h-full object-cover scale-x-[-1]"
-                                        style={{ opacity: phase === "confirmed" ? 0.4 : 0.65, transition: "opacity 0.5s" }}
+                                        style={{
+                                            opacity:    phase === "confirmed" ? 0.35 : 0.6,
+                                            transition: "opacity 0.5s",
+                                        }}
                                     />
                                 ) : (
-                                    /* No camera: animated dark pulse fills the circle */
                                     <motion.div
                                         className="w-full h-full"
-                                        animate={{ backgroundColor: [`${accentColor}06`, `${accentColor}0e`, `${accentColor}06`] }}
-                                        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                                        animate={{ backgroundColor: [`${color}04`, `${color}0d`, `${color}04`] }}
+                                        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                                     />
                                 )}
                             </div>
 
-                            {/* Outer glow ring */}
+                            {/* Inner glow ring */}
                             <div
                                 className="absolute inset-0 rounded-full pointer-events-none"
-                                style={{ boxShadow: `0 0 0 12px ${accentColor}04, inset 0 0 40px ${accentColor}08` }}
+                                style={{
+                                    boxShadow: `inset 0 0 32px ${color}12, 0 0 0 1px ${color}20, 0 0 28px ${color}15`,
+                                }}
                             />
 
-                            {/* Middle ring — pulsing */}
+                            {/* Pulsing middle ring */}
                             <motion.div
-                                className="absolute inset-4 rounded-full pointer-events-none"
-                                animate={{ scale: [1, 1.03, 1], opacity: [0.35, 0.65, 0.35] }}
-                                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                                style={{ border: `1px solid ${accentColor}50` }}
+                                className="absolute inset-5 rounded-full pointer-events-none"
+                                animate={{ scale: [1, 1.04, 1], opacity: [0.25, 0.55, 0.25] }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                style={{ border: `1px solid ${color}60` }}
                             />
 
-                            {/* Corner brackets */}
+                            {/* Corner brackets — neon cyan with glow */}
                             {[
-                                { top: 0,    left:  0,    borderTop: `2px solid ${accentColor}`, borderLeft:  `2px solid ${accentColor}`, borderRadius: "12px 0 0 0"  },
-                                { top: 0,    right: 0,    borderTop: `2px solid ${accentColor}`, borderRight: `2px solid ${accentColor}`, borderRadius: "0 12px 0 0"  },
-                                { bottom: 0, left:  0,    borderBottom: `2px solid ${accentColor}`, borderLeft:  `2px solid ${accentColor}`, borderRadius: "0 0 0 12px" },
-                                { bottom: 0, right: 0,    borderBottom: `2px solid ${accentColor}`, borderRight: `2px solid ${accentColor}`, borderRadius: "0 0 12px 0" },
+                                { top: -2,   left:  -2,  borderTop: `2.5px solid ${color}`, borderLeft:  `2.5px solid ${color}`, borderRadius: "14px 0 0 0" },
+                                { top: -2,   right: -2,  borderTop: `2.5px solid ${color}`, borderRight: `2.5px solid ${color}`, borderRadius: "0 14px 0 0" },
+                                { bottom: -2, left: -2,  borderBottom: `2.5px solid ${color}`, borderLeft:  `2.5px solid ${color}`, borderRadius: "0 0 0 14px" },
+                                { bottom: -2, right: -2, borderBottom: `2.5px solid ${color}`, borderRight: `2.5px solid ${color}`, borderRadius: "0 0 14px 0" },
                             ].map((style, i) => (
-                                <div
+                                <motion.div
                                     key={i}
-                                    className="absolute w-7 h-7 pointer-events-none"
-                                    style={{ ...style, boxShadow: `0 0 10px ${accentColor}70` }}
+                                    className="absolute w-8 h-8 pointer-events-none"
+                                    animate={{ opacity: [0.7, 1, 0.7] }}
+                                    transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.3 }}
+                                    style={{ ...style, filter: `drop-shadow(0 0 6px ${color})` }}
                                 />
                             ))}
 
-                            {/* Scan line */}
+                            {/* ── Primary scan line — neon cyan with white core ── */}
                             {phase === "scanning" && (
-                                <motion.div
-                                    className="absolute inset-x-0 pointer-events-none overflow-hidden rounded-full"
-                                    style={{ top: scanY, height: "3px" }}
-                                >
+                                <>
+                                    <motion.div
+                                        className="absolute inset-x-0 pointer-events-none overflow-hidden rounded-full"
+                                        style={{ top: scanY, height: "2px" }}
+                                    >
+                                        <div
+                                            className="w-full h-full"
+                                            style={{
+                                                background: `linear-gradient(90deg,
+                                                    transparent 0%,
+                                                    ${color}50 15%,
+                                                    #ffffff 48%,
+                                                    ${color} 50%,
+                                                    #ffffff 52%,
+                                                    ${color}50 85%,
+                                                    transparent 100%)`,
+                                                boxShadow: `0 0 12px 3px ${color}, 0 0 24px 6px ${color}60, 0 0 2px #fff`,
+                                                filter:    `blur(0.3px)`,
+                                            }}
+                                        />
+                                    </motion.div>
+
+                                    {/* Secondary shimmer above the line */}
                                     <div
-                                        className="w-full h-full"
+                                        className="absolute inset-x-0 rounded-full overflow-hidden pointer-events-none"
                                         style={{
-                                            background: `linear-gradient(90deg, transparent 0%, ${accentColor}70 25%, ${accentColor} 50%, ${accentColor}70 75%, transparent 100%)`,
-                                            boxShadow:  `0 0 14px ${accentColor}, 0 0 4px #fff`,
+                                            top:        0,
+                                            height:     scanY,
+                                            background: `linear-gradient(to bottom, transparent 60%, ${color}10)`,
                                         }}
                                     />
-                                </motion.div>
-                            )}
-
-                            {/* Scan glow trail */}
-                            {phase === "scanning" && (
-                                <div
-                                    className="absolute inset-x-0 rounded-full overflow-hidden pointer-events-none"
-                                    style={{
-                                        top:        0,
-                                        height:     scanY,
-                                        background: `linear-gradient(to bottom, transparent 50%, ${accentColor}14)`,
-                                    }}
-                                />
+                                </>
                             )}
 
                             {/* Confirmed checkmark */}
@@ -193,28 +275,29 @@ export default function BiometricScan({ accentColor, onComplete }: Props) {
                                     <motion.div
                                         initial={{ scale: 0, opacity: 0 }}
                                         animate={{ scale: 1, opacity: 1 }}
-                                        transition={{ type: "spring", stiffness: 300, damping: 22 }}
+                                        transition={{ type: "spring", stiffness: 280, damping: 20 }}
                                         className="absolute inset-0 flex items-center justify-center"
                                     >
                                         <div
-                                            className="w-18 h-18 rounded-full flex items-center justify-center"
+                                            className="rounded-full flex items-center justify-center"
                                             style={{
-                                                background: `${accentColor}18`,
-                                                border:     `2px solid ${accentColor}`,
-                                                boxShadow:  `0 0 50px ${accentColor}60`,
-                                                width: 72, height: 72,
+                                                width:     76,
+                                                height:    76,
+                                                background: `${color}15`,
+                                                border:    `2px solid ${color}`,
+                                                boxShadow: `0 0 40px ${color}70, 0 0 80px ${color}30`,
                                             }}
                                         >
-                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                            <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
                                                 <motion.path
                                                     d="M5 12l5 5L19 7"
-                                                    stroke={accentColor}
+                                                    stroke={color}
                                                     strokeWidth="2.5"
                                                     strokeLinecap="round"
                                                     strokeLinejoin="round"
                                                     initial={{ pathLength: 0 }}
                                                     animate={{ pathLength: 1 }}
-                                                    transition={{ duration: 0.45, ease: "easeOut" }}
+                                                    transition={{ duration: 0.5, ease: "easeOut" }}
                                                 />
                                             </svg>
                                         </div>
@@ -223,29 +306,7 @@ export default function BiometricScan({ accentColor, onComplete }: Props) {
                             </AnimatePresence>
                         </div>
 
-                        {/* ── HUD data tags (savage feel) ───────────────────── */}
-                        {phase === "scanning" && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.5 }}
-                                className="absolute top-1/2 -translate-y-1/2 left-8 flex flex-col gap-2 pointer-events-none"
-                            >
-                                {["FACE·ID", "DEPTH·MAP", "BIOMETRIC"].map((label, i) => (
-                                    <motion.p
-                                        key={label}
-                                        animate={{ opacity: [0.15, 0.45, 0.15] }}
-                                        transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.4 }}
-                                        className="text-[8px] font-black uppercase tracking-widest"
-                                        style={{ color: accentColor }}
-                                    >
-                                        {label}
-                                    </motion.p>
-                                ))}
-                            </motion.div>
-                        )}
-
-                        {/* ── Status text ───────────────────────────────────── */}
+                        {/* ── Status + progress ────────────────────────────────── */}
                         <div className="flex flex-col items-center gap-3 w-full">
                             <AnimatePresence mode="wait">
                                 {phase === "scanning" ? (
@@ -254,8 +315,8 @@ export default function BiometricScan({ accentColor, onComplete }: Props) {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
-                                        className="text-[10px] font-black uppercase tracking-[0.55em]"
-                                        style={{ color: accentColor }}
+                                        className="text-[10px] font-black uppercase tracking-[0.6em]"
+                                        style={{ color, textShadow: `0 0 12px ${color}` }}
                                     >
                                         {hasCamera ? "Scanning Biometrics" : "Initializing System"}
                                     </motion.p>
@@ -264,8 +325,8 @@ export default function BiometricScan({ accentColor, onComplete }: Props) {
                                         key="confirmed"
                                         initial={{ opacity: 0, y: 6 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="text-[10px] font-black uppercase tracking-[0.55em]"
-                                        style={{ color: accentColor, textShadow: `0 0 20px ${accentColor}` }}
+                                        className="text-[10px] font-black uppercase tracking-[0.6em]"
+                                        style={{ color, textShadow: `0 0 20px ${color}` }}
                                     >
                                         Identity Confirmed
                                     </motion.p>
@@ -273,33 +334,42 @@ export default function BiometricScan({ accentColor, onComplete }: Props) {
                             </AnimatePresence>
 
                             {/* Progress bar */}
-                            <div className="w-full h-[3px] rounded-full bg-white/[0.06] overflow-hidden">
-                                <motion.div
-                                    className="h-full rounded-full"
+                            <div
+                                className="w-full rounded-full overflow-hidden"
+                                style={{ height: "2px", background: `${color}12` }}
+                            >
+                                <div
+                                    className="h-full rounded-full transition-all duration-75"
                                     style={{
                                         width:      `${progress}%`,
-                                        background: `linear-gradient(90deg, ${accentColor}cc, ${accentColor})`,
-                                        boxShadow:  `0 0 8px ${accentColor}`,
+                                        background: `linear-gradient(90deg, ${color}80, ${color})`,
+                                        boxShadow:  `0 0 8px ${color}, 0 0 2px #fff`,
                                     }}
                                 />
                             </div>
 
-                            <p
-                                className="text-[28px] font-black tabular-nums leading-none"
+                            {/* Percentage counter */}
+                            <motion.p
+                                className="font-black tabular-nums leading-none"
                                 style={{
                                     fontFamily: "var(--font-archivo-black), sans-serif",
-                                    color:      accentColor,
+                                    fontSize:   "2rem",
+                                    color,
+                                    textShadow: `0 0 20px ${color}80`,
                                     opacity:    phase === "confirmed" ? 0 : 1,
                                     transition: "opacity 0.3s",
                                 }}
                             >
                                 {String(progress).padStart(3, "\u2007")}
-                                <span className="text-base opacity-50">%</span>
-                            </p>
+                                <span className="text-base opacity-40">%</span>
+                            </motion.p>
                         </div>
 
-                        {/* Brand label */}
-                        <p className="text-[9px] font-black uppercase tracking-[0.7em] opacity-15 mt-2">
+                        {/* Brand watermark */}
+                        <p
+                            className="text-[8px] font-black uppercase tracking-[0.8em] mt-1"
+                            style={{ color, opacity: 0.12 }}
+                        >
                             Mr. Workout · Biometric Auth
                         </p>
                     </div>
@@ -309,7 +379,8 @@ export default function BiometricScan({ accentColor, onComplete }: Props) {
     );
 }
 
-/** Returns true if the scan should be shown (first visit only) */
+/** Returns true if the scan should be shown this session */
 export function shouldShowScan(): boolean {
-    try { return !localStorage.getItem(SCAN_KEY); } catch { return false; }
+    if (typeof window === "undefined") return false;
+    try { return !sessionStorage.getItem(SCAN_KEY); } catch { return false; }
 }
