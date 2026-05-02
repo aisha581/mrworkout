@@ -1,32 +1,35 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { computeCNSScore, getRecoveryWindow, type UserStats } from "@/utils/userStats";
+import { useState, useEffect } from "react";
 
 interface Props {
-    accent: string;
-    streak: number;
-    totalXP: number;
+    accent:  string;
+    vitals:  UserStats;
 }
 
-export default function NeuralRecoveryRing({ accent, streak, totalXP }: Props) {
-    const [tick, setTick] = useState(0);
+export default function NeuralRecoveryRing({ accent, vitals }: Props) {
+    const [score, setScore] = useState(() => computeCNSScore(vitals));
+    const [window_, setWindow_] = useState(() => getRecoveryWindow(vitals));
 
-    // Derive a CNS recovery score (70–100) from streak + XP
-    const raw = Math.min(100, 70 + Math.floor((streak * 3 + totalXP / 50) % 30));
-    const score = raw;
+    // Refresh every minute so the score ticks up live
+    useEffect(() => {
+        const id = setInterval(() => {
+            setScore(computeCNSScore(vitals));
+            setWindow_(getRecoveryWindow(vitals));
+        }, 60_000);
+        return () => clearInterval(id);
+    }, [vitals]);
+
     const radius = 72;
     const stroke = 5;
     const circ   = 2 * Math.PI * radius;
     const dash   = (score / 100) * circ;
 
-    useEffect(() => {
-        const id = setInterval(() => setTick(t => t + 1), 2800);
-        return () => clearInterval(id);
-    }, []);
-
-    const status = score >= 90 ? "OPTIMAL" : score >= 75 ? "RECOVERED" : "LOADING";
-    const statusColor = score >= 90 ? accent : score >= 75 ? "#7fff7f" : "#ff9f3f";
+    const status      = score >= 90 ? "OPTIMAL" : score >= 60 ? "RECOVERING" : "FATIGUED";
+    const statusColor = score >= 90 ? accent : score >= 60 ? "#7fff7f" : "#ff6b35";
+    const fatigueIdx  = 100 - score;
 
     return (
         <div className="relative flex flex-col items-center justify-center select-none" style={{ minHeight: 220 }}>
@@ -35,9 +38,9 @@ export default function NeuralRecoveryRing({ accent, streak, totalXP }: Props) {
             <div
                 className="absolute rounded-full pointer-events-none"
                 style={{
-                    width: 200, height: 200,
-                    background: `radial-gradient(circle, ${accent}12 0%, transparent 70%)`,
-                    filter: "blur(18px)",
+                    width: 210, height: 210,
+                    background: `radial-gradient(circle, ${accent}14 0%, transparent 70%)`,
+                    filter: "blur(20px)",
                 }}
             />
 
@@ -45,23 +48,17 @@ export default function NeuralRecoveryRing({ accent, streak, totalXP }: Props) {
             <motion.div
                 className="absolute"
                 animate={{ rotate: 360 }}
-                transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
                 style={{ width: 168, height: 168 }}
             >
                 <svg width="168" height="168" viewBox="0 0 168 168">
-                    <circle
-                        cx="84" cy="84" r={radius}
-                        fill="none"
-                        stroke={`${accent}18`}
-                        strokeWidth={stroke}
-                    />
-                    {/* Glow arc sweep */}
+                    <circle cx="84" cy="84" r={radius} fill="none" stroke={`${accent}14`} strokeWidth={stroke} />
                     <circle
                         cx="84" cy="84" r={radius}
                         fill="none"
                         stroke={accent}
                         strokeWidth={stroke + 1}
-                        strokeDasharray={`${circ * 0.18} ${circ * 0.82}`}
+                        strokeDasharray={`${circ * 0.15} ${circ * 0.85}`}
                         strokeLinecap="round"
                         style={{ filter: `drop-shadow(0 0 8px ${accent})` }}
                     />
@@ -75,53 +72,50 @@ export default function NeuralRecoveryRing({ accent, streak, totalXP }: Props) {
                 className="absolute"
                 style={{ transform: "rotate(-90deg)" }}
             >
-                {/* Track */}
                 <circle cx="84" cy="84" r={radius} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={stroke} />
-                {/* Progress */}
                 <motion.circle
                     cx="84" cy="84" r={radius}
                     fill="none"
-                    stroke={accent}
+                    stroke={statusColor}
                     strokeWidth={stroke}
                     strokeLinecap="round"
                     strokeDasharray={circ}
                     initial={{ strokeDashoffset: circ }}
                     animate={{ strokeDashoffset: circ - dash }}
-                    transition={{ duration: 2.2, ease: "easeOut" }}
-                    style={{ filter: `drop-shadow(0 0 6px ${accent}80)` }}
+                    transition={{ duration: 2.5, ease: "easeOut" }}
+                    style={{ filter: `drop-shadow(0 0 6px ${statusColor}80)` }}
                 />
             </svg>
 
             {/* Pulsing inner ring */}
             <motion.div
                 className="absolute rounded-full"
-                animate={{ scale: [1, 1.04, 1], opacity: [0.25, 0.5, 0.25] }}
-                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                style={{ width: 130, height: 130, border: `1px solid ${accent}40` }}
+                animate={{ scale: [1, 1.04, 1], opacity: [0.2, 0.45, 0.2] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                style={{ width: 130, height: 130, border: `1px solid ${accent}35` }}
             />
 
             {/* Center content */}
             <div className="relative flex flex-col items-center gap-1 z-10">
                 <motion.p
-                    key={tick}
-                    initial={{ opacity: 0, scale: 0.85 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
                     className="font-black leading-none tabular-nums"
                     style={{
                         fontFamily: "var(--font-archivo-black), sans-serif",
                         fontSize:   "2.8rem",
-                        color:      accent,
-                        textShadow: `0 0 24px ${accent}80`,
+                        color:      statusColor,
+                        textShadow: `0 0 28px ${statusColor}80`,
                     }}
                 >
                     {score}
                     <span className="text-lg opacity-50">%</span>
                 </motion.p>
-                <p className="text-[8px] font-black uppercase tracking-[0.5em] opacity-40">CNS Recovery</p>
+                <p className="text-[8px] font-black uppercase tracking-[0.5em] opacity-35">CNS Recovery</p>
                 <motion.div
-                    animate={{ opacity: [0.6, 1, 0.6] }}
-                    transition={{ duration: 1.6, repeat: Infinity }}
+                    animate={{ opacity: [0.55, 1, 0.55] }}
+                    transition={{ duration: 1.8, repeat: Infinity }}
                     className="flex items-center gap-1.5 mt-1"
                 >
                     <span
@@ -141,7 +135,7 @@ export default function NeuralRecoveryRing({ accent, streak, totalXP }: Props) {
                     className="absolute pointer-events-none"
                     style={{
                         width: 2, height: i % 3 === 0 ? 8 : 5,
-                        background: `${accent}${i % 3 === 0 ? '60' : '30'}`,
+                        background: `${accent}${i % 3 === 0 ? '55' : '28'}`,
                         transformOrigin: "50% 84px",
                         transform: `rotate(${deg}deg) translateY(-84px)`,
                         top: "50%", left: "50%",
@@ -149,6 +143,21 @@ export default function NeuralRecoveryRing({ accent, streak, totalXP }: Props) {
                     }}
                 />
             ))}
+
+            {/* Fatigue index + recovery window below ring */}
+            <div className="absolute -bottom-12 flex items-center gap-4 whitespace-nowrap">
+                <div className="text-center">
+                    <p className="text-[7px] font-black uppercase tracking-[0.4em] opacity-25">Fatigue</p>
+                    <p className="text-[10px] font-black" style={{ color: fatigueIdx > 60 ? "#ff6b35" : accent }}>
+                        {fatigueIdx}%
+                    </p>
+                </div>
+                <div className="w-px h-6 bg-white/10" />
+                <div className="text-center">
+                    <p className="text-[7px] font-black uppercase tracking-[0.4em] opacity-25">Recovery</p>
+                    <p className="text-[10px] font-black opacity-70">{window_}</p>
+                </div>
+            </div>
         </div>
     );
 }

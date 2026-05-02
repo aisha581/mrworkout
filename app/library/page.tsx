@@ -8,7 +8,7 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import ExerciseCard from '@/components/ExerciseCard';
 import { useCircuit } from '@/contexts/CircuitContext';
-import { Search, X, Filter } from 'lucide-react';
+import { Search, X, Filter, Building2, Dumbbell } from 'lucide-react';
 import type { Exercise } from '@/data/libraryData';
 import { EXERCISE_EQUIPMENT, type EquipmentType } from '@/data/libraryData';
 
@@ -20,6 +20,7 @@ export interface LiveExercise extends Exercise {
 
 const MUSCLE_FILTERS = ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core'];
 const EQUIPMENT_FILTERS: EquipmentType[] = ['Dumbbells', 'Barbell', 'Cable', 'Bodyweight', 'Machine'];
+const HOME_EQUIPMENT: EquipmentType[] = ['Dumbbells', 'Bodyweight'];
 
 export default function LibraryPage() {
     const { theme } = useTheme();
@@ -32,6 +33,7 @@ export default function LibraryPage() {
     const [searchQuery,       setSearchQuery]     = useState('');
     const [selectedMuscle,      setSelectedMuscle]    = useState<string | null>(null);
     const [selectedEquipment,   setSelectedEquipment] = useState<EquipmentType | null>(null);
+    const [gymMode,             setGymMode]           = useState<'GYM' | 'HOME'>('GYM');
 
     // ── Data Fetching ────────────────────────────────────────────────────────
     useEffect(() => {
@@ -58,24 +60,29 @@ export default function LibraryPage() {
     const displayedExercises = useMemo(() => {
         let filtered = exercises;
 
+        // 0. Home mode — restrict to dumbbells + bodyweight
+        if (gymMode === 'HOME') {
+            filtered = filtered.filter(ex => HOME_EQUIPMENT.includes(EXERCISE_EQUIPMENT[ex.id] as EquipmentType));
+        }
+
         // 1. Muscle Filter
         if (selectedMuscle) {
             const m = selectedMuscle.toLowerCase();
-            filtered = filtered.filter(ex => 
-                ex.category.toLowerCase() === m || 
+            filtered = filtered.filter(ex =>
+                ex.category.toLowerCase() === m ||
                 ex.targetMuscle.toLowerCase().includes(m)
             );
         }
 
-        // 2. Equipment Filter
-        if (selectedEquipment) {
+        // 2. Equipment Filter (only relevant in GYM mode)
+        if (selectedEquipment && gymMode === 'GYM') {
             filtered = filtered.filter(ex => EXERCISE_EQUIPMENT[ex.id] === selectedEquipment);
         }
 
         // 3. Search Intersect
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase().trim();
-            filtered = filtered.filter(ex => 
+            filtered = filtered.filter(ex =>
                 ex.name.toLowerCase().includes(q) ||
                 ex.targetMuscle.toLowerCase().includes(q) ||
                 ex.category.toLowerCase().includes(q)
@@ -83,7 +90,7 @@ export default function LibraryPage() {
         }
 
         return filtered;
-    }, [exercises, searchQuery, selectedMuscle, selectedEquipment]);
+    }, [exercises, searchQuery, selectedMuscle, selectedEquipment, gymMode]);
 
     // ── Handlers ──────────────────────────────────────────────────────────────
     const handleStartWorkout = useCallback((exercise: LiveExercise) => {
@@ -126,16 +133,53 @@ export default function LibraryPage() {
             >
                 <div className="max-w-[1800px] mx-auto">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                        <div>
-                            <h1 className="text-4xl lg:text-5xl font-black tracking-tighter uppercase leading-none mb-1"
-                                style={{ 
-                                    fontFamily: 'var(--font-archivo-black), sans-serif',
-                                    textShadow: theme.mode === 'savage' ? `0 0 40px ${theme.accent}40` : 'none'
+                        <div className="flex items-center gap-6 flex-wrap">
+                            <div>
+                                <h1 className="text-4xl lg:text-5xl font-black tracking-tighter uppercase leading-none mb-1"
+                                    style={{
+                                        fontFamily: 'var(--font-archivo-black), sans-serif',
+                                        textShadow: `0 0 40px ${theme.accent}40`,
+                                    }}
+                                >
+                                    THE <span style={{ color: theme.accent }}>ARMORY</span>
+                                </h1>
+                                <p className="text-[10px] font-bold opacity-40 uppercase tracking-[0.3em]">Advanced Arsenal // v2.4</p>
+                            </div>
+
+                            {/* ── Home / Gym segmented control ── */}
+                            <div
+                                className="flex items-center rounded-2xl p-1 gap-1 self-start mt-1"
+                                style={{
+                                    background: 'rgba(255,255,255,0.04)',
+                                    border:     '1px solid rgba(255,255,255,0.08)',
                                 }}
                             >
-                                THE <span style={{ color: theme.accent }}>ARMORY</span>
-                            </h1>
-                            <p className="text-[10px] font-bold opacity-40 uppercase tracking-[0.3em]">Advanced Arsenal // v2.4</p>
+                                {(['GYM', 'HOME'] as const).map(mode => {
+                                    const active = gymMode === mode;
+                                    return (
+                                        <button
+                                            key={mode}
+                                            onClick={() => {
+                                                navigator.vibrate?.(8);
+                                                setGymMode(mode);
+                                                if (mode === 'HOME') setSelectedEquipment(null);
+                                            }}
+                                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-[0.2em] transition-all duration-200"
+                                            style={{
+                                                background: active ? theme.accent : 'transparent',
+                                                color:      active ? '#000' : 'rgba(255,255,255,0.35)',
+                                                boxShadow:  active ? `0 0 14px ${theme.accent}50` : 'none',
+                                            }}
+                                        >
+                                            {mode === 'GYM'
+                                                ? <Building2 size={11} />
+                                                : <Dumbbell  size={11} />
+                                            }
+                                            {mode}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         {/* Search Bar with Glow */}

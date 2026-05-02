@@ -197,6 +197,23 @@ export default function Home() {
                         }}
                     />
 
+                    {/* Neural scan line — sweeps once on page load */}
+                    <motion.div
+                        className="absolute inset-x-0 z-[3] pointer-events-none"
+                        style={{ height: 2 }}
+                        initial={{ top: "10%", opacity: 0 }}
+                        animate={{ top: ["10%", "90%", "10%"], opacity: [0, 0.7, 0.7, 0] }}
+                        transition={{ duration: 3.2, ease: "easeInOut", times: [0, 0.45, 0.9, 1], delay: 0.6 }}
+                    >
+                        <div
+                            className="w-full h-full"
+                            style={{
+                                background: `linear-gradient(90deg, transparent 0%, ${theme.accent}40 20%, ${theme.accent} 50%, ${theme.accent}40 80%, transparent 100%)`,
+                                boxShadow:  `0 0 16px ${theme.accent}, 0 0 40px ${theme.accent}50`,
+                            }}
+                        />
+                    </motion.div>
+
                     {/* 3D Canvas — chest button is rendered internally via Html portal */}
                     <div className="absolute inset-0 z-[2]">
                         <MannequinCanvas
@@ -491,8 +508,7 @@ export default function Home() {
                                     <div className="shrink-0">
                                         <NeuralRecoveryRing
                                             accent={theme.accent}
-                                            streak={vitals.currentStreak}
-                                            totalXP={vitals.totalXP}
+                                            vitals={vitals}
                                         />
                                     </div>
 
