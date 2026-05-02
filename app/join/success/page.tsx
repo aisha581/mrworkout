@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+export const dynamic = "force-dynamic";
+
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
@@ -8,29 +10,26 @@ import { Crown, Zap, Loader2 } from "lucide-react";
 
 type Status = "verifying" | "confirmed" | "pending";
 
-export default function JoinSuccessPage() {
-    const router                  = useRouter();
-    const searchParams            = useSearchParams();
-    const { data: session, update } = useSession();
-    const [status, setStatus]     = useState<Status>("verifying");
-    const sessionId               = searchParams.get("session_id");
+// ── Inner component — uses useSearchParams, must be inside <Suspense> ─────────
+function SuccessContent() {
+    const router                    = useRouter();
+    const searchParams              = useSearchParams();
+    const { update }                = useSession();
+    const [status, setStatus]       = useState<Status>("verifying");
+    const sessionId                 = searchParams.get("session_id") ?? "";
 
     useEffect(() => {
         let attempts = 0;
-        const MAX    = 8;   // poll up to 8 times (16 seconds)
+        const MAX    = 8;
         const DELAY  = 2000;
 
         async function check() {
             attempts++;
-
-            // Force NextAuth to re-fetch the session (picks up new isPro value)
             await update();
 
-            // Ask our API whether the checkout session is confirmed pro
             try {
-                const res  = await fetch(`/api/checkout/verify?session_id=${sessionId ?? ""}`);
+                const res  = await fetch(`/api/checkout/verify?session_id=${sessionId}`);
                 const json = await res.json();
-
                 if (json.isPro) {
                     try { localStorage.setItem("mw_is_pro", "true"); } catch {}
                     setStatus("confirmed");
@@ -39,11 +38,9 @@ export default function JoinSuccessPage() {
             } catch {}
 
             if (attempts >= MAX) {
-                // Webhook may be delayed — optimistically continue but flag as pending
                 setStatus("pending");
                 return;
             }
-
             setTimeout(check, DELAY);
         }
 
@@ -105,7 +102,6 @@ export default function JoinSuccessPage() {
                                 Payment received — your Pro access will activate within a minute.
                             </p>
                         )}
-
                         {status === "confirmed" && (
                             <p className="text-sm opacity-40 font-medium">
                                 All 138 maneuvers unlocked. Build anything.
@@ -128,5 +124,20 @@ export default function JoinSuccessPage() {
                 )}
             </motion.div>
         </div>
+    );
+}
+
+// ── Page — wraps in Suspense so useSearchParams doesn't break the build ───────
+export default function JoinSuccessPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="fixed inset-0 bg-[#060606] flex items-center justify-center">
+                    <Loader2 size={36} className="animate-spin" style={{ color: "#FFD700", opacity: 0.5 }} />
+                </div>
+            }
+        >
+            <SuccessContent />
+        </Suspense>
     );
 }
