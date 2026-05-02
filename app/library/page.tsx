@@ -20,7 +20,8 @@ export interface LiveExercise extends Exercise {
 
 const MUSCLE_FILTERS = ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core'];
 const EQUIPMENT_FILTERS: EquipmentType[] = ['Dumbbells', 'Barbell', 'Cable', 'Bodyweight', 'Machine'];
-const HOME_EQUIPMENT: EquipmentType[] = ['Dumbbells', 'Bodyweight'];
+const HOME_EQUIPMENT = new Set<EquipmentType>(['Dumbbells', 'Bodyweight']);
+const GYM_ONLY_PATTERN = /barbell|cable|machine|lat pulldown|leg press|t-bar|ez bar|smith|leg curl|leg extension/i;
 
 export default function LibraryPage() {
     const { theme } = useTheme();
@@ -60,9 +61,14 @@ export default function LibraryPage() {
     const displayedExercises = useMemo(() => {
         let filtered = exercises;
 
-        // 0. Home mode — restrict to dumbbells + bodyweight
+        // 0. Home mode — Dumbbells, Bodyweight, and unmapped exercises that don't look gym-only
         if (gymMode === 'HOME') {
-            filtered = filtered.filter(ex => HOME_EQUIPMENT.includes(EXERCISE_EQUIPMENT[ex.id] as EquipmentType));
+            filtered = filtered.filter(ex => {
+                const equip = EXERCISE_EQUIPMENT[ex.id] as EquipmentType | undefined;
+                if (equip) return HOME_EQUIPMENT.has(equip);
+                // Unmapped: include unless name screams gym machine/barbell
+                return !GYM_ONLY_PATTERN.test(ex.name);
+            });
         }
 
         // 1. Muscle Filter

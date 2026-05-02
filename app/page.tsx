@@ -9,7 +9,6 @@ import Toast from "@/components/Toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useCallback } from "react";
-import { formatWorkoutSummary } from "@/utils/workoutParser";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import dynamic from "next/dynamic";
 
@@ -17,7 +16,6 @@ import DailyGoalRing from "@/components/DailyGoalRing";
 import FloatingMic from "@/components/FloatingMic";
 import MuscleHeatmap from "@/components/MuscleHeatmap";
 import SavageTip from "@/components/SavageTip";
-import ExerciseCard from "@/components/ExerciseCard";
 import CircuitBuilder from "@/components/CircuitBuilder";
 import WorkoutPlayer from "@/components/WorkoutPlayer";
 import MissionDrawer from "@/components/MissionDrawer";
@@ -27,7 +25,7 @@ import { useCircuit } from "@/contexts/CircuitContext";
 import { useRouter } from "next/navigation";
 import {
     loadProfile, generateDailyMission,
-    type Goal, type UserProfile,
+    type UserProfile,
 } from "@/utils/missionGenerator";
 import { getUserStats, getRankInfo, recordDailyVisit, type UserStats } from "@/utils/userStats";
 import { useIsPro } from "@/hooks/useIsPro";
@@ -35,7 +33,8 @@ import { hapticMedium, hapticLight } from "@/utils/haptic";
 import BiometricScan, { shouldShowScan } from "@/components/BiometricScan";
 import XPBar from "@/components/XPBar";
 import { playBriefing } from "@/utils/audio";
-import { Zap, ChevronDown, Flame, Trophy, Lock, Crown, Volume2, Loader2, Smartphone, Dumbbell, Building2 } from "lucide-react";
+import { Zap, ChevronDown, Flame, Trophy, Lock, Crown, Volume2, Loader2, Smartphone } from "lucide-react";
+import { computeCNSScore } from "@/utils/userStats";
 import NeuralRecoveryRing from "@/components/NeuralRecoveryRing";
 import AddToHomeModal from "@/components/AddToHomeModal";
 
@@ -54,13 +53,10 @@ export default function Home() {
     // ── State ──────────────────────────────────────────────────────────────────
     const [showToast,       setShowToast]       = useState(false);
     const [toastMessage,    setToastMessage]    = useState('');
-    const [coreExercises,   setCoreExercises]   = useState<LiveExercise[]>([]);
     const [allExercises,    setAllExercises]    = useState<LiveExercise[]>([]);
     const [lastExercise,    setLastExercise]    = useState<LiveExercise | null>(null);
     const [quickStartOpen,  setQuickStartOpen]  = useState(false);
     const [isMissionOpen,   setIsMissionOpen]   = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _workoutHistory = workoutHistory; // kept for VaultGrid below
     const [showWelcome,     setShowWelcome]     = useState(false);
 
     // Profile + generated mission
@@ -78,11 +74,11 @@ export default function Home() {
     // Pro status
     const { isPro } = useIsPro();
 
-    // Armory filter
-    const [gymMode, setGymMode] = useState<"gym" | "home">("gym");
-
     // iOS install modal
     const [showInstallModal, setShowInstallModal] = useState(false);
+
+    // Derived CNS score for card styling
+    const cnsScore = computeCNSScore(vitals);
 
     // ── Library fetch ──────────────────────────────────────────────────────────
     useEffect(() => {
@@ -92,13 +88,6 @@ export default function Home() {
                 if (!res.ok) return;
                 const data: LiveExercise[] = await res.json();
                 setAllExercises(data);
-                // Pick one exercise from each of 3 distinct categories for showcase
-                const categories = ['Chest', 'Back', 'Legs'];
-                const picks = categories
-                    .map(cat => data.find(ex => (ex as any).category === cat))
-                    .filter(Boolean) as LiveExercise[];
-                // Fallback: just take first 3 if category matching fails
-                setCoreExercises(picks.length >= 3 ? picks : data.slice(0, 3));
             } catch {}
         };
         fetchLibrary();
@@ -149,13 +138,6 @@ export default function Home() {
         setQueue(exercises);
         router.push('/playground');
     }, [missionExercises, setQueue, router]);
-
-    const handleWorkoutLogged = (intent: any) => {
-        addWorkout(intent);
-        startRestTimer(60);
-        setToastMessage(`Logged ${formatWorkoutSummary(intent)} to The Vault.`);
-        setShowToast(true);
-    };
 
     // ─────────────────────────────────────────────────────────────────────────
     return (
@@ -263,99 +245,95 @@ export default function Home() {
                             padding: '0 clamp(1.5rem, 5vw, 7rem)',
                         }}
                     >
-                        {/* Save to Phone */}
-                        <motion.button
-                            initial={{ opacity: 0, y: 24 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.35, type: 'spring', stiffness: 180, damping: 22 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => { hapticLight(); setShowInstallModal(true); }}
-                            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest backdrop-blur-md"
-                            style={{
-                                background:  'rgba(255,255,255,0.05)',
-                                border:      '1px solid rgba(255,255,255,0.08)',
-                                touchAction: 'manipulation',
-                            }}
-                        >
-                            <Smartphone size={13} className="opacity-60" />
-                        </motion.button>
-
-                        {/* Hear Today's Mission */}
-                        <motion.button
-                            initial={{ opacity: 0, y: 24 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4, type: 'spring', stiffness: 180, damping: 22 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={async () => {
-                                if (briefPlaying) return;
-                                hapticMedium();
-                                setBriefPlaying(true);
-                                try { await playBriefing(); } catch {}
-                                setBriefPlaying(false);
-                            }}
-                            disabled={briefPlaying}
-                            className="flex items-center gap-2 px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest backdrop-blur-md disabled:opacity-50"
-                            style={{
-                                background:  'rgba(255,255,255,0.07)',
-                                border:      '1px solid rgba(255,255,255,0.1)',
-                                touchAction: 'manipulation',
-                            }}
-                        >
-                            {briefPlaying
-                                ? <Loader2 size={14} className="animate-spin" />
-                                : <Volume2 size={14} />
-                            }
-                            {briefPlaying ? 'Loading…' : "Today's Mission"}
-                        </motion.button>
-
-                        {/* Quick Start */}
-                        {lastExercise && (
+                        {/* Left: phone icon + Today's Mission */}
+                        <div className="flex items-center gap-2">
                             <motion.button
                                 initial={{ opacity: 0, y: 24 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5, type: 'spring', stiffness: 180, damping: 22 }}
+                                transition={{ delay: 0.35, type: 'spring', stiffness: 180, damping: 22 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => { hapticMedium(); setQuickStartOpen(true); }}
-                                className="flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest"
+                                onClick={() => { hapticLight(); setShowInstallModal(true); }}
+                                className="w-10 h-10 flex items-center justify-center rounded-2xl backdrop-blur-md"
                                 style={{
-                                    background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}bb 100%)`,
-                                    color:       '#000',
-                                    boxShadow:   `0 0 28px ${theme.accent}50, 0 8px 32px rgba(0,0,0,0.45)`,
+                                    background:  'rgba(255,255,255,0.05)',
+                                    border:      '1px solid rgba(255,255,255,0.08)',
                                     touchAction: 'manipulation',
                                 }}
                             >
-                                <Zap size={14} fill="currentColor" />
-                                Quick Start
+                                <Smartphone size={14} className="opacity-50" />
                             </motion.button>
-                        )}
-                    </div>
 
-                    {/* ── Upgrade CTA — centered glass pill, free users only ── */}
-                    {!isPro && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.75, type: 'spring', stiffness: 260, damping: 28 }}
-                            className="absolute left-1/2 -translate-x-1/2 z-[10]"
-                            style={{ bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 20px) + 5.5rem)' }}
-                        >
                             <motion.button
-                                whileTap={{ scale: 0.96 }}
-                                onClick={() => { hapticMedium(); router.push('/join'); }}
-                                className="flex items-center gap-2 px-5 py-2.5 rounded-full font-black uppercase tracking-[0.2em] text-xs whitespace-nowrap backdrop-blur-md"
+                                initial={{ opacity: 0, y: 24 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4, type: 'spring', stiffness: 180, damping: 22 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={async () => {
+                                    if (briefPlaying) return;
+                                    hapticMedium();
+                                    setBriefPlaying(true);
+                                    try { await playBriefing(); } catch {}
+                                    setBriefPlaying(false);
+                                }}
+                                disabled={briefPlaying}
+                                className="flex items-center gap-2 px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest backdrop-blur-md disabled:opacity-50"
                                 style={{
-                                    background:  'rgba(255,215,0,0.10)',
-                                    border:      '1px solid rgba(255,215,0,0.35)',
-                                    color:       '#FFD700',
-                                    boxShadow:   '0 0 20px rgba(255,215,0,0.18), inset 0 1px 0 rgba(255,255,255,0.06)',
+                                    background:  'rgba(255,255,255,0.07)',
+                                    border:      '1px solid rgba(255,255,255,0.1)',
                                     touchAction: 'manipulation',
                                 }}
                             >
-                                <Crown size={12} fill="rgba(255,215,0,0.6)" color="#FFD700" />
-                                Start 7 Days Free
+                                {briefPlaying
+                                    ? <Loader2 size={14} className="animate-spin" />
+                                    : <Volume2 size={14} />
+                                }
+                                {briefPlaying ? 'Loading…' : "Today's Mission"}
                             </motion.button>
+                        </div>
+
+                        {/* Right: vertical stack — Upgrade + Quick Start */}
+                        <motion.div
+                            className="flex flex-col items-end gap-3"
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.45, type: 'spring', stiffness: 180, damping: 22 }}
+                        >
+                            {!isPro && (
+                                <motion.button
+                                    whileTap={{ scale: 0.96 }}
+                                    onClick={() => { hapticMedium(); router.push('/join'); }}
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-full font-black uppercase tracking-[0.2em] text-xs whitespace-nowrap backdrop-blur-md"
+                                    style={{
+                                        background:  'rgba(255,215,0,0.10)',
+                                        border:      '1px solid rgba(255,215,0,0.35)',
+                                        color:       '#FFD700',
+                                        boxShadow:   '0 0 20px rgba(255,215,0,0.15), inset 0 1px 0 rgba(255,255,255,0.06)',
+                                        touchAction: 'manipulation',
+                                    }}
+                                >
+                                    <Crown size={12} fill="rgba(255,215,0,0.6)" color="#FFD700" />
+                                    Start 7 Days Free
+                                </motion.button>
+                            )}
+
+                            {lastExercise && (
+                                <motion.button
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => { hapticMedium(); setQuickStartOpen(true); }}
+                                    className="flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest"
+                                    style={{
+                                        background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}bb 100%)`,
+                                        color:       '#000',
+                                        boxShadow:   `0 0 28px ${theme.accent}50, 0 8px 32px rgba(0,0,0,0.45)`,
+                                        touchAction: 'manipulation',
+                                    }}
+                                >
+                                    <Zap size={14} fill="currentColor" />
+                                    Quick Start
+                                </motion.button>
+                            )}
                         </motion.div>
-                    )}
+                    </div>
 
                     {/* ── Vitals strip — bottom-left, above scroll indicator ── */}
                     <VitalsStrip vitals={vitals} accentColor={theme.accent} />
@@ -394,100 +372,26 @@ export default function Home() {
 
                         <CircuitBuilder />
 
-                        {/* ── Armory ────────────────────────────────────────── */}
-                        <div className="mb-12">
-                            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-                                <h2
-                                    className="text-3xl font-bold tracking-tighter uppercase"
-                                    style={{
-                                        fontFamily: 'var(--font-archivo-black), sans-serif',
-                                        textShadow: `0 0 20px ${theme.accent}30`,
-                                    }}
-                                >
-                                    The <span style={{ color: theme.accent }}>Armory</span>
-                                </h2>
-
-                                {/* Home / Gym toggle */}
-                                <div
-                                    className="flex items-center rounded-2xl p-1 gap-1"
-                                    style={{
-                                        background: 'rgba(255,255,255,0.04)',
-                                        border:     '1px solid rgba(255,255,255,0.08)',
-                                    }}
-                                >
-                                    {(["gym", "home"] as const).map((mode) => {
-                                        const active = gymMode === mode;
-                                        return (
-                                            <button
-                                                key={mode}
-                                                onClick={() => setGymMode(mode)}
-                                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-[0.2em] transition-all duration-200"
-                                                style={{
-                                                    background: active ? theme.accent : 'transparent',
-                                                    color:      active ? '#000' : 'rgba(255,255,255,0.35)',
-                                                    boxShadow:  active ? `0 0 14px ${theme.accent}50` : 'none',
-                                                }}
-                                            >
-                                                {mode === "gym"
-                                                    ? <Building2 size={11} />
-                                                    : <Dumbbell  size={11} />
-                                                }
-                                                {mode === "gym" ? "Gym" : "Home"}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {(() => {
-                                    const filtered = gymMode === "home"
-                                        ? coreExercises.filter(ex => {
-                                              const n = ex.name.toLowerCase();
-                                              return !n.includes("barbell") && !n.includes("cable")
-                                                  && !n.includes("machine") && !n.includes("lat pulldown")
-                                                  && !n.includes("leg press") && !n.includes("t-bar")
-                                                  && !n.includes("ez bar") && !n.includes("smith");
-                                          })
-                                        : coreExercises;
-                                    if (coreExercises.length === 0) {
-                                        return (
-                                            <div className="col-span-3 h-48 rounded-[24px] border border-white/5 bg-black/20 flex items-center justify-center text-white/40 text-sm font-black uppercase tracking-widest">
-                                                Loading Armory…
-                                            </div>
-                                        );
-                                    }
-                                    if (filtered.length === 0) {
-                                        return (
-                                            <div className="col-span-3 h-48 rounded-[24px] flex flex-col items-center justify-center gap-3" style={{ border: `1px solid ${theme.accent}15`, background: `${theme.accent}05` }}>
-                                                <Dumbbell size={28} style={{ color: theme.accent, opacity: 0.5 }} />
-                                                <p className="text-[11px] font-black uppercase tracking-[0.35em] opacity-40">
-                                                    No home exercises in this view
-                                                </p>
-                                            </div>
-                                        );
-                                    }
-                                    return filtered.slice(0, 3).map((exercise, idx) => (
-                                        <div key={exercise.id} className="h-full">
-                                            <ExerciseCard
-                                                exercise={exercise}
-                                                delay={0.3 + idx * 0.1}
-                                                onStartWorkout={() => {}}
-                                            />
-                                        </div>
-                                    ));
-                                })()}
-                            </div>
-                        </div>
-
                         {/* ── CNS Neural Recovery ────────────────────────────── */}
                         <div className="mb-12">
-                            <div
+                            <motion.div
                                 className="relative rounded-[32px] overflow-hidden"
+                                animate={cnsScore >= 95 ? {
+                                    boxShadow: [
+                                        '0 0 40px rgba(76,200,76,0.12), 0 0 0 1px rgba(76,200,76,0.15)',
+                                        '0 0 60px rgba(76,200,76,0.22), 0 0 0 1px rgba(76,200,76,0.25)',
+                                        '0 0 40px rgba(76,200,76,0.12), 0 0 0 1px rgba(76,200,76,0.15)',
+                                    ],
+                                } : {}}
+                                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                                 style={{
                                     background: 'linear-gradient(135deg, #080808 0%, #0a0a0a 100%)',
-                                    border:     `1px solid ${theme.accent}18`,
-                                    boxShadow:  `0 0 40px ${theme.accent}08`,
+                                    border:     cnsScore >= 95
+                                        ? '1px solid rgba(76,200,76,0.3)'
+                                        : `1px solid ${theme.accent}18`,
+                                    boxShadow:  cnsScore >= 95
+                                        ? '0 0 40px rgba(76,200,76,0.12)'
+                                        : `0 0 30px ${theme.accent}08`,
                                 }}
                             >
                                 {/* Ambient grid */}
@@ -498,16 +402,45 @@ export default function Home() {
                                         backgroundSize:  "32px 32px",
                                     }}
                                 />
+
+                                {/* Pulsing mannequin silhouette */}
+                                <motion.div
+                                    className="absolute right-0 top-0 bottom-0 w-64 pointer-events-none overflow-hidden"
+                                    animate={{ opacity: [0.04, 0.08, 0.04] }}
+                                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                                >
+                                    <svg
+                                        viewBox="0 0 200 400"
+                                        className="absolute right-[-20px] top-1/2 -translate-y-1/2 h-full"
+                                        fill={cnsScore >= 95 ? '#4CC84C' : theme.accent}
+                                    >
+                                        {/* Head */}
+                                        <circle cx="100" cy="48" r="34" />
+                                        {/* Neck */}
+                                        <rect x="88" y="80" width="24" height="20" rx="4" />
+                                        {/* Torso */}
+                                        <path d="M55 100 L145 100 L158 220 L42 220 Z" />
+                                        {/* Left arm */}
+                                        <path d="M55 108 L18 190 Q14 200 20 205 L28 208 Q36 210 40 200 L72 125 Z" />
+                                        {/* Right arm */}
+                                        <path d="M145 108 L182 190 Q186 200 180 205 L172 208 Q164 210 160 200 L128 125 Z" />
+                                        {/* Left leg */}
+                                        <path d="M70 218 L58 340 Q56 355 66 358 L80 360 Q90 362 92 348 L98 224 Z" />
+                                        {/* Right leg */}
+                                        <path d="M130 218 L142 340 Q144 355 134 358 L120 360 Q110 362 108 348 L102 224 Z" />
+                                    </svg>
+                                </motion.div>
+
                                 <div
                                     className="absolute inset-0 pointer-events-none"
-                                    style={{ background: `radial-gradient(ellipse 50% 60% at 50% 50%, ${theme.accent}06 0%, transparent 70%)` }}
+                                    style={{ background: `radial-gradient(ellipse 55% 65% at 35% 50%, ${cnsScore >= 95 ? 'rgba(76,200,76,0.06)' : theme.accent + '06'} 0%, transparent 70%)` }}
                                 />
 
                                 <div className="relative flex flex-col md:flex-row items-center md:items-start gap-8 px-8 py-10">
                                     {/* Ring */}
-                                    <div className="shrink-0">
+                                    <div className="shrink-0 pb-8 md:pb-0">
                                         <NeuralRecoveryRing
-                                            accent={theme.accent}
+                                            accent={cnsScore >= 95 ? '#4CC84C' : theme.accent}
                                             vitals={vitals}
                                         />
                                     </div>
@@ -521,37 +454,44 @@ export default function Home() {
                                             <h3
                                                 className="text-3xl font-black uppercase leading-tight"
                                                 style={{
-                                                    fontFamily: 'var(--font-archivo-black), sans-serif',
-                                                    color:      theme.accent,
-                                                    textShadow: `0 0 30px ${theme.accent}40`,
+                                                    fontFamily:    'var(--font-archivo-black), sans-serif',
+                                                    color:         cnsScore >= 95 ? '#4CC84C' : theme.accent,
+                                                    textShadow:    `0 0 30px ${cnsScore >= 95 ? 'rgba(76,200,76,0.5)' : theme.accent + '40'}`,
                                                     letterSpacing: '-0.03em',
                                                 }}
                                             >
-                                                Neural<br />Recovery
+                                                {cnsScore >= 95 ? 'Fully\nRecovered' : 'Neural\nRecovery'}
                                             </h3>
                                         </div>
 
-                                        {/* Metric rows */}
+                                        {/* Metric rows — now using real data */}
                                         {[
-                                            { label: "Fatigue Index",       value: `${Math.max(0, 100 - Math.floor((vitals.currentStreak * 2) % 40))}%` },
-                                            { label: "Readiness Score",     value: `${Math.min(100, 72 + vitals.currentStreak)}%` },
-                                            { label: "Recovery Window",     value: vitals.currentStreak > 3 ? "Active" : "Building" },
+                                            { label: "Fatigue Index",   value: `${100 - cnsScore}%` },
+                                            { label: "Readiness",       value: `${cnsScore}%` },
+                                            { label: "Recovery Window", value: cnsScore >= 95 ? "Full Power" : `${Math.ceil((100 - cnsScore) * 0.24)}h remaining` },
                                         ].map(({ label, value }) => (
                                             <div key={label} className="flex items-center justify-between">
                                                 <p className="text-[11px] font-black uppercase tracking-widest opacity-35">{label}</p>
-                                                <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: theme.accent }}>{value}</p>
+                                                <p
+                                                    className="text-[11px] font-black uppercase tracking-widest"
+                                                    style={{ color: cnsScore >= 95 ? '#4CC84C' : theme.accent }}
+                                                >
+                                                    {value}
+                                                </p>
                                             </div>
                                         ))}
 
-                                        {/* Divider */}
-                                        <div className="h-px" style={{ background: `linear-gradient(90deg, ${theme.accent}30, transparent)` }} />
+                                        <div className="h-px" style={{ background: `linear-gradient(90deg, ${cnsScore >= 95 ? 'rgba(76,200,76,0.3)' : theme.accent + '30'}, transparent)` }} />
 
                                         <p className="text-[11px] opacity-25 leading-relaxed">
-                                            Training frequency and consistency fuel your CNS recovery score. The more you show up, the stronger your neural pathway becomes.
+                                            {cnsScore >= 95
+                                                ? 'Your nervous system is primed. This is the window to push maximum intensity.'
+                                                : 'Training frequency and recovery fuel your CNS score. The more consistent you are, the stronger your neural pathways become.'
+                                            }
                                         </p>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         </div>
 
                         {/* Bento Grid */}
