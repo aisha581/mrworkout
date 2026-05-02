@@ -496,6 +496,7 @@ export default function JoinPage() {
     const [step, setStep]     = useState<"name" | "pricing">("name");
     const [userName, setUserName] = useState("");
     const [loadingPlan, setLoadingPlan] = useState<"monthly" | "annual" | null>(null);
+    const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [showPWA, setShowPWA]    = useState(false);
     const [pwaDismissed, setPwaDismissed] = useState(false);
 
@@ -535,6 +536,8 @@ export default function JoinPage() {
 
     const checkout = async (plan: "monthly" | "annual") => {
         plan === "annual" ? hapticHeavy() : hapticMedium();
+        setCheckoutError(null);
+
         if (!session) {
             try { sessionStorage.setItem("mw_join_plan", plan); } catch {}
             signIn("google", { callbackUrl: "/auth-redirect" });
@@ -552,10 +555,19 @@ export default function JoinPage() {
                     plan,
                 }),
             });
-            const { url, error } = await res.json();
-            if (url)   window.location.href = url;
-            if (error) setLoadingPlan(null);
-        } catch {
+            const json = await res.json();
+            if (json.url) {
+                window.location.href = json.url;
+                return;
+            }
+            const msg = json.error ?? "Checkout failed — please try again.";
+            console.error("[Checkout]", msg);
+            setCheckoutError(msg);
+        } catch (err: any) {
+            const msg = err?.message ?? "Network error — check your connection.";
+            console.error("[Checkout]", msg);
+            setCheckoutError(msg);
+        } finally {
             setLoadingPlan(null);
         }
     };
@@ -699,6 +711,35 @@ export default function JoinPage() {
                                 After this, annual pricing rises to $149/yr
                             </p>
                         </motion.div>
+
+                        {/* ── Checkout error banner ─────────────────────────── */}
+                        <AnimatePresence>
+                            {checkoutError && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -8, height: 0 }}
+                                    animate={{ opacity: 1, y: 0, height: "auto" }}
+                                    exit={{ opacity: 0, y: -8, height: 0 }}
+                                    className="overflow-hidden mb-4"
+                                >
+                                    <div
+                                        className="rounded-2xl px-4 py-3 flex items-start gap-3 text-xs font-medium"
+                                        style={{
+                                            background: "rgba(239,68,68,0.1)",
+                                            border:     "1px solid rgba(239,68,68,0.25)",
+                                            color:      "#fca5a5",
+                                        }}
+                                    >
+                                        <span className="shrink-0 mt-0.5">⚠</span>
+                                        <span className="leading-snug">{checkoutError}</span>
+                                        <button
+                                            onClick={() => setCheckoutError(null)}
+                                            className="ml-auto shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+                                            aria-label="Dismiss"
+                                        >✕</button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
                         {/* ── Pricing cards ─────────────────────────────────── */}
                         <div className="flex flex-col gap-4 mb-8">
