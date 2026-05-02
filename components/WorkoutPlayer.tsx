@@ -614,16 +614,34 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
                                 </motion.p>
                             )}
 
+                            {/* Primary advance button */}
                             <button
                                 onClick={advanceAfterRest}
-                                className="mt-8 px-8 py-[13px] rounded-2xl text-white font-black uppercase text-[11px] tracking-[0.3em] active:scale-[0.97] transition-transform"
+                                className="mt-8 px-10 py-[15px] rounded-2xl text-black font-black uppercase text-[11px] tracking-[0.3em] active:scale-[0.97] transition-transform"
                                 style={{
-                                    ...glassCircle, ...touchBtn,
-                                    border:    '1px solid rgba(0,207,255,0.35)',
-                                    boxShadow: '0 0 18px rgba(0,207,255,0.2), 0 4px 20px rgba(0,0,0,0.4)',
+                                    ...touchBtn,
+                                    background: '#00CFFF',
+                                    boxShadow:  '0 0 30px rgba(0,207,255,0.55), 0 4px 24px rgba(0,0,0,0.5)',
                                 }}
                             >
                                 {currentSet < totalSets ? `START SET ${currentSet + 1}` : nextEx ? 'NEXT EXERCISE' : 'FINISH'}
+                            </button>
+
+                            {/* Skip rest */}
+                            <button
+                                onClick={advanceAfterRest}
+                                className="mt-3 flex items-center gap-1.5 px-5 py-2 rounded-full font-black uppercase text-[9px] tracking-[0.25em] active:scale-95 transition-transform"
+                                style={{
+                                    ...touchBtn,
+                                    background: 'rgba(0,207,255,0.08)',
+                                    border:     '1px solid rgba(0,207,255,0.25)',
+                                    color:      'rgba(0,207,255,0.7)',
+                                }}
+                            >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M5.5 5H7v14H5.5V5zm2.5.86L17.77 12 8 18.14V5.86z"/>
+                                </svg>
+                                SKIP REST
                             </button>
 
                             {/* Rest PiP — main video paused, decoder fully free */}

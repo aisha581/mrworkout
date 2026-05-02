@@ -3,7 +3,7 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkout } from '@/contexts/WorkoutContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Timer, X } from 'lucide-react';
+import { Timer, X, SkipForward } from 'lucide-react';
 
 export default function RestTimer() {
     const { theme } = useTheme();
@@ -62,12 +62,26 @@ export default function RestTimer() {
                             </span>
                         </div>
 
-                        {/* Stop Button */}
+                        {/* Skip button */}
                         <button
                             onClick={stopRestTimer}
-                            className="ml-2 w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                            className="ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full font-black uppercase text-[9px] tracking-[0.2em] transition-all active:scale-95"
+                            style={{
+                                background:  `${theme.accent}20`,
+                                border:      `1px solid ${theme.accent}50`,
+                                color:       theme.accent,
+                            }}
                         >
-                            <X size={16} className="opacity-60 hover:opacity-100" />
+                            <SkipForward size={11} />
+                            SKIP
+                        </button>
+
+                        {/* Dismiss */}
+                        <button
+                            onClick={stopRestTimer}
+                            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                        >
+                            <X size={14} className="opacity-40 hover:opacity-80" />
                         </button>
                     </motion.div>
                 </motion.div>

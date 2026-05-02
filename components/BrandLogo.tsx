@@ -28,12 +28,12 @@ export default function BrandLogo({
         return (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-                src="/brand-icon.png"
+                src="/logo.jpg"
                 alt="Mr. Workout"
                 width={size}
                 height={size}
                 className={`object-contain ${className}`}
-                style={{ width: size, height: size }}
+                style={{ width: size, height: size, mixBlendMode: "screen" }}
                 onError={() => setImgFailed(true)}
             />
         );

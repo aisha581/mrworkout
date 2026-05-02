@@ -35,7 +35,9 @@ import { hapticMedium, hapticLight } from "@/utils/haptic";
 import BiometricScan, { shouldShowScan } from "@/components/BiometricScan";
 import XPBar from "@/components/XPBar";
 import { playBriefing } from "@/utils/audio";
-import { Zap, ChevronDown, Flame, Trophy, Lock, Crown, Volume2, Loader2 } from "lucide-react";
+import { Zap, ChevronDown, Flame, Trophy, Lock, Crown, Volume2, Loader2, Smartphone, Dumbbell, Building2 } from "lucide-react";
+import NeuralRecoveryRing from "@/components/NeuralRecoveryRing";
+import AddToHomeModal from "@/components/AddToHomeModal";
 
 // Canvas cannot be server-rendered — load only on the client
 const MannequinCanvas = dynamic(() => import("@/components/MannequinCanvas"), {
@@ -75,6 +77,12 @@ export default function Home() {
 
     // Pro status
     const { isPro } = useIsPro();
+
+    // Armory filter
+    const [gymMode, setGymMode] = useState<"gym" | "home">("gym");
+
+    // iOS install modal
+    const [showInstallModal, setShowInstallModal] = useState(false);
 
     // ── Library fetch ──────────────────────────────────────────────────────────
     useEffect(() => {
@@ -238,6 +246,23 @@ export default function Home() {
                             padding: '0 clamp(1.5rem, 5vw, 7rem)',
                         }}
                     >
+                        {/* Save to Phone */}
+                        <motion.button
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.35, type: 'spring', stiffness: 180, damping: 22 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => { hapticLight(); setShowInstallModal(true); }}
+                            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest backdrop-blur-md"
+                            style={{
+                                background:  'rgba(255,255,255,0.05)',
+                                border:      '1px solid rgba(255,255,255,0.08)',
+                                touchAction: 'manipulation',
+                            }}
+                        >
+                            <Smartphone size={13} className="opacity-60" />
+                        </motion.button>
+
                         {/* Hear Today's Mission */}
                         <motion.button
                             initial={{ opacity: 0, y: 24 }}
@@ -352,20 +377,80 @@ export default function Home() {
 
                         <CircuitBuilder />
 
-                        {/* Core Movements */}
+                        {/* ── Armory ────────────────────────────────────────── */}
                         <div className="mb-12">
-                            <h2
-                                className="text-3xl font-bold mb-6 tracking-tighter uppercase"
-                                style={{
-                                    fontFamily: 'var(--font-archivo-black), sans-serif',
-                                    textShadow: theme.mode === 'savage' ? `0 0 20px ${theme.accent}40` : 'none',
-                                }}
-                            >
-                                Core <span style={{ color: theme.accent }}>Movements</span>
-                            </h2>
+                            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+                                <h2
+                                    className="text-3xl font-bold tracking-tighter uppercase"
+                                    style={{
+                                        fontFamily: 'var(--font-archivo-black), sans-serif',
+                                        textShadow: `0 0 20px ${theme.accent}30`,
+                                    }}
+                                >
+                                    The <span style={{ color: theme.accent }}>Armory</span>
+                                </h2>
+
+                                {/* Home / Gym toggle */}
+                                <div
+                                    className="flex items-center rounded-2xl p-1 gap-1"
+                                    style={{
+                                        background: 'rgba(255,255,255,0.04)',
+                                        border:     '1px solid rgba(255,255,255,0.08)',
+                                    }}
+                                >
+                                    {(["gym", "home"] as const).map((mode) => {
+                                        const active = gymMode === mode;
+                                        return (
+                                            <button
+                                                key={mode}
+                                                onClick={() => setGymMode(mode)}
+                                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-[0.2em] transition-all duration-200"
+                                                style={{
+                                                    background: active ? theme.accent : 'transparent',
+                                                    color:      active ? '#000' : 'rgba(255,255,255,0.35)',
+                                                    boxShadow:  active ? `0 0 14px ${theme.accent}50` : 'none',
+                                                }}
+                                            >
+                                                {mode === "gym"
+                                                    ? <Building2 size={11} />
+                                                    : <Dumbbell  size={11} />
+                                                }
+                                                {mode === "gym" ? "Gym" : "Home"}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {coreExercises.length > 0 ? (
-                                    coreExercises.map((exercise, idx) => (
+                                {(() => {
+                                    const filtered = gymMode === "home"
+                                        ? coreExercises.filter(ex => {
+                                              const n = ex.name.toLowerCase();
+                                              return !n.includes("barbell") && !n.includes("cable")
+                                                  && !n.includes("machine") && !n.includes("lat pulldown")
+                                                  && !n.includes("leg press") && !n.includes("t-bar")
+                                                  && !n.includes("ez bar") && !n.includes("smith");
+                                          })
+                                        : coreExercises;
+                                    if (coreExercises.length === 0) {
+                                        return (
+                                            <div className="col-span-3 h-48 rounded-[24px] border border-white/5 bg-black/20 flex items-center justify-center text-white/40 text-sm font-black uppercase tracking-widest">
+                                                Loading Armory…
+                                            </div>
+                                        );
+                                    }
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="col-span-3 h-48 rounded-[24px] flex flex-col items-center justify-center gap-3" style={{ border: `1px solid ${theme.accent}15`, background: `${theme.accent}05` }}>
+                                                <Dumbbell size={28} style={{ color: theme.accent, opacity: 0.5 }} />
+                                                <p className="text-[11px] font-black uppercase tracking-[0.35em] opacity-40">
+                                                    No home exercises in this view
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+                                    return filtered.slice(0, 3).map((exercise, idx) => (
                                         <div key={exercise.id} className="h-full">
                                             <ExerciseCard
                                                 exercise={exercise}
@@ -373,12 +458,83 @@ export default function Home() {
                                                 onStartWorkout={() => {}}
                                             />
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="col-span-3 h-48 rounded-[24px] border border-white/5 bg-black/20 flex items-center justify-center text-white/40">
-                                        Loading Armory Data...
+                                    ));
+                                })()}
+                            </div>
+                        </div>
+
+                        {/* ── CNS Neural Recovery ────────────────────────────── */}
+                        <div className="mb-12">
+                            <div
+                                className="relative rounded-[32px] overflow-hidden"
+                                style={{
+                                    background: 'linear-gradient(135deg, #080808 0%, #0a0a0a 100%)',
+                                    border:     `1px solid ${theme.accent}18`,
+                                    boxShadow:  `0 0 40px ${theme.accent}08`,
+                                }}
+                            >
+                                {/* Ambient grid */}
+                                <div
+                                    className="absolute inset-0 pointer-events-none opacity-[0.018]"
+                                    style={{
+                                        backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
+                                        backgroundSize:  "32px 32px",
+                                    }}
+                                />
+                                <div
+                                    className="absolute inset-0 pointer-events-none"
+                                    style={{ background: `radial-gradient(ellipse 50% 60% at 50% 50%, ${theme.accent}06 0%, transparent 70%)` }}
+                                />
+
+                                <div className="relative flex flex-col md:flex-row items-center md:items-start gap-8 px-8 py-10">
+                                    {/* Ring */}
+                                    <div className="shrink-0">
+                                        <NeuralRecoveryRing
+                                            accent={theme.accent}
+                                            streak={vitals.currentStreak}
+                                            totalXP={vitals.totalXP}
+                                        />
                                     </div>
-                                )}
+
+                                    {/* Right panel */}
+                                    <div className="flex-1 flex flex-col justify-center gap-5 min-w-0">
+                                        <div>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.55em] opacity-30 mb-1">
+                                                Central Nervous System
+                                            </p>
+                                            <h3
+                                                className="text-3xl font-black uppercase leading-tight"
+                                                style={{
+                                                    fontFamily: 'var(--font-archivo-black), sans-serif',
+                                                    color:      theme.accent,
+                                                    textShadow: `0 0 30px ${theme.accent}40`,
+                                                    letterSpacing: '-0.03em',
+                                                }}
+                                            >
+                                                Neural<br />Recovery
+                                            </h3>
+                                        </div>
+
+                                        {/* Metric rows */}
+                                        {[
+                                            { label: "Fatigue Index",       value: `${Math.max(0, 100 - Math.floor((vitals.currentStreak * 2) % 40))}%` },
+                                            { label: "Readiness Score",     value: `${Math.min(100, 72 + vitals.currentStreak)}%` },
+                                            { label: "Recovery Window",     value: vitals.currentStreak > 3 ? "Active" : "Building" },
+                                        ].map(({ label, value }) => (
+                                            <div key={label} className="flex items-center justify-between">
+                                                <p className="text-[11px] font-black uppercase tracking-widest opacity-35">{label}</p>
+                                                <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: theme.accent }}>{value}</p>
+                                            </div>
+                                        ))}
+
+                                        {/* Divider */}
+                                        <div className="h-px" style={{ background: `linear-gradient(90deg, ${theme.accent}30, transparent)` }} />
+
+                                        <p className="text-[11px] opacity-25 leading-relaxed">
+                                            Training frequency and consistency fuel your CNS recovery score. The more you show up, the stronger your neural pathway becomes.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -473,6 +629,13 @@ export default function Home() {
                         onComplete={() => setShowScan(false)}
                     />
                 )}
+
+                {/* iOS Add to Home Screen modal */}
+                <AddToHomeModal
+                    isOpen={showInstallModal}
+                    onClose={() => setShowInstallModal(false)}
+                    accent={theme.accent}
+                />
 
 
             </motion.main>
