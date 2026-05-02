@@ -986,6 +986,520 @@ export const EXERCISE_LIBRARY: Exercise[] = [
         imagePlaceholder: '/images/core-bg.jpg',
         videoUrl: 'https://btmopyfbuvylmdfwqfuo.supabase.co/storage/v1/object/public/exercise-library/suitcase-crunch-with-ball.mp4',
     },
+
+    // ── 50 NEW SAVAGE MANEUVERS ───────────────────────────────────────────────
+
+    // Chest
+    {
+        id: 'aa01bb02-cc03-4dd0-ee05-ff0611223344',
+        name: 'Dumbbell Bench Press',
+        category: 'Chest',
+        targetMuscle: 'Chest',
+        defaultRest: 90,
+        defaultReps: 10,
+        savageTip: "Let the dumbbells drop deeper than a barbell ever could. Full stretch, full power, full pecs.",
+        imagePlaceholder: '/images/bench-placeholder.jpg',
+    },
+    {
+        id: 'aa02bb03-cc04-4dd1-ee06-ff0722334455',
+        name: 'Push-Up',
+        category: 'Chest',
+        targetMuscle: 'Chest',
+        defaultRest: 60,
+        defaultReps: 20,
+        savageTip: "Body is a steel plank. Chest touches the floor, arms lock out. No sagging hips allowed.",
+        imagePlaceholder: '/images/bench-placeholder.jpg',
+    },
+    {
+        id: 'aa03bb04-cc05-4dd2-ee07-ff0833445566',
+        name: 'Pec Deck Machine',
+        category: 'Chest',
+        targetMuscle: 'Inner Chest',
+        defaultRest: 60,
+        defaultReps: 15,
+        savageTip: "Control the eccentric — don't let the stack pull your arms back. Squeeze and hold for one count.",
+        imagePlaceholder: '/images/bench-placeholder.jpg',
+    },
+    {
+        id: 'aa04bb05-cc06-4dd3-ee08-ff0944556677',
+        name: 'Low to High Cable Fly',
+        category: 'Chest',
+        targetMuscle: 'Upper Chest',
+        defaultRest: 45,
+        defaultReps: 15,
+        savageTip: "Cables set at the lowest point. Arc upward and across — upper pec gets the full contraction.",
+        imagePlaceholder: '/images/bench-placeholder.jpg',
+    },
+    {
+        id: 'aa05bb06-cc07-4dd4-ee09-ff1055667788',
+        name: 'Dumbbell Pullover',
+        category: 'Chest',
+        targetMuscle: 'Lower Chest',
+        defaultRest: 60,
+        defaultReps: 12,
+        savageTip: "Arms slightly bent, lower the weight behind the skull. Feel the chest and serratus stretch hard.",
+        imagePlaceholder: '/images/bench-placeholder.jpg',
+    },
+    {
+        id: 'aa06bb07-cc08-4dd5-ee10-ff1166778899',
+        name: 'Svend Press',
+        category: 'Chest',
+        targetMuscle: 'Inner Chest',
+        defaultRest: 45,
+        defaultReps: 15,
+        savageTip: "Squeeze two plates together like your life depends on it. Press out and pull back in. All chest.",
+        imagePlaceholder: '/images/bench-placeholder.jpg',
+    },
+    {
+        id: 'aa07bb08-cc09-4dd6-ee11-ff1277889900',
+        name: 'Landmine Press',
+        category: 'Chest',
+        targetMuscle: 'Upper Chest',
+        defaultRest: 90,
+        defaultReps: 10,
+        savageTip: "Single arm, angled press. Locks the shoulder in safe position while torching the upper pec.",
+        imagePlaceholder: '/images/bench-placeholder.jpg',
+    },
+    {
+        id: 'aa08bb09-cc10-4dd7-ee12-ff1388990011',
+        name: 'Incline Smith Machine Press',
+        category: 'Chest',
+        targetMuscle: 'Upper Chest',
+        defaultRest: 90,
+        defaultReps: 10,
+        savageTip: "Smith keeps the bar path locked. Focus 100% on pressing with the upper pec. Touch the chest every rep.",
+        imagePlaceholder: '/images/bench-placeholder.jpg',
+    },
+
+    // Back
+    {
+        id: 'bb01cc02-dd03-4ee0-ff05-001122334455',
+        name: 'Face Pull',
+        category: 'Back',
+        targetMuscle: 'Rear Delts',
+        defaultRest: 45,
+        defaultReps: 20,
+        savageTip: "Rope to the face, elbows flared high. External rotation at the end is the money move.",
+        imagePlaceholder: '/images/pulldown-placeholder.jpg',
+    },
+    {
+        id: 'bb02cc03-dd04-4ee1-ff06-002233445566',
+        name: 'Chest Supported Row',
+        category: 'Back',
+        targetMuscle: 'Rhomboids',
+        defaultRest: 60,
+        defaultReps: 12,
+        savageTip: "Chest on the pad removes any chance of cheating. Pull with pure back strength. Squeeze hard.",
+        imagePlaceholder: '/images/pulldown-placeholder.jpg',
+    },
+    {
+        id: 'bb03cc04-dd05-4ee2-ff07-003344556677',
+        name: 'Reverse Grip Lat Pulldown',
+        category: 'Back',
+        targetMuscle: 'Lats',
+        defaultRest: 60,
+        defaultReps: 12,
+        savageTip: "Supinated grip targets the lower lats. Pull to the upper chest and hold the peak squeeze.",
+        imagePlaceholder: '/images/pulldown-placeholder.jpg',
+    },
+    {
+        id: 'bb04cc05-dd06-4ee3-ff08-004455667788',
+        name: 'Rack Pull',
+        category: 'Back',
+        targetMuscle: 'Lower Back',
+        defaultRest: 120,
+        defaultReps: 5,
+        savageTip: "Bar starts above the knee. Load heavy. Hinge and drive your hips forward — trap and back domination.",
+        imagePlaceholder: '/images/deadlift-placeholder.jpg',
+    },
+    {
+        id: 'bb05cc06-dd07-4ee4-ff09-005566778899',
+        name: 'Seal Row',
+        category: 'Back',
+        targetMuscle: 'Rhomboids',
+        defaultRest: 60,
+        defaultReps: 10,
+        savageTip: "Chest on the bench, arms hang free. Pull to the chest with zero body English. Pure back.",
+        imagePlaceholder: '/images/pulldown-placeholder.jpg',
+    },
+    {
+        id: 'bb06cc07-dd08-4ee5-ff10-006677889900',
+        name: 'Cable Straight Arm Pulldown',
+        category: 'Back',
+        targetMuscle: 'Lats',
+        defaultRest: 45,
+        defaultReps: 15,
+        savageTip: "Arms straight throughout. Pull the cable to your hips and feel the lats from armpit to hip.",
+        imagePlaceholder: '/images/pulldown-placeholder.jpg',
+    },
+    {
+        id: 'bb07cc08-dd09-4ee6-ff11-007788990011',
+        name: 'Pendlay Row',
+        category: 'Back',
+        targetMuscle: 'Rhomboids',
+        defaultRest: 90,
+        defaultReps: 6,
+        savageTip: "Bar returns to the floor each rep. Explosive pull from a dead stop. This builds real power.",
+        imagePlaceholder: '/images/deadlift-placeholder.jpg',
+    },
+    {
+        id: 'bb08cc09-dd10-4ee7-ff12-008899001122',
+        name: 'Meadows Row',
+        category: 'Back',
+        targetMuscle: 'Lats',
+        defaultRest: 60,
+        defaultReps: 10,
+        savageTip: "Landmine grip, staggered stance. Pull to the hip with a massive lat stretch. Brutal and effective.",
+        imagePlaceholder: '/images/pulldown-placeholder.jpg',
+    },
+
+    // Legs
+    {
+        id: 'cc01dd02-ee03-4ff0-0011-112233445566',
+        name: 'Hack Squat',
+        category: 'Legs',
+        targetMuscle: 'Quads',
+        defaultRest: 90,
+        defaultReps: 10,
+        savageTip: "Feet low on the platform to torch the quads. Full depth, drive your back into the pad.",
+        imagePlaceholder: '/images/legs-bg.jpg',
+    },
+    {
+        id: 'cc02dd03-ee04-4ff1-0012-223344556677',
+        name: 'Leg Curl',
+        category: 'Legs',
+        targetMuscle: 'Hamstrings',
+        defaultRest: 60,
+        defaultReps: 12,
+        savageTip: "Curl to full contraction and fight the negative. Hamstrings grow in the lowering phase.",
+        imagePlaceholder: '/images/legs-bg.jpg',
+    },
+    {
+        id: 'cc03dd04-ee05-4ff2-0013-334455667788',
+        name: 'Leg Extension',
+        category: 'Legs',
+        targetMuscle: 'Quads',
+        defaultRest: 45,
+        defaultReps: 15,
+        savageTip: "Lock out at the top and hold for a full second. Feel the teardrop fire with every rep.",
+        imagePlaceholder: '/images/legs-bg.jpg',
+    },
+    {
+        id: 'cc04dd05-ee06-4ff3-0014-445566778899',
+        name: 'Walking Lunges',
+        category: 'Legs',
+        targetMuscle: 'Quads',
+        defaultRest: 60,
+        defaultReps: 20,
+        savageTip: "Long stride, back knee almost touches the floor. Drive through the front heel to stand.",
+        imagePlaceholder: '/images/legs-bg.jpg',
+    },
+    {
+        id: 'cc05dd06-ee07-4ff4-0015-556677889900',
+        name: 'Dumbbell Goblet Squat',
+        category: 'Legs',
+        targetMuscle: 'Quads',
+        defaultRest: 60,
+        defaultReps: 15,
+        savageTip: "Hold the dumbbell vertically at your chest. Elbows inside the knees forces perfect depth.",
+        imagePlaceholder: '/images/legs-bg.jpg',
+    },
+    {
+        id: 'cc06dd07-ee08-4ff5-0016-667788990011',
+        name: 'Cable Glute Kickback',
+        category: 'Legs',
+        targetMuscle: 'Glutes',
+        defaultRest: 45,
+        defaultReps: 15,
+        savageTip: "Ankle attachment, kick straight back. Squeeze the glute at peak contraction and hold it.",
+        imagePlaceholder: '/images/legs-bg.jpg',
+    },
+    {
+        id: 'cc07dd08-ee09-4ff6-0017-778899001122',
+        name: 'Sumo Squat',
+        category: 'Legs',
+        targetMuscle: 'Glutes',
+        defaultRest: 60,
+        defaultReps: 15,
+        savageTip: "Wide stance, toes out to 45. Sit straight down and drive the knees out on the way up.",
+        imagePlaceholder: '/images/legs-bg.jpg',
+    },
+    {
+        id: 'cc08dd09-ee10-4ff7-0018-889900112233',
+        name: 'Step Up',
+        category: 'Legs',
+        targetMuscle: 'Quads',
+        defaultRest: 60,
+        defaultReps: 12,
+        savageTip: "Drive through the heel of the top foot. Don't push off the back foot — single leg power.",
+        imagePlaceholder: '/images/legs-bg.jpg',
+    },
+    {
+        id: 'cc09dd10-ee11-4ff8-0019-990011223344',
+        name: 'Nordic Hamstring Curl',
+        category: 'Legs',
+        targetMuscle: 'Hamstrings',
+        defaultRest: 120,
+        defaultReps: 5,
+        savageTip: "Feet anchored, lower your body as slowly as possible. This is the king of hamstring strength.",
+        imagePlaceholder: '/images/legs-bg.jpg',
+    },
+    {
+        id: 'cc10dd11-ee12-4ff9-0020-001122334455',
+        name: 'Box Jump',
+        category: 'Legs',
+        targetMuscle: 'Quads',
+        defaultRest: 60,
+        defaultReps: 8,
+        savageTip: "Full hip extension at the top. Land soft and absorb — don't just crash onto the box.",
+        imagePlaceholder: '/images/legs-bg.jpg',
+    },
+
+    // Shoulders
+    {
+        id: 'dd01ee02-ff03-4001-1122-334455667788',
+        name: 'Arnold Press',
+        category: 'Shoulders',
+        targetMuscle: 'Anterior Delts',
+        defaultRest: 90,
+        defaultReps: 10,
+        savageTip: "Rotate from palms facing you to palms out as you press. Hits all three delt heads every rep.",
+        imagePlaceholder: '/images/pushdown-placeholder.jpg',
+    },
+    {
+        id: 'dd02ee03-ff04-4002-1123-445566778899',
+        name: 'Cable Lateral Raise',
+        category: 'Shoulders',
+        targetMuscle: 'Medial Delts',
+        defaultRest: 45,
+        defaultReps: 15,
+        savageTip: "Cable keeps tension on the delt at the bottom — dumbbells don't. Keep the elbow soft, raise to ear level.",
+        imagePlaceholder: '/images/pushdown-placeholder.jpg',
+    },
+    {
+        id: 'dd03ee04-ff05-4003-1124-556677889900',
+        name: 'Barbell Upright Row',
+        category: 'Shoulders',
+        targetMuscle: 'Medial Delts',
+        defaultRest: 60,
+        defaultReps: 12,
+        savageTip: "Pull to chin height, elbows above the bar. Lead with the elbows, not the hands.",
+        imagePlaceholder: '/images/pushdown-placeholder.jpg',
+    },
+    {
+        id: 'dd04ee05-ff06-4004-1125-667788990011',
+        name: 'Landmine Lateral Raise',
+        category: 'Shoulders',
+        targetMuscle: 'Medial Delts',
+        defaultRest: 45,
+        defaultReps: 12,
+        savageTip: "The arc of the landmine forces constant tension. Control the descent — that's where it grows.",
+        imagePlaceholder: '/images/pushdown-placeholder.jpg',
+    },
+    {
+        id: 'dd05ee06-ff07-4005-1126-778899001122',
+        name: 'Cable Y Raise',
+        category: 'Shoulders',
+        targetMuscle: 'Rear Delts',
+        defaultRest: 45,
+        defaultReps: 15,
+        savageTip: "Arms form a Y overhead. Cables set low, raise and hold. Posterior chain and rear delts fire hard.",
+        imagePlaceholder: '/images/pushdown-placeholder.jpg',
+    },
+    {
+        id: 'dd06ee07-ff08-4006-1127-889900112233',
+        name: 'Machine Shoulder Press',
+        category: 'Shoulders',
+        targetMuscle: 'Anterior Delts',
+        defaultRest: 90,
+        defaultReps: 12,
+        savageTip: "Machine locks the path. Go heavy and focus on contracting the delt — not moving the weight.",
+        imagePlaceholder: '/images/pushdown-placeholder.jpg',
+    },
+
+    // Arms
+    {
+        id: 'ee01ff02-0003-4001-2233-445566778899',
+        name: 'Hammer Curl',
+        category: 'Arms',
+        targetMuscle: 'Biceps',
+        defaultRest: 60,
+        defaultReps: 12,
+        savageTip: "Neutral grip hits the brachialis and brachioradialis. Curl to shoulder height. No rotation needed.",
+        imagePlaceholder: '/images/curl-placeholder.jpg',
+    },
+    {
+        id: 'ee02ff03-0004-4002-2234-556677889900',
+        name: 'Spider Curl',
+        category: 'Arms',
+        targetMuscle: 'Biceps',
+        defaultRest: 60,
+        defaultReps: 12,
+        savageTip: "Chest on the incline pad, arms hang free. No momentum possible. Pure bicep peak contraction.",
+        imagePlaceholder: '/images/curl-placeholder.jpg',
+    },
+    {
+        id: 'ee03ff04-0005-4003-2235-667788990011',
+        name: 'Overhead Cable Tricep Extension',
+        category: 'Arms',
+        targetMuscle: 'Triceps',
+        defaultRest: 60,
+        defaultReps: 12,
+        savageTip: "Arms overhead puts the long head on stretch. Extend fully — that's where the mass comes from.",
+        imagePlaceholder: '/images/pushdown-placeholder.jpg',
+    },
+    {
+        id: 'ee04ff05-0006-4004-2236-778899001122',
+        name: 'Skull Crusher',
+        category: 'Arms',
+        targetMuscle: 'Triceps',
+        defaultRest: 90,
+        defaultReps: 10,
+        savageTip: "Lower the bar to the forehead, elbows pointing at the ceiling. Extend hard. Earn the name.",
+        imagePlaceholder: '/images/pushdown-placeholder.jpg',
+    },
+    {
+        id: 'ee05ff06-0007-4005-2237-889900112233',
+        name: 'Reverse Curl',
+        category: 'Arms',
+        targetMuscle: 'Biceps',
+        defaultRest: 60,
+        defaultReps: 12,
+        savageTip: "Overhand grip torches the brachioradialis. Keep elbows pinned. Your forearms will be on fire.",
+        imagePlaceholder: '/images/curl-placeholder.jpg',
+    },
+    {
+        id: 'ee06ff07-0008-4006-2238-990011223344',
+        name: 'Cable Curl',
+        category: 'Arms',
+        targetMuscle: 'Biceps',
+        defaultRest: 60,
+        defaultReps: 15,
+        savageTip: "Constant tension the entire range — cable never slacks. Use the rope for a strong peak squeeze.",
+        imagePlaceholder: '/images/curl-placeholder.jpg',
+    },
+    {
+        id: 'ee07ff08-0009-4007-2239-001122334455',
+        name: 'Drag Curl',
+        category: 'Arms',
+        targetMuscle: 'Biceps',
+        defaultRest: 60,
+        defaultReps: 12,
+        savageTip: "Drag the bar up your torso, elbows move back. No forward swing at all. Long head destruction.",
+        imagePlaceholder: '/images/curl-placeholder.jpg',
+    },
+    {
+        id: 'ee08ff09-0010-4008-2240-112233445566',
+        name: 'Close Grip Bench Press',
+        category: 'Arms',
+        targetMuscle: 'Triceps',
+        defaultRest: 90,
+        defaultReps: 8,
+        savageTip: "Hands shoulder-width, elbows track back. Lower to the lower chest and explode up. Tricep mass builder.",
+        imagePlaceholder: '/images/bench-placeholder.jpg',
+    },
+    {
+        id: 'ee09ff10-0011-4009-2241-223344556677',
+        name: 'Zottman Curl',
+        category: 'Arms',
+        targetMuscle: 'Biceps',
+        defaultRest: 60,
+        defaultReps: 10,
+        savageTip: "Curl up supinated, rotate to overhand at the top, lower slowly. One rep trains both heads.",
+        imagePlaceholder: '/images/curl-placeholder.jpg',
+    },
+    {
+        id: 'ee10ff11-0012-4010-2242-334455667788',
+        name: 'JM Press',
+        category: 'Arms',
+        targetMuscle: 'Triceps',
+        defaultRest: 90,
+        defaultReps: 8,
+        savageTip: "Cross between a skull crusher and close grip press. Elbows in, bar drops to the neck, drive up hard.",
+        imagePlaceholder: '/images/pushdown-placeholder.jpg',
+    },
+
+    // Core
+    {
+        id: 'ff01001-2222-4333-4444-555566667777',
+        name: 'Dead Bug',
+        category: 'Core',
+        targetMuscle: 'Abs',
+        defaultRest: 45,
+        defaultTime: 30,
+        savageTip: "Lower back pressed into the floor the entire time. Opposite arm and leg extend — don't let the spine lift.",
+        imagePlaceholder: '/images/core-bg.jpg',
+    },
+    {
+        id: 'ff02002-2223-4334-4445-555666777888',
+        name: 'Ab Wheel Rollout',
+        category: 'Core',
+        targetMuscle: 'Abs',
+        defaultRest: 60,
+        defaultReps: 10,
+        savageTip: "Roll until your body is parallel. Pull back with your abs only. If your back sags, you've gone too far.",
+        imagePlaceholder: '/images/core-bg.jpg',
+    },
+    {
+        id: 'ff03003-2224-4335-4446-555766877988',
+        name: 'Russian Twist',
+        category: 'Core',
+        targetMuscle: 'Obliques',
+        defaultRest: 45,
+        defaultReps: 20,
+        savageTip: "Feet off the floor, rotate from the torso — not the arms. Weight optional. Slow is savage.",
+        imagePlaceholder: '/images/core-bg.jpg',
+    },
+    {
+        id: 'ff04004-2225-4336-4447-555867978099',
+        name: 'Mountain Climbers',
+        category: 'Core',
+        targetMuscle: 'Abs',
+        defaultRest: 30,
+        defaultTime: 30,
+        savageTip: "Hips level, drive the knees to the chest fast. Don't let the hips bounce. This is a core exercise.",
+        imagePlaceholder: '/images/core-bg.jpg',
+    },
+    {
+        id: 'ff05005-2226-4337-4448-555968079100',
+        name: 'Side Plank',
+        category: 'Core',
+        targetMuscle: 'Obliques',
+        defaultRest: 45,
+        defaultTime: 45,
+        savageTip: "Hips off the floor, body is a straight line. Don't rotate. Feel the lateral chain work.",
+        imagePlaceholder: '/images/core-bg.jpg',
+    },
+    {
+        id: 'ff06006-2227-4338-4449-556068180200',
+        name: 'Dragon Flag',
+        category: 'Core',
+        targetMuscle: 'Abs',
+        defaultRest: 90,
+        defaultReps: 6,
+        savageTip: "Body stays rigid from shoulder to toe. Lower slowly, pull back up. This is the final boss of core.",
+        imagePlaceholder: '/images/core-bg.jpg',
+    },
+    {
+        id: 'ff07007-2228-4339-4450-556168281300',
+        name: 'V-Ups',
+        category: 'Core',
+        targetMuscle: 'Abs',
+        defaultRest: 45,
+        defaultReps: 15,
+        savageTip: "Arms and legs meet at the top simultaneously. Lower with control — no slamming to the floor.",
+        imagePlaceholder: '/images/core-bg.jpg',
+    },
+    {
+        id: 'ff08008-2229-4340-4451-556268382400',
+        name: 'L-Sit Hold',
+        category: 'Core',
+        targetMuscle: 'Abs',
+        defaultRest: 60,
+        defaultTime: 20,
+        savageTip: "Legs parallel to the floor, arms straight. Compress the abs. Hold it until your hip flexors quit.",
+        imagePlaceholder: '/images/core-bg.jpg',
+    },
 ];
 
 // ── Equipment types ───────────────────────────────────────────────────────────
@@ -1080,4 +1594,55 @@ export const EXERCISE_EQUIPMENT: Record<string, EquipmentType> = {
     'e0f1a2b3-c4d5-4e6f-7a8b-9c0d1e2f3a4c': 'Cable',     // Cable Rope Hammer Curl
     'f1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5f': 'Bodyweight', // Pike Push Up
     'a2b3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6e': 'Bodyweight', // Suitcase Crunch with Ball
+    // ── 50 new maneuvers ─────────────────────────────────────────────────────
+    'aa01bb02-cc03-4dd0-ee05-ff0611223344': 'Dumbbells',  // Dumbbell Bench Press
+    'aa02bb03-cc04-4dd1-ee06-ff0722334455': 'Bodyweight', // Push-Up
+    'aa03bb04-cc05-4dd2-ee07-ff0833445566': 'Machine',   // Pec Deck Machine
+    'aa04bb05-cc06-4dd3-ee08-ff0944556677': 'Cable',     // Low to High Cable Fly
+    'aa05bb06-cc07-4dd4-ee09-ff1055667788': 'Dumbbells', // Dumbbell Pullover
+    'aa06bb07-cc08-4dd5-ee10-ff1166778899': 'Barbell',   // Svend Press
+    'aa07bb08-cc09-4dd6-ee11-ff1277889900': 'Barbell',   // Landmine Press
+    'aa08bb09-cc10-4dd7-ee12-ff1388990011': 'Machine',   // Incline Smith Machine Press
+    'bb01cc02-dd03-4ee0-ff05-001122334455': 'Cable',     // Face Pull
+    'bb02cc03-dd04-4ee1-ff06-002233445566': 'Dumbbells', // Chest Supported Row
+    'bb03cc04-dd05-4ee2-ff07-003344556677': 'Cable',     // Reverse Grip Lat Pulldown
+    'bb04cc05-dd06-4ee3-ff08-004455667788': 'Barbell',   // Rack Pull
+    'bb05cc06-dd07-4ee4-ff09-005566778899': 'Barbell',   // Seal Row
+    'bb06cc07-dd08-4ee5-ff10-006677889900': 'Cable',     // Cable Straight Arm Pulldown
+    'bb07cc08-dd09-4ee6-ff11-007788990011': 'Barbell',   // Pendlay Row
+    'bb08cc09-dd10-4ee7-ff12-008899001122': 'Barbell',   // Meadows Row
+    'cc01dd02-ee03-4ff0-0011-112233445566': 'Machine',   // Hack Squat
+    'cc02dd03-ee04-4ff1-0012-223344556677': 'Machine',   // Leg Curl
+    'cc03dd04-ee05-4ff2-0013-334455667788': 'Machine',   // Leg Extension
+    'cc04dd05-ee06-4ff3-0014-445566778899': 'Dumbbells', // Walking Lunges
+    'cc05dd06-ee07-4ff4-0015-556677889900': 'Dumbbells', // Dumbbell Goblet Squat
+    'cc06dd07-ee08-4ff5-0016-667788990011': 'Cable',     // Cable Glute Kickback
+    'cc07dd08-ee09-4ff6-0017-778899001122': 'Bodyweight',// Sumo Squat
+    'cc08dd09-ee10-4ff7-0018-889900112233': 'Bodyweight',// Step Up
+    'cc09dd10-ee11-4ff8-0019-990011223344': 'Bodyweight',// Nordic Hamstring Curl
+    'cc10dd11-ee12-4ff9-0020-001122334455': 'Bodyweight',// Box Jump
+    'dd01ee02-ff03-4001-1122-334455667788': 'Dumbbells', // Arnold Press
+    'dd02ee03-ff04-4002-1123-445566778899': 'Cable',     // Cable Lateral Raise
+    'dd03ee04-ff05-4003-1124-556677889900': 'Barbell',   // Barbell Upright Row
+    'dd04ee05-ff06-4004-1125-667788990011': 'Barbell',   // Landmine Lateral Raise
+    'dd05ee06-ff07-4005-1126-778899001122': 'Cable',     // Cable Y Raise
+    'dd06ee07-ff08-4006-1127-889900112233': 'Machine',   // Machine Shoulder Press
+    'ee01ff02-0003-4001-2233-445566778899': 'Dumbbells', // Hammer Curl
+    'ee02ff03-0004-4002-2234-556677889900': 'Dumbbells', // Spider Curl
+    'ee03ff04-0005-4003-2235-667788990011': 'Cable',     // Overhead Cable Tricep Extension
+    'ee04ff05-0006-4004-2236-778899001122': 'Barbell',   // Skull Crusher
+    'ee05ff06-0007-4005-2237-889900112233': 'Barbell',   // Reverse Curl
+    'ee06ff07-0008-4006-2238-990011223344': 'Cable',     // Cable Curl
+    'ee07ff08-0009-4007-2239-001122334455': 'Barbell',   // Drag Curl
+    'ee08ff09-0010-4008-2240-112233445566': 'Barbell',   // Close Grip Bench Press
+    'ee09ff10-0011-4009-2241-223344556677': 'Dumbbells', // Zottman Curl
+    'ee10ff11-0012-4010-2242-334455667788': 'Barbell',   // JM Press
+    'ff01001-2222-4333-4444-555566667777':  'Bodyweight',// Dead Bug
+    'ff02002-2223-4334-4445-555666777888':  'Bodyweight',// Ab Wheel Rollout
+    'ff03003-2224-4335-4446-555766877988':  'Bodyweight',// Russian Twist
+    'ff04004-2225-4336-4447-555867978099':  'Bodyweight',// Mountain Climbers
+    'ff05005-2226-4337-4448-555968079100':  'Bodyweight',// Side Plank
+    'ff06006-2227-4338-4449-556068180200':  'Bodyweight',// Dragon Flag
+    'ff07007-2228-4339-4450-556168281300':  'Bodyweight',// V-Ups
+    'ff08008-2229-4340-4451-556268382400':  'Bodyweight',// L-Sit Hold
 };
