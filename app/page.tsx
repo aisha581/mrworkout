@@ -84,16 +84,16 @@ export default function Home() {
                 if (!res.ok) return;
                 const data: LiveExercise[] = await res.json();
                 setAllExercises(data);
-                const targetIds = ['pushup', 'squat', 'lunge'];
-                const ordered   = targetIds
-                    .map(id => data.find(ex => ex.id === id))
+                // Pick one exercise from each of 3 distinct categories for showcase
+                const categories = ['Chest', 'Back', 'Legs'];
+                const picks = categories
+                    .map(cat => data.find(ex => (ex as any).category === cat))
                     .filter(Boolean) as LiveExercise[];
-                setCoreExercises(ordered);
+                // Fallback: just take first 3 if category matching fails
+                setCoreExercises(picks.length >= 3 ? picks : data.slice(0, 3));
             } catch {}
         };
         fetchLibrary();
-        const iv = setInterval(fetchLibrary, 3000);
-        return () => clearInterval(iv);
     }, []);
 
     // ── Load profile + show welcome if first visit ─────────────────────────────
@@ -288,25 +288,28 @@ export default function Home() {
                         )}
                     </div>
 
-                    {/* ── Upgrade CTA — bottom strip, only for free users ── */}
+                    {/* ── Upgrade CTA — centered glass pill, free users only ── */}
                     {!isPro && (
                         <motion.div
-                            initial={{ opacity: 0, y: 16 }}
+                            initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.7, type: 'spring', stiffness: 220, damping: 26 }}
-                            className="absolute bottom-14 left-0 right-0 z-[10] px-5"
+                            transition={{ delay: 0.75, type: 'spring', stiffness: 260, damping: 28 }}
+                            className="absolute left-1/2 -translate-x-1/2 z-[10]"
+                            style={{ bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 20px) + 5.5rem)' }}
                         >
                             <motion.button
-                                whileTap={{ scale: 0.97 }}
+                                whileTap={{ scale: 0.96 }}
                                 onClick={() => { hapticMedium(); router.push('/join'); }}
-                                className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl font-black uppercase tracking-[0.18em] text-sm text-black"
+                                className="flex items-center gap-2 px-5 py-2.5 rounded-full font-black uppercase tracking-[0.2em] text-xs whitespace-nowrap backdrop-blur-md"
                                 style={{
-                                    background:  'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                                    boxShadow:   '0 0 32px rgba(255,215,0,0.35), 0 6px 20px rgba(0,0,0,0.5)',
+                                    background:  'rgba(255,215,0,0.10)',
+                                    border:      '1px solid rgba(255,215,0,0.35)',
+                                    color:       '#FFD700',
+                                    boxShadow:   '0 0 20px rgba(255,215,0,0.18), inset 0 1px 0 rgba(255,255,255,0.06)',
                                     touchAction: 'manipulation',
                                 }}
                             >
-                                <Crown size={14} fill="currentColor" />
+                                <Crown size={12} fill="rgba(255,215,0,0.6)" color="#FFD700" />
                                 Start 7 Days Free
                             </motion.button>
                         </motion.div>
@@ -344,6 +347,7 @@ export default function Home() {
                             accentColor={theme.accent}
                             lastExercise={lastExercise}
                             onQuickStart={() => setQuickStartOpen(true)}
+                            vitals={vitals}
                         />
 
                         <CircuitBuilder />
@@ -384,10 +388,14 @@ export default function Home() {
                                 <LuxuryCard className="p-8 rounded-[32px] h-full" delay={0.6}>
                                     <div className="text-sm opacity-50 mb-2">Current Streak</div>
                                     <div className="flex items-baseline gap-2 mb-1">
-                                        <span className="text-5xl font-semibold" style={{ color: theme.accent }}>28</span>
+                                        <span className="text-5xl font-semibold" style={{ color: theme.accent }}>
+                                            {vitals.currentStreak}
+                                        </span>
                                         <span className="text-2xl opacity-50">days</span>
                                     </div>
-                                    <div className="text-xs opacity-40">Personal best: 45 days</div>
+                                    <div className="text-xs opacity-40">
+                                        {getRankInfo(vitals.totalXP).levelName} · {vitals.totalXP} XP
+                                    </div>
                                 </LuxuryCard>
                             </div>
                             <div className="lg:col-span-4 h-full">
@@ -538,14 +546,20 @@ interface ProgressDashboardProps {
     accentColor:   string;
     lastExercise:  any;
     onQuickStart:  () => void;
+    vitals:        UserStats;
 }
 
-function ProgressDashboard({ accentColor, lastExercise, onQuickStart }: ProgressDashboardProps) {
-    // Rank progress: placeholder data (replace with real context later)
-    const streakDays  = 7;
-    const rankLabel   = 'Iron';
-    const rankPct     = 62; // % toward next rank
-    const nextRank    = 'Bronze';
+function ProgressDashboard({ accentColor, lastExercise, onQuickStart, vitals }: ProgressDashboardProps) {
+    const rankInfo    = getRankInfo(vitals.totalXP);
+    const streakDays  = vitals.currentStreak;
+    const rankLabel   = rankInfo.levelName;
+    const rankPct     = rankInfo.progress;          // already 0-100
+    const nextRank    = rankInfo.xpToNext !== null  // null means max rank
+        ? (() => {
+              const RANK_NAMES = ['Iron','Bronze','Silver','Gold','Platinum','Diamond'];
+              return RANK_NAMES[rankInfo.level] ?? 'MAX';
+          })()
+        : 'MAX';
 
     return (
         <motion.div

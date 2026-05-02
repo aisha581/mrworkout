@@ -6,6 +6,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { usePathname } from "next/navigation";
 import { hapticMedium } from "@/utils/haptic";
 import CoachDrawer from "@/components/CoachDrawer";
+import BrandLogo from "@/components/BrandLogo";
 
 // Pages where the button should hide (has its own coach integration or is full-screen)
 const HIDDEN_PATHS = ["/onboarding", "/login", "/join", "/auth-redirect"];
@@ -57,7 +58,12 @@ export default function FloatingCoach() {
                             }}
                             transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
                         />
-                        <span className="relative z-10 leading-none">G</span>
+                        <BrandLogo
+                            size={22}
+                            fallback="G"
+                            accent="#000"
+                            className="relative z-10"
+                        />
                         <span
                             className="relative z-10 text-[7px] font-black uppercase tracking-widest opacity-75 leading-none mt-0.5"
                         >

@@ -3,6 +3,7 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkout } from '@/contexts/WorkoutContext';
 import ThemeToggle from './ThemeToggle';
+import BrandLogo from './BrandLogo';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
@@ -36,20 +37,16 @@ export default function Navbar() {
                             transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                         >
                             <div
-                                className="p-2 rounded-xl backdrop-blur-xl"
+                                className="p-2 rounded-xl backdrop-blur-xl flex items-center justify-center"
                                 style={{
                                     backgroundColor: theme.mode === 'savage'
                                         ? 'rgba(0, 255, 255, 0.08)'
                                         : 'rgba(183, 110, 121, 0.08)',
                                     border: `1px solid ${theme.mode === 'savage' ? 'rgba(0, 255, 255, 0.15)' : 'rgba(183, 110, 121, 0.15)'}`,
+                                    width: 40, height: 40,
                                 }}
                             >
-                                <span
-                                    className="font-black text-xl italic"
-                                    style={{ color: theme.accent, fontFamily: 'var(--font-archivo-black), sans-serif', paddingRight: '2px' }}
-                                >
-                                    W
-                                </span>
+                                <BrandLogo size={24} fallback="W" accent={theme.accent} />
                             </div>
                             <h1 className="text-xl font-semibold tracking-tight" style={{ letterSpacing: '-0.02em' }}>
                                 Mr<span style={{ color: theme.accent }}>.</span>workout
