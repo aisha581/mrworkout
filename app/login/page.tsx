@@ -4,7 +4,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Chrome, Loader2, AlertCircle } from "lucide-react";
+import { Mail, Lock, Loader2, AlertCircle, Zap } from "lucide-react";
 
 export default function LoginPage() {
     const { data: session, status } = useSession();
@@ -25,6 +25,11 @@ export default function LoginPage() {
     const handleGoogleSignIn = async () => {
         setLoading(true);
         await signIn("google", { callbackUrl: "/auth-redirect" });
+    };
+
+    const handleGuestMode = () => {
+        try { localStorage.setItem("mw_guest_mode", "true"); } catch {}
+        router.replace("/");
     };
 
     const handleCredentials = async (e: React.FormEvent) => {
@@ -206,7 +211,28 @@ export default function LoginPage() {
                     </motion.button>
                 </form>
 
-                <p className="text-center text-[10px] opacity-20 mt-6 font-medium leading-relaxed">
+                {/* Guest Mode */}
+                <div className="flex items-center gap-3 mt-6 mb-4">
+                    <div className="flex-1 h-px bg-white/10" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">or</span>
+                    <div className="flex-1 h-px bg-white/10" />
+                </div>
+                <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleGuestMode}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black uppercase tracking-[0.15em] text-xs"
+                    style={{
+                        background:  'rgba(255,255,255,0.04)',
+                        border:      '1px solid rgba(255,255,255,0.08)',
+                        color:       'rgba(255,255,255,0.45)',
+                        touchAction: 'manipulation',
+                    }}
+                >
+                    <Zap size={13} />
+                    Continue as Guest
+                </motion.button>
+
+                <p className="text-center text-[10px] opacity-20 mt-4 font-medium leading-relaxed">
                     By continuing you agree to the Terms of Service and Privacy Policy.
                 </p>
             </motion.div>

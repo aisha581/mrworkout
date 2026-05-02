@@ -33,16 +33,22 @@ export async function POST(req: NextRequest) {
             const email   = session.customer_email ?? session.customer_details?.email;
 
             if (email) {
-                await supabase.from("mw_subscribers").upsert(
-                    {
-                        email,
-                        is_pro:               true,
-                        stripe_customer_id:   session.customer as string,
-                        stripe_session_id:    session.id,
-                        subscribed_at:        new Date().toISOString(),
-                    },
-                    { onConflict: "email" }
-                );
+                await Promise.all([
+                    supabase.from("mw_subscribers").upsert(
+                        {
+                            email,
+                            is_pro:               true,
+                            stripe_customer_id:   session.customer as string,
+                            stripe_session_id:    session.id,
+                            subscribed_at:        new Date().toISOString(),
+                        },
+                        { onConflict: "email" }
+                    ),
+                    supabase
+                        .from("mw_users")
+                        .update({ is_pro: true })
+                        .eq("email", email),
+                ]);
             }
             break;
         }
@@ -52,10 +58,16 @@ export async function POST(req: NextRequest) {
             const customer     = await stripe.customers.retrieve(subscription.customer as string) as Stripe.Customer;
 
             if (customer.email) {
-                await supabase
-                    .from("mw_subscribers")
-                    .update({ is_pro: false })
-                    .eq("email", customer.email);
+                await Promise.all([
+                    supabase
+                        .from("mw_subscribers")
+                        .update({ is_pro: false })
+                        .eq("email", customer.email),
+                    supabase
+                        .from("mw_users")
+                        .update({ is_pro: false })
+                        .eq("email", customer.email),
+                ]);
             }
             break;
         }
