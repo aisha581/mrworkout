@@ -64,9 +64,22 @@ export default function Navbar() {
                         {/* Reserved for future nav items */}
                     </div>
 
-                    {/* Right: Upgrade + Theme Toggle */}
+                    {/* Right: Upgrade / PRO badge + Theme Toggle */}
                     <div className="flex items-center gap-3">
-                        {!isPro && (
+                        {isPro ? (
+                            <div
+                                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full font-black uppercase tracking-[0.22em] text-[11px] whitespace-nowrap select-none"
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,215,0,0.08))',
+                                    border:     '1px solid rgba(255,215,0,0.50)',
+                                    color:      '#FFD700',
+                                    boxShadow:  '0 0 18px rgba(255,215,0,0.20)',
+                                }}
+                            >
+                                <Crown size={11} fill="#FFD700" color="#FFD700" />
+                                Pro
+                            </div>
+                        ) : (
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => router.push('/join')}

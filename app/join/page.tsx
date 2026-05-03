@@ -491,7 +491,7 @@ function NameStep({ onContinue }: { onContinue: (name: string) => void }) {
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function JoinPage() {
-    const { data: session }  = useSession();
+    const { data: session, status: sessionStatus } = useSession();
     const router              = useRouter();
     const { parts, expired }  = useCountdown();
     const [step, setStep]     = useState<"name" | "pricing">("name");
@@ -526,6 +526,19 @@ export default function JoinPage() {
         return () => clearTimeout(id);
     }, [pwaDismissed]);
 
+    // Called by AuthModal when auth succeeds — resume pending checkout
+    const handleAuthSuccess = () => {
+        setShowAuthModal(false);
+        try {
+            const pendingPlan = sessionStorage.getItem("mw_join_plan") as "monthly" | "annual" | null;
+            if (pendingPlan) {
+                sessionStorage.removeItem("mw_join_plan");
+                // Session will be available on next tick after NextAuth updates
+                setTimeout(() => checkout(pendingPlan), 300);
+            }
+        } catch {}
+    };
+
     const handleNameContinue = (name: string) => {
         setUserName(name);
         setStep("pricing");
@@ -539,6 +552,8 @@ export default function JoinPage() {
     const checkout = async (plan: "monthly" | "annual") => {
         plan === "annual" ? hapticHeavy() : hapticMedium();
         setCheckoutError(null);
+
+        if (sessionStatus === "loading") return; // Wait — don't flash auth modal during session load
 
         if (!session) {
             try { sessionStorage.setItem("mw_join_plan", plan); } catch {}
@@ -932,6 +947,7 @@ export default function JoinPage() {
                     <AuthModal
                         onClose={() => setShowAuthModal(false)}
                         redirectTo="/auth-redirect"
+                        onAuthenticated={handleAuthSuccess}
                     />
                 )}
             </AnimatePresence>

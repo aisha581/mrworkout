@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import {
@@ -102,8 +102,9 @@ function OtpBoxes({ value, onChange, disabled, onComplete }: {
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface AuthModalProps {
-    onClose?:    () => void;   // renders as overlay sheet when provided
-    redirectTo?: string;       // default "/auth-redirect"
+    onClose?:          () => void;   // renders as overlay sheet when provided
+    redirectTo?:       string;       // default "/auth-redirect"
+    onAuthenticated?:  () => void;   // called instead of redirecting when user authenticates
 }
 
 type Phase = "email" | "code" | "password";
@@ -142,8 +143,10 @@ async function sbVerifyOTP(email: string, token: string) {
 export default function AuthModal({
     onClose,
     redirectTo = "/auth-redirect",
+    onAuthenticated,
 }: AuthModalProps) {
     const router = useRouter();
+    const { status: sessionStatus } = useSession();
 
     const [phase,        setPhase]        = useState<Phase>("email");
     const [email,        setEmail]        = useState("");
@@ -164,6 +167,17 @@ export default function AuthModal({
         );
     }, []);
 
+    // If user is already authenticated, skip the form entirely
+    useEffect(() => {
+        if (sessionStatus !== "authenticated") return;
+        if (onAuthenticated) {
+            onAuthenticated();
+        } else {
+            finish();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sessionStatus]);
+
     // Resend countdown ticker
     useEffect(() => {
         if (resendIn <= 0) return;
@@ -173,10 +187,14 @@ export default function AuthModal({
 
     const clrErr = () => setError(null);
 
-    // ── Finish: set onboarding flag and navigate ────────────────────────────
+    // ── Finish: set onboarding flag, then navigate or call onAuthenticated ──
     const finish = () => {
         try { localStorage.setItem("mw_onboarded", "1"); } catch {}
-        router.replace(redirectTo === "/auth-redirect" ? "/" : redirectTo);
+        if (onAuthenticated) {
+            onAuthenticated();
+        } else {
+            router.replace(redirectTo === "/auth-redirect" ? "/" : redirectTo);
+        }
     };
 
     // ── Path 1: Google OAuth ────────────────────────────────────────────────
@@ -208,7 +226,7 @@ export default function AuthModal({
 
     // ── Path 2b: Verify OTP ─────────────────────────────────────────────────
     const handleVerifyCode = async () => {
-        if (code.length !== 6) { setError("Enter the full 6-digit code."); return; }
+        if (code.length !== 6) return;
         setLoading(true); clrErr();
 
         const res = await sbVerifyOTP(email, code);
@@ -491,6 +509,11 @@ export default function AuthModal({
                             </motion.div>
                         )}
                     </AnimatePresence>
+
+                    {/* Cyan subtitle */}
+                    <p className="text-center text-xs font-medium" style={{ color: `${CYAN}90` }}>
+                        Enter the 6-digit code sent to your inbox
+                    </p>
 
                     {/* 6-digit boxes */}
                     <OtpBoxes
