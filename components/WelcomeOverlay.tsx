@@ -3,15 +3,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Zap, ChevronRight, Dumbbell, Home, Trophy, Building2 } from 'lucide-react';
-import { saveProfile, loadProfile, type Goal, type FocusArea, type ExperienceLevel } from '@/utils/missionGenerator';
+import { useRouter } from 'next/navigation';
+import { Zap, ChevronRight, Home, Trophy, Building2 } from 'lucide-react';
+import { saveProfile, loadProfile, type Goal, type ExperienceLevel } from '@/utils/missionGenerator';
 
 interface WelcomeOverlayProps {
     isVisible: boolean;
-    onEnter:   () => void;
+    onEnter?:  () => void; // kept for backward-compat; navigation now handled by router
 }
 
-type Step = 'splash' | 'goal' | 'equipment' | 'level' | 'scan' | 'email';
+type Step = 'splash' | 'goal' | 'equipment' | 'level' | 'scan';
 
 const CYAN = '#00FFFF';
 const SCAN_DURATION = 4000; // ms
@@ -30,7 +31,7 @@ const LEVELS: { value: ExperienceLevel; label: string; sub: string }[] = [
 ];
 
 // ── Stepper dots ──────────────────────────────────────────────────────────────
-const STEPS: Step[] = ['goal', 'equipment', 'level', 'scan', 'email'];
+const STEPS: Step[] = ['goal', 'equipment', 'level', 'scan'];
 
 function StepDots({ current }: { current: Step }) {
     const idx = STEPS.indexOf(current);
@@ -277,44 +278,29 @@ function ScanStep({ onComplete }: { onComplete: () => void }) {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export default function WelcomeOverlay({ isVisible, onEnter }: WelcomeOverlayProps) {
-    const { theme } = useTheme();
+export default function WelcomeOverlay({ isVisible }: WelcomeOverlayProps) {
+    const { theme }  = useTheme();
+    const router     = useRouter();
 
     const [step,      setStep]      = useState<Step>('splash');
     const [goal,      setGoal]      = useState<Goal | null>(null);
     const [equipment, setEquipment] = useState<'GYM' | 'HOME' | null>(null);
     const [level,     setLevel]     = useState<ExperienceLevel | null>(null);
-    const [email,     setEmail]     = useState('');
-    const [saving,    setSaving]    = useState(false);
 
-    // Skip onboarding if profile already saved
+    // Skip to sign-up if profile already saved (came back without completing auth)
     const profileDone = typeof window !== 'undefined' && !!loadProfile();
 
     const handleSplashEnter = () => {
-        // If profile already set but email not yet provided, skip to email step
-        if (profileDone) { setStep('email'); return; }
+        if (profileDone) { router.push('/join'); return; }
         setStep('goal');
     };
 
-    const handleEmailSubmit = async () => {
-        if (!goal || !equipment || !level) return;
-        if (!email.includes('@')) return; // hard gate — email required
-        setSaving(true);
-        // Save profile locally
-        saveProfile({ goal, focusArea: equipment === 'HOME' ? 'FULL' : 'FULL', level });
-        // Optionally submit email to waitlist
-        if (email) {
-            try {
-                await fetch('/api/waitlist', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email }),
-                });
-            } catch {}
+    // Called when biometric scan finishes — save profile then go to sign-up
+    const handleScanComplete = () => {
+        if (goal && equipment && level) {
+            saveProfile({ goal, focusArea: 'FULL', level });
         }
-        setSaving(false);
-        try { localStorage.setItem('mw_onboarded', '1'); } catch {}
-        onEnter();
+        router.push('/join');
     };
 
     const accent = theme.accent;
@@ -661,89 +647,7 @@ export default function WelcomeOverlay({ isVisible, onEnter }: WelcomeOverlayPro
 
                         {/* ══ SCAN ══════════════════════════════════════════ */}
                         {step === 'scan' && (
-                            <ScanStep key="scan" onComplete={() => setStep('email')} />
-                        )}
-
-                        {/* ══ EMAIL ═════════════════════════════════════════ */}
-                        {step === 'email' && (
-                            <motion.div
-                                key="email"
-                                initial={{ opacity: 0, y: 24 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -24 }}
-                                transition={{ duration: 0.4 }}
-                                className="relative z-10 flex flex-col items-center px-6 max-w-sm w-full text-center"
-                            >
-                                <StepDots current="email" />
-
-                                {/* Welcome badge */}
-                                <motion.div
-                                    initial={{ scale: 0.7, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ type: 'spring', stiffness: 220, damping: 18 }}
-                                    className="w-16 h-16 rounded-[20px] flex items-center justify-center mb-5"
-                                    style={{
-                                        background: `${accent}15`,
-                                        border: `1.5px solid ${accent}40`,
-                                        boxShadow: `0 0 40px ${accent}30`,
-                                    }}
-                                >
-                                    <Dumbbell size={28} style={{ color: accent }} />
-                                </motion.div>
-
-                                <p className="text-[9px] font-black uppercase tracking-[0.5em] opacity-30 mb-2">Profile Complete</p>
-                                <h2
-                                    className="text-3xl font-black uppercase leading-tight mb-2"
-                                    style={{ fontFamily: 'var(--font-archivo-black), sans-serif', letterSpacing: '-0.03em', color: accent }}
-                                >
-                                    You're In The Clinic
-                                </h2>
-                                <p className="text-xs opacity-40 font-medium mb-8 leading-relaxed">
-                                    Drop your email for exclusive updates and your personalised savage plan.
-                                </p>
-
-                                {/* Email input */}
-                                <div className="w-full mb-4">
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={e => setEmail(e.target.value)}
-                                        placeholder="your@email.com"
-                                        autoFocus
-                                        className="w-full px-5 py-4 rounded-2xl font-medium text-sm bg-white/5 text-white placeholder:opacity-30 outline-none transition-all"
-                                        style={{
-                                            border: `1px solid ${email.includes('@') ? accent + '60' : 'rgba(255,255,255,0.12)'}`,
-                                            boxShadow: email.includes('@') ? `0 0 16px ${accent}20` : 'none',
-                                        }}
-                                        onKeyDown={e => e.key === 'Enter' && email.includes('@') && handleEmailSubmit()}
-                                    />
-                                    {email && !email.includes('@') && (
-                                        <p className="text-[10px] text-red-400 opacity-70 mt-2 font-medium">Enter a valid email to unlock the dashboard.</p>
-                                    )}
-                                </div>
-
-                                <motion.button
-                                    whileTap={{ scale: 0.97 }}
-                                    onClick={handleEmailSubmit}
-                                    disabled={saving || !email.includes('@')}
-                                    className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm text-black flex items-center justify-center gap-2"
-                                    style={{
-                                        background:  email.includes('@') ? `linear-gradient(135deg, ${accent}, ${accent}cc)` : 'rgba(255,255,255,0.08)',
-                                        boxShadow:   email.includes('@') ? `0 0 32px ${accent}50` : 'none',
-                                        color:       email.includes('@') ? '#000' : 'rgba(255,255,255,0.3)',
-                                        touchAction: 'manipulation',
-                                        opacity:     saving ? 0.7 : 1,
-                                        transition:  'all 0.25s ease',
-                                    }}
-                                >
-                                    <Zap size={15} fill="currentColor" />
-                                    {saving ? 'Unlocking…' : 'Unlock My Dashboard'}
-                                </motion.button>
-
-                                <p className="text-[9px] opacity-20 mt-3 text-center tracking-widest uppercase font-black">
-                                    Required to access your CNS data
-                                </p>
-                            </motion.div>
+                            <ScanStep key="scan" onComplete={handleScanComplete} />
                         )}
 
                     </AnimatePresence>

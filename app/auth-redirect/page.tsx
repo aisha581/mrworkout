@@ -21,15 +21,19 @@ export default function AuthRedirectPage() {
     const router = useRouter();
 
     useEffect(() => {
-        if (status === "loading") return; // wait for session
+        if (status === "loading") return;
+        if (!session) return;
 
-        const hasProfile  = !!loadProfile();
-        const isNewUser   = (session?.user as any)?.isNewUser === true;
+        const hasProfile = !!loadProfile();
 
-        if (isNewUser || !hasProfile) {
-            router.replace("/onboarding");
-        } else {
+        if (hasProfile) {
+            // Profile already set — user came from biometric onboarding or is a returning user.
+            // Mark as onboarded so the dashboard gate opens.
+            try { localStorage.setItem("mw_onboarded", "1"); } catch {}
             router.replace("/");
+        } else {
+            // No profile — went directly to sign-in without onboarding.
+            router.replace("/onboarding");
         }
     }, [status, session, router]);
 
