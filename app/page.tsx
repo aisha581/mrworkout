@@ -33,9 +33,8 @@ import { hapticMedium, hapticLight } from "@/utils/haptic";
 import BiometricScan, { shouldShowScan } from "@/components/BiometricScan";
 import XPBar from "@/components/XPBar";
 import { playBriefing } from "@/utils/audio";
-import { Zap, ChevronDown, Trophy, Crown, Volume2, Loader2, Smartphone } from "lucide-react";
+import { Zap, ChevronDown, Trophy, Crown, Volume2, Loader2, Smartphone, Share2 } from "lucide-react";
 import { computeCNSScore } from "@/utils/userStats";
-import NeuralRecoveryRing from "@/components/NeuralRecoveryRing";
 import AddToHomeModal from "@/components/AddToHomeModal";
 
 // Canvas cannot be server-rendered — load only on the client
@@ -233,7 +232,7 @@ export default function Home() {
                             <span style={{ color: theme.accent }}>Savage</span>
                         </h1>
                         <p className="text-sm opacity-35 mt-2.5 font-medium tracking-wide">
-                            Tap the chest to start your challenge.
+                            Tap <span className="font-black uppercase" style={{ color: theme.accent, opacity: 1 }}>MISSION</span> to start your challenge.
                         </p>
                     </motion.div>
 
@@ -245,7 +244,7 @@ export default function Home() {
                             padding: '0 clamp(1.5rem, 5vw, 7rem)',
                         }}
                     >
-                        {/* Left: phone icon + Today's Mission */}
+                        {/* Left: phone icon + share + Today's Mission */}
                         <div className="flex items-center gap-2">
                             <motion.button
                                 initial={{ opacity: 0, y: 24 }}
@@ -261,6 +260,34 @@ export default function Home() {
                                 }}
                             >
                                 <Smartphone size={14} className="opacity-50" />
+                            </motion.button>
+
+                            {/* Share / Savage Status */}
+                            <motion.button
+                                initial={{ opacity: 0, y: 24 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.38, type: 'spring', stiffness: 180, damping: 22 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={async () => {
+                                    hapticLight();
+                                    const rankInfo = getRankInfo(vitals.totalXP);
+                                    const text = `💪 ${vitals.currentStreak} day streak · ${rankInfo.levelName} rank · ${vitals.totalXP} XP on Mr. Workout`;
+                                    if (typeof navigator !== 'undefined' && navigator.share) {
+                                        try {
+                                            await navigator.share({ title: 'My Savage Status', text, url: window.location.origin });
+                                        } catch {}
+                                    } else {
+                                        try { await navigator.clipboard.writeText(`${text}\n${window.location.origin}`); } catch {}
+                                    }
+                                }}
+                                className="w-10 h-10 flex items-center justify-center rounded-2xl backdrop-blur-md"
+                                style={{
+                                    background:  'rgba(255,255,255,0.05)',
+                                    border:      '1px solid rgba(255,255,255,0.08)',
+                                    touchAction: 'manipulation',
+                                }}
+                            >
+                                <Share2 size={14} className="opacity-50" />
                             </motion.button>
 
                             <motion.button
@@ -432,17 +459,9 @@ export default function Home() {
                                     style={{ background: `radial-gradient(ellipse 55% 65% at 35% 50%, ${theme.accent}06 0%, transparent 70%)` }}
                                 />
 
-                                <div className="relative flex flex-col md:flex-row items-center md:items-start gap-8 px-8 py-10">
-                                    {/* Ring */}
-                                    <div className="shrink-0 pb-8 md:pb-0">
-                                        <NeuralRecoveryRing
-                                            accent={theme.accent}
-                                            vitals={vitals}
-                                        />
-                                    </div>
-
-                                    {/* Right panel */}
-                                    <div className="flex-1 flex flex-col justify-center gap-5 min-w-0">
+                                <div className="relative flex flex-col px-8 py-8">
+                                    {/* Single panel — no dull ring */}
+                                    <div className="flex flex-col gap-5">
                                         <div>
                                             <p className="text-[9px] font-black uppercase tracking-[0.55em] opacity-30 mb-1">
                                                 Central Nervous System
@@ -496,7 +515,11 @@ export default function Home() {
                                 <MuscleHeatmap />
                             </div>
                             <div className="flex flex-col gap-6">
-                                <DailyGoalRing progress={73} label="Daily Target" sublabel="5 of 7 Workouts" />
+                                <DailyGoalRing
+                                    progress={Math.min(100, vitals.totalWorkouts * 10)}
+                                    label="Total Workouts"
+                                    sublabel={`${vitals.totalWorkouts} sessions logged`}
+                                />
                                 <SavageTip delay={0.7} />
                             </div>
                         </div>
