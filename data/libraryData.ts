@@ -7,6 +7,7 @@ export interface Exercise {
     imagePlaceholder: string;
     videoUrl?: string;
     defaultReps?: number;
+    defaultSets?: number; // Number of sets per exercise (default 3)
     defaultTime?: number; // In seconds
     defaultRest?: number; // In seconds
     // Optional explicit muscle breakdown — falls back to category defaults if omitted

@@ -70,7 +70,7 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
     const [isSetJustComplete, setIsSetJustComplete] = useState(false);
     const [timeLeft,          setTimeLeft]           = useState(setDuration);
     const [currentSet,        setCurrentSet]         = useState(1);
-    const totalSets = 4;
+    const totalSets = exercise?.defaultSets ?? 3;
 
     // ── Playback ──────────────────────────────────────────────────────────────
     const [playbackRate, setPlaybackRate] = useState(1.0);
@@ -242,7 +242,20 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
             setTimeUnderTension(t => t + setDuration);
             setCompletedSets(s => s + 1);
             setIsSetJustComplete(true);
-            const restDur = nextEx ? (exercise?.defaultRest ?? 60) : 3;
+
+            const isLastSet      = currentSet >= totalSets;
+            const isLastExercise = activeIndex >= playlist.length - 1;
+
+            if (isLastSet && isLastExercise) {
+                // Final set of final exercise — skip rest, show VictoryScreen
+                const tid = setTimeout(() => {
+                    setIsSetJustComplete(false);
+                    setIsWorkoutComplete(true);
+                }, 1400);
+                return () => clearTimeout(tid);
+            }
+
+            const restDur = exercise?.defaultRest ?? 60;
             const tid = setTimeout(() => {
                 setIsSetJustComplete(false);
                 setIsResting(true);
@@ -254,7 +267,8 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
         const iv = setInterval(() => setTimeLeft(p => p - 1), 1000);
         return () => clearInterval(iv);
     }, [isSetStarted, timeLeft, isResting, isSetJustComplete,
-        exercise, nextEx, setDuration]); // eslint-disable-line react-hooks/exhaustive-deps
+        currentSet, totalSets, activeIndex, playlist.length,
+        exercise, setDuration]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Rest countdown ────────────────────────────────────────────────────────
     useEffect(() => {
@@ -276,6 +290,14 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
             setRestTimer(null);
             setIsSetStarted(false);
         } else if (activeIndex < playlist.length - 1) {
+            setActiveIndex(p => p + 1); // last set done — advance to next exercise
+        } else {
+            setIsWorkoutComplete(true); // safety fallback (normally handled in countdown)
+        }
+    };
+
+    const skipExercise = () => {
+        if (activeIndex < playlist.length - 1) {
             setActiveIndex(p => p + 1);
         } else {
             setIsWorkoutComplete(true);
@@ -359,6 +381,21 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
                 >
                     <ChevronLeft size={22} strokeWidth={2.5} className="text-white" />
                 </button>
+
+                {/* ══════════════════════════════════════════════════════════
+                    NEXT EXERCISE BUTTON (header, top-right)
+                ══════════════════════════════════════════════════════════ */}
+                {hasNext && (
+                    <button
+                        onClick={skipExercise}
+                        className="absolute z-50 flex flex-col items-center justify-center gap-0.5 active:scale-90 transition-transform"
+                        style={{ top: '3rem', right: '1rem', width: 56, height: 56, borderRadius: '50%', ...glassCircle, ...touchBtn }}
+                        aria-label="Next exercise"
+                    >
+                        <ChevronRight size={18} strokeWidth={2.5} className="text-white" />
+                        <span className="text-white font-black uppercase" style={{ fontSize: '6px', letterSpacing: '0.12em', opacity: 0.6 }}>Next</span>
+                    </button>
+                )}
 
                 {/* ══════════════════════════════════════════════════════════
                     PREV / NEXT CHEVRONS

@@ -515,6 +515,20 @@ export default function JoinPage() {
         } catch {}
     }, []);
 
+    // Skip name step if session already has a name (logged-in user)
+    useEffect(() => {
+        if (!session?.user?.name) return;
+        try {
+            const savedName = sessionStorage.getItem("mw_join_name");
+            if (!savedName) {
+                const firstName = session.user.name.split(" ")[0];
+                sessionStorage.setItem("mw_join_name", firstName);
+                setUserName(firstName);
+                setStep("pricing");
+            }
+        } catch {}
+    }, [session]);
+
     // Show PWA banner after 2.5 s (only if not dismissed before)
     useEffect(() => {
         if (pwaDismissed) return;
