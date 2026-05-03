@@ -70,17 +70,17 @@ export default function Navbar() {
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => router.push('/join')}
-                                className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-full font-black uppercase tracking-[0.18em] text-xs whitespace-nowrap"
+                                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full font-black uppercase tracking-[0.2em] text-[11px] whitespace-nowrap"
                                 style={{
-                                    background:  'rgba(255,215,0,0.10)',
-                                    border:      '1px solid rgba(255,215,0,0.30)',
+                                    background:  'linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,215,0,0.08))',
+                                    border:      '1px solid rgba(255,215,0,0.50)',
                                     color:       '#FFD700',
-                                    boxShadow:   '0 0 16px rgba(255,215,0,0.12)',
+                                    boxShadow:   '0 0 22px rgba(255,215,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08)',
                                     touchAction: 'manipulation',
                                 }}
                             >
-                                <Crown size={11} fill="rgba(255,215,0,0.6)" color="#FFD700" />
-                                Upgrade
+                                <Crown size={11} fill="#FFD700" color="#FFD700" />
+                                Upgrade to Pro
                             </motion.button>
                         )}
                         <ThemeToggle />

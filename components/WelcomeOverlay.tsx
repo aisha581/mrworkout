@@ -297,6 +297,7 @@ export default function WelcomeOverlay({ isVisible, onEnter }: WelcomeOverlayPro
 
     const handleEmailSubmit = async () => {
         if (!goal || !equipment || !level) return;
+        if (!email.includes('@')) return; // hard gate — email required
         setSaving(true);
         // Save profile locally
         saveProfile({ goal, focusArea: equipment === 'HOME' ? 'FULL' : 'FULL', level });
@@ -707,37 +708,40 @@ export default function WelcomeOverlay({ isVisible, onEnter }: WelcomeOverlayPro
                                         value={email}
                                         onChange={e => setEmail(e.target.value)}
                                         placeholder="your@email.com"
-                                        className="w-full px-5 py-4 rounded-2xl font-medium text-sm bg-white/5 border border-white/10 text-white placeholder:opacity-30 outline-none focus:border-opacity-60 transition-all"
-                                        style={{ borderColor: email ? `${accent}50` : undefined }}
-                                        onKeyDown={e => e.key === 'Enter' && handleEmailSubmit()}
+                                        autoFocus
+                                        className="w-full px-5 py-4 rounded-2xl font-medium text-sm bg-white/5 text-white placeholder:opacity-30 outline-none transition-all"
+                                        style={{
+                                            border: `1px solid ${email.includes('@') ? accent + '60' : 'rgba(255,255,255,0.12)'}`,
+                                            boxShadow: email.includes('@') ? `0 0 16px ${accent}20` : 'none',
+                                        }}
+                                        onKeyDown={e => e.key === 'Enter' && email.includes('@') && handleEmailSubmit()}
                                     />
+                                    {email && !email.includes('@') && (
+                                        <p className="text-[10px] text-red-400 opacity-70 mt-2 font-medium">Enter a valid email to unlock the dashboard.</p>
+                                    )}
                                 </div>
 
                                 <motion.button
                                     whileTap={{ scale: 0.97 }}
                                     onClick={handleEmailSubmit}
-                                    disabled={saving}
-                                    className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm text-black flex items-center justify-center gap-2 mb-3"
+                                    disabled={saving || !email.includes('@')}
+                                    className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm text-black flex items-center justify-center gap-2"
                                     style={{
-                                        background:  `linear-gradient(135deg, ${accent}, ${accent}cc)`,
-                                        boxShadow:   `0 0 32px ${accent}50`,
+                                        background:  email.includes('@') ? `linear-gradient(135deg, ${accent}, ${accent}cc)` : 'rgba(255,255,255,0.08)',
+                                        boxShadow:   email.includes('@') ? `0 0 32px ${accent}50` : 'none',
+                                        color:       email.includes('@') ? '#000' : 'rgba(255,255,255,0.3)',
                                         touchAction: 'manipulation',
                                         opacity:     saving ? 0.7 : 1,
+                                        transition:  'all 0.25s ease',
                                     }}
                                 >
                                     <Zap size={15} fill="currentColor" />
-                                    {saving ? 'Entering…' : 'Enter The Clinic'}
+                                    {saving ? 'Unlocking…' : 'Unlock My Dashboard'}
                                 </motion.button>
 
-                                <button
-                                    onClick={() => {
-                                        try { localStorage.setItem('mw_onboarded', '1'); } catch {}
-                                        handleEmailSubmit();
-                                    }}
-                                    className="text-[10px] font-black uppercase tracking-[0.3em] opacity-25 hover:opacity-50 transition-opacity"
-                                >
-                                    Skip for now
-                                </button>
+                                <p className="text-[9px] opacity-20 mt-3 text-center tracking-widest uppercase font-black">
+                                    Required to access your CNS data
+                                </p>
                             </motion.div>
                         )}
 

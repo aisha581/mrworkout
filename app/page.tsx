@@ -2,9 +2,7 @@
 
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
-import BioMetrics from "@/components/BioMetrics";
 import VaultGrid from "@/components/VaultGrid";
-import LuxuryCard from "@/components/LuxuryCard";
 import Toast from "@/components/Toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,11 +10,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import dynamic from "next/dynamic";
 
-import DailyGoalRing from "@/components/DailyGoalRing";
 import FloatingMic from "@/components/FloatingMic";
-import MuscleHeatmap from "@/components/MuscleHeatmap";
-import SavageTip from "@/components/SavageTip";
-import CircuitBuilder from "@/components/CircuitBuilder";
 import WorkoutPlayer from "@/components/WorkoutPlayer";
 import MissionDrawer from "@/components/MissionDrawer";
 import WelcomeOverlay from "@/components/WelcomeOverlay";
@@ -32,6 +26,7 @@ import { hapticMedium, hapticLight } from "@/utils/haptic";
 import BiometricScan, { shouldShowScan } from "@/components/BiometricScan";
 import XPBar from "@/components/XPBar";
 import { Zap, ChevronDown, Trophy, Smartphone, Share2 } from "lucide-react";
+import { computeCNSScore } from "@/utils/userStats";
 import AddToHomeModal from "@/components/AddToHomeModal";
 
 // Canvas cannot be server-rendered — load only on the client
@@ -81,7 +76,8 @@ export default function Home() {
         if (!dismissed && !standalone) setShowPWABanner(true);
     }, []);
 
-    // Derived CNS score for card styling
+    const cnsScore = computeCNSScore(vitals);
+
     // ── Library fetch ──────────────────────────────────────────────────────────
     useEffect(() => {
         const fetchLibrary = async () => {
@@ -407,32 +403,153 @@ export default function Home() {
                 >
                     <div className="max-w-[1800px] mx-auto">
 
-                        {/* ── Progress Dashboard ────────────────────────────── */}
-                        <ProgressDashboard
-                            accentColor={theme.accent}
-                            lastExercise={lastExercise}
-                            onQuickStart={() => setQuickStartOpen(true)}
-                            vitals={vitals}
-                        />
-
-                        <CircuitBuilder />
-
-                        {/* Bento Grid */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                            <div className="h-full">
-                                <MuscleHeatmap />
+                        {/* ── Savage Streak ─────────────────────────────────── */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2, duration: 0.6 }}
+                            className="mb-6"
+                        >
+                            <div
+                                className="rounded-[24px] p-6 flex flex-col justify-between"
+                                style={{
+                                    background: `${theme.accent}0a`,
+                                    border:     `1px solid ${theme.accent}22`,
+                                }}
+                            >
+                                <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40 mb-2">
+                                    Savage Streak
+                                </p>
+                                <div className="flex items-baseline gap-2">
+                                    <span
+                                        className="text-6xl font-black leading-none"
+                                        style={{
+                                            color:      theme.accent,
+                                            fontFamily: 'var(--font-archivo-black), sans-serif',
+                                            textShadow: `0 0 30px ${theme.accent}50`,
+                                        }}
+                                    >
+                                        {vitals.currentStreak}
+                                    </span>
+                                    <span className="text-xl opacity-40 font-black">days</span>
+                                </div>
+                                <p className="text-[10px] opacity-25 mt-1 font-medium uppercase tracking-widest">
+                                    Keep it alive
+                                </p>
                             </div>
-                            <div className="flex flex-col gap-6">
-                                <DailyGoalRing
-                                    progress={Math.min(100, vitals.totalWorkouts * 10)}
-                                    label="Total Workouts"
-                                    sublabel={`${vitals.totalWorkouts} sessions logged`}
+                        </motion.div>
+
+                        {/* ── CNS Neural Recovery ───────────────────────────── */}
+                        <div className="mb-10">
+                            <motion.div
+                                className="relative rounded-[32px] overflow-hidden"
+                                animate={{
+                                    boxShadow: [
+                                        `0 0 30px ${theme.accent}10, 0 0 0 1px ${theme.accent}15`,
+                                        `0 0 55px ${theme.accent}25, 0 0 0 1px ${theme.accent}30`,
+                                        `0 0 30px ${theme.accent}10, 0 0 0 1px ${theme.accent}15`,
+                                    ],
+                                }}
+                                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                                style={{
+                                    background: 'linear-gradient(135deg, #080808 0%, #0a0a0a 100%)',
+                                    border:     `1px solid ${theme.accent}22`,
+                                }}
+                            >
+                                {/* Grid texture */}
+                                <div
+                                    className="absolute inset-0 pointer-events-none opacity-[0.018]"
+                                    style={{
+                                        backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
+                                        backgroundSize:  "32px 32px",
+                                    }}
                                 />
-                                <SavageTip delay={0.7} />
-                            </div>
+
+                                {/* Pulsing cyan mannequin silhouette */}
+                                <motion.div
+                                    className="absolute right-0 top-0 bottom-0 w-56 pointer-events-none overflow-hidden"
+                                    animate={{ opacity: [0.05, 0.12, 0.05] }}
+                                    transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                                >
+                                    <svg
+                                        viewBox="0 0 200 400"
+                                        className="absolute right-[-20px] top-1/2 -translate-y-1/2 h-full"
+                                        fill={theme.accent}
+                                    >
+                                        <circle cx="100" cy="48" r="34" />
+                                        <rect x="88" y="80" width="24" height="20" rx="4" />
+                                        <path d="M55 100 L145 100 L158 220 L42 220 Z" />
+                                        <path d="M55 108 L18 190 Q14 200 20 205 L28 208 Q36 210 40 200 L72 125 Z" />
+                                        <path d="M145 108 L182 190 Q186 200 180 205 L172 208 Q164 210 160 200 L128 125 Z" />
+                                        <path d="M70 218 L58 340 Q56 355 66 358 L80 360 Q90 362 92 348 L98 224 Z" />
+                                        <path d="M130 218 L142 340 Q144 355 134 358 L120 360 Q110 362 108 348 L102 224 Z" />
+                                    </svg>
+                                </motion.div>
+
+                                {/* Radial accent glow */}
+                                <div
+                                    className="absolute inset-0 pointer-events-none"
+                                    style={{ background: `radial-gradient(ellipse 55% 65% at 30% 50%, ${theme.accent}08 0%, transparent 70%)` }}
+                                />
+
+                                <div className="relative px-8 py-8">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.55em] opacity-30 mb-1">
+                                        Central Nervous System
+                                    </p>
+                                    <h3
+                                        className="text-3xl font-black uppercase leading-tight mb-6"
+                                        style={{
+                                            fontFamily:    'var(--font-archivo-black), sans-serif',
+                                            color:         theme.accent,
+                                            textShadow:    `0 0 30px ${theme.accent}50`,
+                                            letterSpacing: '-0.03em',
+                                        }}
+                                    >
+                                        {cnsScore >= 95 ? 'Fully\nRecovered' : 'Neural\nRecovery'}
+                                    </h3>
+
+                                    {/* Big score */}
+                                    <div className="flex items-baseline gap-1 mb-6">
+                                        <span
+                                            className="font-black leading-none tabular-nums"
+                                            style={{
+                                                fontFamily: 'var(--font-archivo-black), sans-serif',
+                                                fontSize:   '4rem',
+                                                color:      theme.accent,
+                                                textShadow: `0 0 40px ${theme.accent}60`,
+                                            }}
+                                        >
+                                            {cnsScore}
+                                        </span>
+                                        <span className="text-2xl opacity-40 font-black">%</span>
+                                    </div>
+
+                                    {/* Metric rows */}
+                                    <div className="flex flex-col gap-3">
+                                        {[
+                                            { label: 'Fatigue Index',   value: `${100 - cnsScore}%` },
+                                            { label: 'Readiness',       value: `${cnsScore}%` },
+                                            { label: 'Recovery Window', value: cnsScore >= 95 ? 'Full Power' : `${Math.ceil((100 - cnsScore) * 0.24)}h remaining` },
+                                        ].map(({ label, value }) => (
+                                            <div key={label} className="flex items-center justify-between">
+                                                <p className="text-[11px] font-black uppercase tracking-widest opacity-35">{label}</p>
+                                                <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: theme.accent }}>{value}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="h-px mt-5 mb-4" style={{ background: `linear-gradient(90deg, ${theme.accent}30, transparent)` }} />
+
+                                    <p className="text-[11px] opacity-25 leading-relaxed">
+                                        {cnsScore >= 95
+                                            ? 'Your nervous system is primed. Push maximum intensity.'
+                                            : 'Consistent training rebuilds neural pathways. Recovery is progress.'}
+                                    </p>
+                                </div>
+                            </motion.div>
                         </div>
 
-                        {/* The Vault */}
+                        {/* ── The Vault ─────────────────────────────────────── */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -443,16 +560,6 @@ export default function Home() {
                             </h2>
                             <VaultGrid dynamicWorkouts={workoutHistory} />
                         </motion.div>
-
-                        {/* Mobile Bio Metrics */}
-                        <div className="xl:hidden mt-12">
-                            <LuxuryCard className="p-8 rounded-[32px]" delay={0.7}>
-                                <h3 className="text-lg font-semibold mb-6" style={{ letterSpacing: '-0.02em' }}>
-                                    Today's Metrics
-                                </h3>
-                                <BioMetrics />
-                            </LuxuryCard>
-                        </div>
 
                     </div>
                 </section>
