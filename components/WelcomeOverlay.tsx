@@ -291,7 +291,8 @@ export default function WelcomeOverlay({ isVisible, onEnter }: WelcomeOverlayPro
     const profileDone = typeof window !== 'undefined' && !!loadProfile();
 
     const handleSplashEnter = () => {
-        if (profileDone) { onEnter(); return; }
+        // If profile already set but email not yet provided, skip to email step
+        if (profileDone) { setStep('email'); return; }
         setStep('goal');
     };
 

@@ -21,7 +21,7 @@ import {
     loadProfile, generateDailyMission,
     type UserProfile,
 } from "@/utils/missionGenerator";
-import { getUserStats, getRankInfo, recordDailyVisit, type UserStats } from "@/utils/userStats";
+import { getUserStats, getRankInfo, recordDailyVisit } from "@/utils/userStats";
 import { hapticMedium, hapticLight } from "@/utils/haptic";
 import BiometricScan, { shouldShowScan } from "@/components/BiometricScan";
 import XPBar from "@/components/XPBar";
@@ -294,20 +294,38 @@ export default function Home() {
                         </p>
                     </motion.div>
 
-                    {/* ── Bottom FABs ─────────────────────────────────────── */}
-                    <div
-                        className="absolute inset-x-0 z-[10] flex items-end justify-between"
+                    {/* ── Bottom action bar ────────────────────────────── */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.35, type: 'spring', stiffness: 180, damping: 22 }}
+                        className="absolute inset-x-0 z-[10] flex items-center justify-between"
                         style={{
-                            bottom:  'calc(max(env(safe-area-inset-bottom, 0px), 20px) + 3.5rem)',
+                            bottom:  'calc(max(env(safe-area-inset-bottom, 0px), 20px) + 24px)',
                             padding: '0 clamp(1.5rem, 5vw, 7rem)',
                         }}
                     >
-                        {/* Left: phone icon + share + Today's Mission */}
+                        {/* Left: XP pill + icon buttons */}
                         <div className="flex items-center gap-2">
+                            {/* XP / Rank pill */}
+                            <div
+                                className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl backdrop-blur-md"
+                                style={{
+                                    background: 'rgba(6,6,6,0.60)',
+                                    border:     '1px solid rgba(255,255,255,0.08)',
+                                }}
+                            >
+                                <Trophy size={13} color="#FFD700" />
+                                <span className="text-xs font-black uppercase tracking-widest" style={{ color: theme.accent }}>
+                                    {vitals.totalXP}
+                                </span>
+                                <span className="text-[10px] opacity-40 font-bold uppercase tracking-widest">
+                                    xp · lv{getRankInfo(vitals.totalXP).level}
+                                </span>
+                            </div>
+
+                            {/* Install */}
                             <motion.button
-                                initial={{ opacity: 0, y: 24 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.35, type: 'spring', stiffness: 180, damping: 22 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => { hapticLight(); setShowInstallModal(true); }}
                                 className="w-10 h-10 flex items-center justify-center rounded-2xl backdrop-blur-md"
@@ -320,20 +338,15 @@ export default function Home() {
                                 <Smartphone size={14} className="opacity-50" />
                             </motion.button>
 
-                            {/* Share / Savage Status */}
+                            {/* Share status */}
                             <motion.button
-                                initial={{ opacity: 0, y: 24 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.38, type: 'spring', stiffness: 180, damping: 22 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={async () => {
                                     hapticLight();
                                     const rankInfo = getRankInfo(vitals.totalXP);
                                     const text = `💪 ${vitals.currentStreak} day streak · ${rankInfo.levelName} rank · ${vitals.totalXP} XP on Mr. Workout`;
                                     if (typeof navigator !== 'undefined' && navigator.share) {
-                                        try {
-                                            await navigator.share({ title: 'My Savage Status', text, url: window.location.origin });
-                                        } catch {}
+                                        try { await navigator.share({ title: 'My Savage Status', text, url: window.location.origin }); } catch {}
                                     } else {
                                         try { await navigator.clipboard.writeText(`${text}\n${window.location.origin}`); } catch {}
                                     }
@@ -347,37 +360,41 @@ export default function Home() {
                             >
                                 <Share2 size={14} className="opacity-50" />
                             </motion.button>
-
                         </div>
 
-                        {/* Right: vertical stack — Upgrade + Quick Start */}
-                        <motion.div
-                            className="flex flex-col items-end gap-6"
-                            initial={{ opacity: 0, y: 24 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.45, type: 'spring', stiffness: 180, damping: 22 }}
-                        >
-                            {lastExercise && (
-                                <motion.button
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => { hapticMedium(); setQuickStartOpen(true); }}
-                                    className="flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest"
-                                    style={{
-                                        background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}bb 100%)`,
-                                        color:       '#000',
-                                        boxShadow:   `0 0 28px ${theme.accent}50, 0 8px 32px rgba(0,0,0,0.45)`,
-                                        touchAction: 'manipulation',
-                                    }}
-                                >
-                                    <Zap size={14} fill="currentColor" />
-                                    Quick Start
-                                </motion.button>
-                            )}
-                        </motion.div>
-                    </div>
-
-                    {/* ── Vitals strip — bottom-left, above scroll indicator ── */}
-                    <VitalsStrip vitals={vitals} accentColor={theme.accent} />
+                        {/* Right: Quick Start (primary CTA) */}
+                        {lastExercise ? (
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => { hapticMedium(); setQuickStartOpen(true); }}
+                                className="flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest"
+                                style={{
+                                    background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}bb 100%)`,
+                                    color:       '#000',
+                                    boxShadow:   `0 0 28px ${theme.accent}50, 0 8px 32px rgba(0,0,0,0.45)`,
+                                    touchAction: 'manipulation',
+                                }}
+                            >
+                                <Zap size={14} fill="currentColor" />
+                                Quick Start
+                            </motion.button>
+                        ) : (
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => router.push('/library')}
+                                className="flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest"
+                                style={{
+                                    background:  'rgba(255,255,255,0.06)',
+                                    border:      `1px solid ${theme.accent}30`,
+                                    color:       theme.accent,
+                                    touchAction: 'manipulation',
+                                }}
+                            >
+                                <Zap size={14} />
+                                Browse Armory
+                            </motion.button>
+                        )}
+                    </motion.div>
 
                     {/* Scroll indicator */}
                     <motion.div
@@ -614,206 +631,4 @@ export default function Home() {
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Vitals Strip — shown in hero over the 3D mannequin
-// ─────────────────────────────────────────────────────────────────────────────
-interface VitalsStripProps {
-    vitals:      UserStats;
-    accentColor: string;
-}
 
-function VitalsStrip({ vitals, accentColor }: VitalsStripProps) {
-    const rankInfo = getRankInfo(vitals.totalXP);
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
-            className="absolute z-[10] flex items-center gap-3"
-            style={{
-                bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 20px) + 3.5rem)',
-                left:   'clamp(1.5rem, 5vw, 7rem)',
-            }}
-        >
-            {/* XP pill */}
-            <div
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl backdrop-blur-md"
-                style={{
-                    background: 'rgba(6,6,6,0.55)',
-                    border:     '1px solid rgba(255,255,255,0.08)',
-                }}
-            >
-                <Trophy size={13} color="#FFD700" />
-                <span className="text-xs font-black uppercase tracking-widest" style={{ color: accentColor }}>
-                    {vitals.totalXP}
-                </span>
-                <span className="text-[10px] opacity-40 font-bold uppercase tracking-widest">xp · lv{rankInfo.level}</span>
-            </div>
-        </motion.div>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Progress Dashboard — replaces the old DailyChallengeWidget
-// ─────────────────────────────────────────────────────────────────────────────
-interface ProgressDashboardProps {
-    accentColor:   string;
-    lastExercise:  any;
-    onQuickStart:  () => void;
-    vitals:        UserStats;
-}
-
-function ProgressDashboard({ accentColor, lastExercise, onQuickStart, vitals }: ProgressDashboardProps) {
-    const rankInfo    = getRankInfo(vitals.totalXP);
-    const streakDays  = vitals.currentStreak;
-    const rankLabel   = rankInfo.levelName;
-    const rankPct     = rankInfo.progress;          // already 0-100
-    const nextRank    = rankInfo.xpToNext !== null  // null means max rank
-        ? (() => {
-              const RANK_NAMES = ['Iron','Bronze','Silver','Gold','Platinum','Diamond'];
-              return RANK_NAMES[rankInfo.level] ?? 'MAX';
-          })()
-        : 'MAX';
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="mb-10"
-        >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-                {/* Savage Streak */}
-                <div
-                    className="rounded-[24px] p-6 flex flex-col justify-between"
-                    style={{
-                        background: `${accentColor}0a`,
-                        border:     `1px solid ${accentColor}22`,
-                    }}
-                >
-                    <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40 mb-2">
-                        Savage Streak
-                    </p>
-                    <div className="flex items-baseline gap-2">
-                        <span
-                            className="text-6xl font-black leading-none"
-                            style={{
-                                color:      accentColor,
-                                fontFamily: 'var(--font-archivo-black), sans-serif',
-                                textShadow: `0 0 30px ${accentColor}50`,
-                            }}
-                        >
-                            {streakDays}
-                        </span>
-                        <span className="text-xl opacity-40 font-black">days</span>
-                    </div>
-                    <p className="text-[10px] opacity-25 mt-1 font-medium uppercase tracking-widest">
-                        Keep it alive
-                    </p>
-                </div>
-
-                {/* Iron Rank Progress */}
-                <motion.div
-                    className="rounded-[20px] p-4 flex flex-col justify-between"
-                    animate={rankPct >= 100 ? {
-                        boxShadow: [
-                            '0 0 16px rgba(255,215,0,0.20), 0 0 0 1px rgba(255,215,0,0.25)',
-                            '0 0 32px rgba(255,215,0,0.45), 0 0 0 1px rgba(255,215,0,0.50)',
-                            '0 0 16px rgba(255,215,0,0.20), 0 0 0 1px rgba(255,215,0,0.25)',
-                        ],
-                    } : {}}
-                    transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-                    style={{
-                        background: rankPct >= 100 ? 'rgba(255,215,0,0.06)' : `${accentColor}0a`,
-                        border:     rankPct >= 100 ? '1px solid rgba(255,215,0,0.35)' : `1px solid ${accentColor}22`,
-                    }}
-                >
-                    <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40 mb-2">
-                        Iron Rank
-                    </p>
-                    <div className="mb-2">
-                        <div className="flex justify-between items-baseline mb-2">
-                            <span
-                                className="text-lg font-black uppercase"
-                                style={{
-                                    color:      rankPct >= 100 ? '#FFD700' : accentColor,
-                                    fontFamily: 'var(--font-archivo-black), sans-serif',
-                                }}
-                            >
-                                {rankLabel}
-                            </span>
-                            <span className="text-[10px] opacity-30 font-black">→ {nextRank}</span>
-                        </div>
-                        {/* Progress bar with pulse */}
-                        <div className="h-1.5 rounded-full bg-white/10 overflow-hidden relative">
-                            <motion.div
-                                className="h-full rounded-full relative"
-                                style={{
-                                    backgroundColor: rankPct >= 100 ? '#FFD700' : accentColor,
-                                    boxShadow: rankPct >= 100
-                                        ? '0 0 8px #FFD700, 0 0 16px rgba(255,215,0,0.6)'
-                                        : `0 0 6px ${accentColor}80`,
-                                }}
-                                initial={{ width: 0 }}
-                                animate={{
-                                    width: `${rankPct}%`,
-                                    ...(rankPct >= 100 ? {
-                                        boxShadow: [
-                                            '0 0 8px #FFD700, 0 0 16px rgba(255,215,0,0.4)',
-                                            '0 0 16px #FFD700, 0 0 32px rgba(255,215,0,0.8)',
-                                            '0 0 8px #FFD700, 0 0 16px rgba(255,215,0,0.4)',
-                                        ]
-                                    } : {})
-                                }}
-                                transition={{ delay: 0.5, duration: 1.0, ease: [0.4, 0, 0.2, 1] }}
-                            />
-                        </div>
-                        <p className="text-[9px] opacity-25 mt-1 font-medium">
-                            {rankPct >= 100 ? '⚡ Rank Up Ready' : `${rankPct}% to ${nextRank}`}
-                        </p>
-                    </div>
-                </motion.div>
-
-                {/* Quick Start */}
-                <div
-                    className="rounded-[24px] p-6 flex flex-col justify-between"
-                    style={{
-                        background: `${accentColor}0a`,
-                        border:     `1px solid ${accentColor}22`,
-                    }}
-                >
-                    <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40 mb-2">
-                        Quick Start
-                    </p>
-                    {lastExercise ? (
-                        <>
-                            <p className="text-sm font-black uppercase tracking-tight opacity-80 mb-4 leading-tight">
-                                {lastExercise.name}
-                            </p>
-                            <motion.button
-                                whileTap={{ scale: 0.96 }}
-                                onClick={onQuickStart}
-                                className="w-full py-3 rounded-xl font-black text-xs uppercase tracking-[0.2em] text-black flex items-center justify-center gap-2"
-                                style={{
-                                    background:  `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%)`,
-                                    boxShadow:   `0 0 20px ${accentColor}40`,
-                                    touchAction: 'manipulation',
-                                }}
-                            >
-                                <Zap size={13} fill="currentColor" />
-                                Resume
-                            </motion.button>
-                        </>
-                    ) : (
-                        <p className="text-xs opacity-25 font-medium">
-                            Start an exercise in the Armory to resume it here.
-                        </p>
-                    )}
-                </div>
-
-            </div>
-        </motion.div>
-    );
-}
