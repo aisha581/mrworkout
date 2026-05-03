@@ -8,8 +8,14 @@
  *
  * Phase flow:
  *   "email"    → user types email, clicks "Send Code"
- *   "code"     → 6-digit boxes appear, email field hidden
+ *   "code"     → 6-digit boxes appear inline; auto-verifies on 6th digit
  *   "password" → optional fallback, auto-switches to OTP on wrong credentials
+ *
+ * OTP verification:
+ *   - 6th digit triggers immediate verify (no red flash)
+ *   - Boxes pulse cyan while verifying
+ *   - Auto-retries once after 500 ms on first failure
+ *   - Red error only shown after second failed attempt
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -22,8 +28,8 @@ import {
     ArrowLeft, Zap, X, ShieldCheck,
 } from "lucide-react";
 
-const CYAN         = "#00FFFF";
-const RESEND_SECS  = 30;
+const CYAN        = "#00FFFF";
+const RESEND_SECS = 30;
 
 // ── Google SVG ────────────────────────────────────────────────────────────────
 function GoogleIcon() {
@@ -38,15 +44,15 @@ function GoogleIcon() {
 }
 
 // ── 6-digit OTP boxes ─────────────────────────────────────────────────────────
-function OtpBoxes({ value, onChange, disabled, onComplete }: {
-    value:      string;
-    onChange:   (v: string) => void;
-    disabled:   boolean;
-    onComplete: () => void;
+function OtpBoxes({ value, onChange, disabled, onComplete, isVerifying }: {
+    value:         string;
+    onChange:      (v: string) => void;
+    disabled:      boolean;
+    onComplete:    () => void;
+    isVerifying?:  boolean;
 }) {
     const ref = useRef<HTMLInputElement>(null);
 
-    // Auto-focus when boxes mount
     useEffect(() => { setTimeout(() => ref.current?.focus(), 120); }, []);
 
     const handleInput = (raw: string) => {
@@ -57,7 +63,7 @@ function OtpBoxes({ value, onChange, disabled, onComplete }: {
 
     return (
         <div className="relative" onClick={() => ref.current?.focus()}>
-            {/* Invisible real input — captures physical keyboard + iOS numpad */}
+            {/* Hidden real input — captures physical keyboard + iOS numpad */}
             <input
                 ref={ref}
                 type="text"
@@ -66,33 +72,47 @@ function OtpBoxes({ value, onChange, disabled, onComplete }: {
                 maxLength={6}
                 value={value}
                 onChange={e => handleInput(e.target.value)}
-                disabled={disabled}
+                disabled={disabled || isVerifying}
                 autoComplete="one-time-code"
                 aria-label="6-digit verification code"
                 className="absolute inset-0 opacity-0 w-full h-full cursor-default z-10"
             />
+
             {/* Visual digit tiles */}
             <div className="flex gap-2 justify-center select-none">
                 {Array.from({ length: 6 }).map((_, i) => {
                     const ch     = value[i] ?? "";
-                    const active = !disabled && value.length === i;
+                    const active = !disabled && !isVerifying && value.length === i;
+
                     return (
-                        <div
+                        <motion.div
                             key={i}
+                            animate={
+                                isVerifying
+                                    ? { boxShadow: [`0 0 12px ${CYAN}50`, `0 0 28px ${CYAN}CC`, `0 0 12px ${CYAN}50`] }
+                                    : { boxShadow: active ? [`0 0 16px ${CYAN}45`] : ["none"] }
+                            }
+                            transition={
+                                isVerifying
+                                    ? { duration: 0.9, repeat: Infinity, ease: "easeInOut", delay: i * 0.08 }
+                                    : { duration: 0.12 }
+                            }
                             className="w-11 h-14 rounded-xl flex items-center justify-center text-xl font-black"
                             style={{
-                                background: ch     ? `${CYAN}14`                      : "rgba(255,255,255,0.04)",
-                                border:     active ? `1.5px solid ${CYAN}`
-                                          : ch    ? `1px solid ${CYAN}55`
-                                          :          "1px solid rgba(255,255,255,0.10)",
-                                boxShadow:  active ? `0 0 16px ${CYAN}45`             : "none",
+                                background: isVerifying ? `${CYAN}22`
+                                          : ch          ? `${CYAN}14`
+                                          :               "rgba(255,255,255,0.04)",
+                                border:     isVerifying  ? `1.5px solid ${CYAN}`
+                                          : active       ? `1.5px solid ${CYAN}`
+                                          : ch           ? `1px solid ${CYAN}55`
+                                          :                "1px solid rgba(255,255,255,0.10)",
                                 color:      CYAN,
                                 fontFamily: "var(--font-archivo-black), sans-serif",
-                                transition: "all 0.12s",
+                                transition: "background 0.15s, border-color 0.15s",
                             }}
                         >
                             {ch}
-                        </div>
+                        </motion.div>
                     );
                 })}
             </div>
@@ -102,32 +122,25 @@ function OtpBoxes({ value, onChange, disabled, onComplete }: {
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface AuthModalProps {
-    onClose?:          () => void;   // renders as overlay sheet when provided
-    redirectTo?:       string;       // default "/auth-redirect"
-    onAuthenticated?:  () => void;   // called instead of redirecting when user authenticates
+    onClose?:         () => void;
+    redirectTo?:      string;
+    onAuthenticated?: () => void;
 }
 
 type Phase = "email" | "code" | "password";
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
 
-/** Send a 6-digit OTP (or magic-link on legacy projects — behaviour set in Supabase dashboard) */
 async function sbSendOTP(email: string) {
     return supabase.auth.signInWithOtp({
         email,
-        options: {
-            shouldCreateUser: true,   // creates account on first use — no sign-up step needed
-            // Do NOT set emailRedirectTo. Omitting it lets the Supabase project's
-            // "Enable Email OTP" setting take effect and deliver a 6-digit code.
-        },
+        options: { shouldCreateUser: true },
     });
 }
 
 /**
- * Verify the 6-digit code.
- * Tries 'magiclink' first (works for both magic-link tokens and OTP codes on
- * most Supabase projects), then falls back to 'email' and 'signup' to handle
- * any project configuration.
+ * Try verifying the code with all three token types that Supabase supports.
+ * Returns the first successful result, or the last error.
  */
 async function sbVerifyOTP(email: string, token: string) {
     const types = ["magiclink", "email", "signup"] as const;
@@ -135,7 +148,6 @@ async function sbVerifyOTP(email: string, token: string) {
         const res = await supabase.auth.verifyOtp({ email, token, type });
         if (!res.error) return res;
     }
-    // Return last error so caller can surface it
     return supabase.auth.verifyOtp({ email, token, type: "magiclink" });
 }
 
@@ -153,12 +165,13 @@ export default function AuthModal({
     const [password,     setPassword]     = useState("");
     const [code,         setCode]         = useState("");
     const [loading,      setLoading]      = useState(false);
+    const [isVerifying,  setIsVerifying]  = useState(false);  // OTP-specific verify state
     const [error,        setError]        = useState<string | null>(null);
     const [resendIn,     setResendIn]     = useState(0);
     const [autoSwitched, setAutoSwitched] = useState(false);
     const [isInApp,      setIsInApp]      = useState(false);
 
-    // In-app browser detection (TikTok / Instagram / Snapchat etc.)
+    // In-app browser detection
     useEffect(() => {
         if (typeof navigator === "undefined") return;
         setIsInApp(
@@ -187,7 +200,7 @@ export default function AuthModal({
 
     const clrErr = () => setError(null);
 
-    // ── Finish: set onboarding flag, then navigate or call onAuthenticated ──
+    // ── Finish: set onboarding flag then navigate ───────────────────────────
     const finish = () => {
         try { localStorage.setItem("mw_onboarded", "1"); } catch {}
         if (onAuthenticated) {
@@ -201,7 +214,6 @@ export default function AuthModal({
     const handleGoogle = async () => {
         setLoading(true); clrErr();
         await signIn("google", { callbackUrl: redirectTo });
-        // (page navigates away — loading stays true intentionally)
     };
 
     // ── Path 2a: Send OTP ───────────────────────────────────────────────────
@@ -212,46 +224,56 @@ export default function AuthModal({
         const { error: err } = await sbSendOTP(email);
         setLoading(false);
 
-        if (err) {
-            setError(err.message ?? "Couldn't send code — please try again.");
-            return;
-        }
+        if (err) { setError(err.message ?? "Couldn't send code — please try again."); return; }
 
-        // Transition: hide email input, show OTP boxes
         setCode("");
         setPhase("code");
         setResendIn(RESEND_SECS);
         setAutoSwitched(false);
     };
 
-    // ── Path 2b: Verify OTP ─────────────────────────────────────────────────
+    // ── Path 2b: Verify OTP — with one automatic retry ─────────────────────
+    //
+    // Flow:
+    //   1. 6th digit entered → boxes pulse cyan, no error shown yet
+    //   2. First attempt with sbVerifyOTP (tries magiclink → email → signup)
+    //   3. If first attempt fails → wait 500 ms (Supabase propagation lag) → retry
+    //   4. Success on either attempt → finish()
+    //   5. Red error ONLY shown after second failure
     const handleVerifyCode = async () => {
-        if (code.length !== 6) return;
-        setLoading(true); clrErr();
+        if (code.length !== 6 || isVerifying) return;
+        setIsVerifying(true);
+        clrErr();
 
-        const res = await sbVerifyOTP(email, code);
-        setLoading(false);
+        // ── Attempt 1 ──────────────────────────────────────────────────────
+        let res = await sbVerifyOTP(email, code);
 
-        if (res.error) {
-            setError("Incorrect or expired code — check your inbox and try again.");
+        if (!res.error) {
+            setIsVerifying(false);
+            finish();
             return;
         }
-        finish();
+
+        // ── 500 ms grace period then retry ─────────────────────────────────
+        await new Promise<void>(r => setTimeout(r, 500));
+        res = await sbVerifyOTP(email, code);
+
+        setIsVerifying(false);
+
+        if (!res.error) {
+            finish();
+            return;
+        }
+
+        // ── Both attempts failed — now show the error ───────────────────────
+        setError("Incorrect or expired code — check your inbox and try again.");
     };
 
     // ── Path 3: Password ────────────────────────────────────────────────────
-    // On ANY failure (wrong password OR user doesn't exist yet), automatically:
-    //   1. Attempt to register via /api/auth/register
-    //   2. If registration succeeds, sign in again
-    //   3. If that still fails, silently send an OTP and switch to "code" phase
     const handlePassword = async () => {
-        if (!email.includes("@") || !password) {
-            setError("Enter your email and password.");
-            return;
-        }
+        if (!email.includes("@") || !password) { setError("Enter your email and password."); return; }
         setLoading(true); clrErr();
 
-        // First, try sign-in
         let result = await signIn("credentials", { email, password, redirect: false });
 
         if (!result?.error) {
@@ -260,7 +282,6 @@ export default function AuthModal({
             return;
         }
 
-        // Sign-in failed — try to auto-create the account, then sign in again
         try {
             const reg = await fetch("/api/auth/register", {
                 method:  "POST",
@@ -275,9 +296,8 @@ export default function AuthModal({
                     return;
                 }
             }
-        } catch { /* network error — fall through to OTP */ }
+        } catch { /* fall through to OTP */ }
 
-        // Both sign-in + sign-up failed — seamlessly send OTP instead
         const { error: otpErr } = await sbSendOTP(email);
         setLoading(false);
 
@@ -288,7 +308,6 @@ export default function AuthModal({
             setPhase("code");
             setResendIn(RESEND_SECS);
         } else {
-            // Absolute last resort: surface a real error
             setError("Sign-in failed. Try Google or check your connection.");
         }
     };
@@ -303,7 +322,7 @@ export default function AuthModal({
         setResendIn(RESEND_SECS);
     };
 
-    // ── Shared error banner ─────────────────────────────────────────────────
+    // ── Error banner ────────────────────────────────────────────────────────
     const Err = () => error ? (
         <motion.div
             key={error}
@@ -323,7 +342,7 @@ export default function AuthModal({
     const inner = (
         <div className="relative w-full max-w-sm mx-auto px-5 py-9 flex flex-col">
 
-            {/* ── In-app browser warning ──────────────────────── */}
+            {/* In-app browser warning */}
             <AnimatePresence>
                 {isInApp && (
                     <motion.div
@@ -346,7 +365,7 @@ export default function AuthModal({
                 )}
             </AnimatePresence>
 
-            {/* ── Close (modal mode only) ──────────────────────── */}
+            {/* Close (modal mode only) */}
             {isModal && (
                 <button
                     onClick={onClose}
@@ -358,7 +377,7 @@ export default function AuthModal({
                 </button>
             )}
 
-            {/* ── Brand ───────────────────────────────────────── */}
+            {/* Brand */}
             <div className="flex flex-col items-center mb-7">
                 <div
                     className="w-14 h-14 rounded-[18px] flex items-center justify-center mb-4"
@@ -383,7 +402,7 @@ export default function AuthModal({
             </div>
 
             {/* ══════════════════════════════════════════════════
-                PHASE: email  — initial screen
+                PHASE: email
             ══════════════════════════════════════════════════ */}
             <AnimatePresence mode="wait">
             {phase === "email" && (
@@ -395,7 +414,6 @@ export default function AuthModal({
                     transition={{ duration: 0.22 }}
                     className="flex flex-col gap-3"
                 >
-                    {/* Google */}
                     <motion.button
                         whileTap={{ scale: 0.97 }}
                         onClick={handleGoogle}
@@ -407,14 +425,12 @@ export default function AuthModal({
                         Continue with Google
                     </motion.button>
 
-                    {/* Divider */}
                     <div className="flex items-center gap-3 my-0.5">
                         <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-20">or</span>
                         <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
                     </div>
 
-                    {/* Email input */}
                     <div className="relative">
                         <Mail size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: `${CYAN}70` }} />
                         <input
@@ -438,7 +454,6 @@ export default function AuthModal({
 
                     <Err />
 
-                    {/* PRIMARY CTA — Send Code (cyan glow, shows spinner while loading) */}
                     <motion.button
                         whileTap={{ scale: 0.97 }}
                         onClick={handleSendCode}
@@ -460,7 +475,6 @@ export default function AuthModal({
                         We'll email you a code. No password needed.
                     </p>
 
-                    {/* Password fallback link */}
                     <button
                         onClick={() => { setPhase("password"); clrErr(); }}
                         disabled={loading}
@@ -475,7 +489,7 @@ export default function AuthModal({
             )}
 
             {/* ══════════════════════════════════════════════════
-                PHASE: code  — OTP verification
+                PHASE: code — OTP verification
             ══════════════════════════════════════════════════ */}
             {phase === "code" && (
                 <motion.div
@@ -496,8 +510,7 @@ export default function AuthModal({
                                 className="rounded-2xl px-4 py-3 text-xs font-medium leading-snug text-center"
                                 style={{ background: `${CYAN}0d`, border: `1px solid ${CYAN}30`, color: CYAN }}
                             >
-                                Password didn't match — we sent a login code to{" "}
-                                <strong>{email}</strong> instead.
+                                Password didn't match — we sent a login code to <strong>{email}</strong> instead.
                             </motion.div>
                         ) : (
                             <motion.div key="normal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
@@ -510,26 +523,50 @@ export default function AuthModal({
                         )}
                     </AnimatePresence>
 
-                    {/* Cyan subtitle */}
-                    <p className="text-center text-xs font-medium" style={{ color: `${CYAN}90` }}>
-                        Enter the 6-digit code sent to your inbox
-                    </p>
+                    {/* Subtitle — replaces the old premature red error */}
+                    <AnimatePresence mode="wait">
+                        {isVerifying ? (
+                            <motion.p
+                                key="verifying"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="text-center text-xs font-black uppercase tracking-[0.3em] flex items-center justify-center gap-2"
+                                style={{ color: CYAN }}
+                            >
+                                <Loader2 size={12} className="animate-spin" />
+                                Verifying…
+                            </motion.p>
+                        ) : (
+                            <motion.p
+                                key="hint"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="text-center text-xs font-medium"
+                                style={{ color: `${CYAN}90` }}
+                            >
+                                Enter the 6-digit code sent to your inbox
+                            </motion.p>
+                        )}
+                    </AnimatePresence>
 
                     {/* 6-digit boxes */}
                     <OtpBoxes
                         value={code}
                         onChange={v => { setCode(v); clrErr(); }}
                         disabled={loading}
+                        isVerifying={isVerifying}
                         onComplete={handleVerifyCode}
                     />
 
                     <Err />
 
-                    {/* Verify button — lights up cyan when 6 digits filled */}
+                    {/* Verify button */}
                     <motion.button
                         whileTap={{ scale: 0.97 }}
                         onClick={handleVerifyCode}
-                        disabled={loading || code.length !== 6}
+                        disabled={isVerifying || loading || code.length !== 6}
                         className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm flex items-center justify-center gap-2.5 disabled:opacity-40"
                         style={{
                             background:  code.length === 6 ? `linear-gradient(135deg, ${CYAN} 0%, #00C8C8 100%)` : "rgba(255,255,255,0.08)",
@@ -539,8 +576,8 @@ export default function AuthModal({
                             transition:  "all 0.18s",
                         }}
                     >
-                        {loading
-                            ? <Loader2 size={16} className="animate-spin" />
+                        {isVerifying
+                            ? <Loader2 size={16} className="animate-spin" style={{ color: "#000" }} />
                             : <><Zap size={15} fill="currentColor" /> Unlock</>
                         }
                     </motion.button>
@@ -549,7 +586,8 @@ export default function AuthModal({
                     <div className="flex items-center justify-between pt-0.5">
                         <button
                             onClick={() => { setPhase("email"); setCode(""); setAutoSwitched(false); clrErr(); }}
-                            className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest opacity-25 hover:opacity-55 transition-opacity"
+                            disabled={isVerifying}
+                            className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest opacity-25 hover:opacity-55 transition-opacity disabled:opacity-10"
                         >
                             <ArrowLeft size={12} /> Back
                         </button>
@@ -561,7 +599,7 @@ export default function AuthModal({
                         ) : (
                             <button
                                 onClick={handleResend}
-                                disabled={loading}
+                                disabled={loading || isVerifying}
                                 className="text-xs font-black uppercase tracking-widest transition-opacity disabled:opacity-30"
                                 style={{ color: CYAN, opacity: 0.6 }}
                                 onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
@@ -575,7 +613,7 @@ export default function AuthModal({
             )}
 
             {/* ══════════════════════════════════════════════════
-                PHASE: password  — optional fallback
+                PHASE: password — optional fallback
             ══════════════════════════════════════════════════ */}
             {phase === "password" && (
                 <motion.div
@@ -590,7 +628,6 @@ export default function AuthModal({
                         Wrong password or new account? We'll automatically send you a code.
                     </p>
 
-                    {/* Email */}
                     <div className="relative">
                         <Mail size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: `${CYAN}70` }} />
                         <input
@@ -609,7 +646,6 @@ export default function AuthModal({
                         />
                     </div>
 
-                    {/* Password */}
                     <div className="relative">
                         <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-25" />
                         <input
