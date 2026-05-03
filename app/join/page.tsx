@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession, signIn } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,6 +11,7 @@ import {
     Shield, Star,
 } from "lucide-react";
 import { hapticMedium, hapticHeavy } from "@/utils/haptic";
+import AuthModal from "@/components/AuthModal";
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
 const MONTHLY_PRICE  = "$14.99";
@@ -499,6 +500,7 @@ export default function JoinPage() {
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [showPWA, setShowPWA]    = useState(false);
     const [pwaDismissed, setPwaDismissed] = useState(false);
+    const [showAuthModal, setShowAuthModal] = useState(false);
 
     // Restore state from sessionStorage on mount
     useEffect(() => {
@@ -540,7 +542,7 @@ export default function JoinPage() {
 
         if (!session) {
             try { sessionStorage.setItem("mw_join_plan", plan); } catch {}
-            signIn("google", { callbackUrl: "/auth-redirect" });
+            setShowAuthModal(true);
             return;
         }
 
@@ -921,6 +923,16 @@ export default function JoinPage() {
             <AnimatePresence>
                 {showPWA && !pwaDismissed && (
                     <PWAInstallBanner onDismiss={dismissPWA} />
+                )}
+            </AnimatePresence>
+
+            {/* ── Auth modal (shown when unauthenticated user tries to checkout) */}
+            <AnimatePresence>
+                {showAuthModal && (
+                    <AuthModal
+                        onClose={() => setShowAuthModal(false)}
+                        redirectTo="/auth-redirect"
+                    />
                 )}
             </AnimatePresence>
         </div>
