@@ -7,7 +7,8 @@
       "Bash(npx tsc *)",
       "Bash(sed -n '85,100p' app/library/page.tsx)",
       "Bash(sed -n '290,310p' app/library/page.tsx)",
-      "Bash(node -e \"const Stripe = require\\('stripe'\\); const s = new Stripe\\('sk_test_fake'\\); console.log\\(Stripe.LATEST_API_VERSION ?? 'not exposed'\\)\")"
+      "Bash(node -e \"const Stripe = require\\('stripe'\\); const s = new Stripe\\('sk_test_fake'\\); console.log\\(Stripe.LATEST_API_VERSION ?? 'not exposed'\\)\")",
+      "Bash(git add *)"
     ],
     "additionalDirectories": [
       "/Users/fs/Downloads/Mr. Workout/app/(marketing)"

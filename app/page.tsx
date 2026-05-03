@@ -28,13 +28,10 @@ import {
     type UserProfile,
 } from "@/utils/missionGenerator";
 import { getUserStats, getRankInfo, recordDailyVisit, type UserStats } from "@/utils/userStats";
-import { useIsPro } from "@/hooks/useIsPro";
 import { hapticMedium, hapticLight } from "@/utils/haptic";
 import BiometricScan, { shouldShowScan } from "@/components/BiometricScan";
 import XPBar from "@/components/XPBar";
-import { playBriefing } from "@/utils/audio";
-import { Zap, ChevronDown, Trophy, Crown, Volume2, Loader2, Smartphone, Share2 } from "lucide-react";
-import { computeCNSScore } from "@/utils/userStats";
+import { Zap, ChevronDown, Trophy, Smartphone, Share2 } from "lucide-react";
 import AddToHomeModal from "@/components/AddToHomeModal";
 
 // Canvas cannot be server-rendered — load only on the client
@@ -56,8 +53,6 @@ export default function Home() {
     const [lastExercise,    setLastExercise]    = useState<LiveExercise | null>(null);
     const [quickStartOpen,  setQuickStartOpen]  = useState(false);
     const [isMissionOpen,   setIsMissionOpen]   = useState(false);
-    const [showWelcome,     setShowWelcome]     = useState(false);
-
     // Profile + generated mission
     const [profile,          setProfile]         = useState<UserProfile | null>(null);
     const [missionExercises, setMissionExercises] = useState<LiveExercise[]>([]);
@@ -67,18 +62,26 @@ export default function Home() {
 
     // Biometric scan overlay (first-visit only)
     const [showScan,    setShowScan]    = useState(false);
-    // Daily briefing button state
-    const [briefPlaying, setBriefPlaying] = useState(false);
 
-    // Pro status
-    const { isPro } = useIsPro();
+    // Onboarding gate — dashboard hidden until user completes biometric wall
+    const [onboarded, setOnboarded] = useState(false);
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setOnboarded(!!localStorage.getItem('mw_onboarded'));
+        }
+    }, []);
 
     // iOS install modal
     const [showInstallModal, setShowInstallModal] = useState(false);
+    const [showPWABanner, setShowPWABanner] = useState(false);
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const dismissed = sessionStorage.getItem('mw_pwa_dismissed');
+        const standalone = window.matchMedia('(display-mode: standalone)').matches;
+        if (!dismissed && !standalone) setShowPWABanner(true);
+    }, []);
 
     // Derived CNS score for card styling
-    const cnsScore = computeCNSScore(vitals);
-
     // ── Library fetch ──────────────────────────────────────────────────────────
     useEffect(() => {
         const fetchLibrary = async () => {
@@ -92,14 +95,10 @@ export default function Home() {
         fetchLibrary();
     }, []);
 
-    // ── Load profile + show welcome if first visit ─────────────────────────────
+    // ── Load profile on mount ──────────────────────────────────────────────────
     useEffect(() => {
         const saved = loadProfile();
-        if (saved) {
-            setProfile(saved);
-        } else {
-            setShowWelcome(true);
-        }
+        if (saved) setProfile(saved);
     }, []);
 
     // ── Re-generate mission whenever profile or exercises change ───────────────
@@ -138,6 +137,20 @@ export default function Home() {
         router.push('/playground');
     }, [missionExercises, setQueue, router]);
 
+    // ── Onboarding gate — show wall if user hasn't completed signup ──────────
+    if (!onboarded) {
+        return (
+            <WelcomeOverlay
+                isVisible={true}
+                onEnter={() => {
+                    setOnboarded(true);
+                    const saved = loadProfile();
+                    if (saved) setProfile(saved);
+                }}
+            />
+        );
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     return (
         <AnimatePresence mode="wait">
@@ -151,6 +164,55 @@ export default function Home() {
             >
                 <Navbar />
                 <Sidebar />
+
+                {/* ── Floating PWA install banner ─────────────────────── */}
+                <AnimatePresence>
+                    {showPWABanner && (
+                        <motion.div
+                            initial={{ y: -60, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: -60, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                            className="fixed top-20 inset-x-0 z-[60] flex justify-center px-4 pointer-events-none"
+                        >
+                            <div
+                                className="flex items-center gap-3 px-5 py-3 rounded-2xl pointer-events-auto"
+                                style={{
+                                    background:  'rgba(6,6,6,0.92)',
+                                    border:      `1px solid ${theme.accent}35`,
+                                    boxShadow:   `0 0 32px ${theme.accent}20, 0 8px 32px rgba(0,0,0,0.6)`,
+                                    backdropFilter: 'blur(20px)',
+                                }}
+                            >
+                                <motion.div
+                                    animate={{ opacity: [0.6, 1, 0.6] }}
+                                    transition={{ duration: 1.8, repeat: Infinity }}
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ background: theme.accent, boxShadow: `0 0 8px ${theme.accent}` }}
+                                />
+                                <p className="text-[11px] font-black uppercase tracking-[0.3em]" style={{ color: theme.accent }}>
+                                    Add to Home Screen
+                                </p>
+                                <button
+                                    onClick={() => { hapticLight(); setShowInstallModal(true); }}
+                                    className="px-3 py-1.5 rounded-xl font-black uppercase text-[10px] tracking-widest text-black"
+                                    style={{ background: theme.accent, boxShadow: `0 0 12px ${theme.accent}60` }}
+                                >
+                                    Install
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowPWABanner(false);
+                                        try { sessionStorage.setItem('mw_pwa_dismissed', '1'); } catch {}
+                                    }}
+                                    className="text-[10px] opacity-30 hover:opacity-60 transition-opacity font-black uppercase tracking-widest"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* ════════════════════════════════════════════════════════
                     HERO — full-viewport 3D scene
@@ -290,32 +352,6 @@ export default function Home() {
                                 <Share2 size={14} className="opacity-50" />
                             </motion.button>
 
-                            <motion.button
-                                initial={{ opacity: 0, y: 24 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.4, type: 'spring', stiffness: 180, damping: 22 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={async () => {
-                                    if (briefPlaying) return;
-                                    hapticMedium();
-                                    setBriefPlaying(true);
-                                    try { await playBriefing(); } catch {}
-                                    setBriefPlaying(false);
-                                }}
-                                disabled={briefPlaying}
-                                className="flex items-center gap-2 px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest backdrop-blur-md disabled:opacity-50"
-                                style={{
-                                    background:  'rgba(255,255,255,0.07)',
-                                    border:      '1px solid rgba(255,255,255,0.1)',
-                                    touchAction: 'manipulation',
-                                }}
-                            >
-                                {briefPlaying
-                                    ? <Loader2 size={14} className="animate-spin" />
-                                    : <Volume2 size={14} />
-                                }
-                                {briefPlaying ? 'Loading…' : "Today's Mission"}
-                            </motion.button>
                         </div>
 
                         {/* Right: vertical stack — Upgrade + Quick Start */}
@@ -325,24 +361,6 @@ export default function Home() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.45, type: 'spring', stiffness: 180, damping: 22 }}
                         >
-                            {!isPro && (
-                                <motion.button
-                                    whileTap={{ scale: 0.96 }}
-                                    onClick={() => { hapticMedium(); router.push('/join'); }}
-                                    className="flex items-center gap-2 px-5 py-2.5 rounded-full font-black uppercase tracking-[0.2em] text-xs whitespace-nowrap backdrop-blur-md"
-                                    style={{
-                                        background:  'rgba(255,215,0,0.10)',
-                                        border:      '1px solid rgba(255,215,0,0.35)',
-                                        color:       '#FFD700',
-                                        boxShadow:   '0 0 20px rgba(255,215,0,0.15), inset 0 1px 0 rgba(255,255,255,0.06)',
-                                        touchAction: 'manipulation',
-                                    }}
-                                >
-                                    <Crown size={12} fill="rgba(255,215,0,0.6)" color="#FFD700" />
-                                    Start 7 Days Free
-                                </motion.button>
-                            )}
-
                             {lastExercise && (
                                 <motion.button
                                     whileTap={{ scale: 0.95 }}
@@ -398,116 +416,6 @@ export default function Home() {
                         />
 
                         <CircuitBuilder />
-
-                        {/* ── CNS Neural Recovery ────────────────────────────── */}
-                        <div className="mb-12">
-                            <motion.div
-                                className="relative rounded-[32px] overflow-hidden"
-                                animate={{
-                                    boxShadow: [
-                                        `0 0 30px ${theme.accent}10, 0 0 0 1px ${theme.accent}15`,
-                                        `0 0 50px ${theme.accent}20, 0 0 0 1px ${theme.accent}25`,
-                                        `0 0 30px ${theme.accent}10, 0 0 0 1px ${theme.accent}15`,
-                                    ],
-                                }}
-                                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                                style={{
-                                    background: 'linear-gradient(135deg, #080808 0%, #0a0a0a 100%)',
-                                    border:     `1px solid ${theme.accent}20`,
-                                    boxShadow:  `0 0 30px ${theme.accent}10`,
-                                }}
-                            >
-                                {/* Ambient grid */}
-                                <div
-                                    className="absolute inset-0 pointer-events-none opacity-[0.018]"
-                                    style={{
-                                        backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
-                                        backgroundSize:  "32px 32px",
-                                    }}
-                                />
-
-                                {/* Pulsing mannequin silhouette */}
-                                <motion.div
-                                    className="absolute right-0 top-0 bottom-0 w-64 pointer-events-none overflow-hidden"
-                                    animate={{ opacity: [0.04, 0.08, 0.04] }}
-                                    transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                                >
-                                    <svg
-                                        viewBox="0 0 200 400"
-                                        className="absolute right-[-20px] top-1/2 -translate-y-1/2 h-full"
-                                        fill={theme.accent}
-                                    >
-                                        {/* Head */}
-                                        <circle cx="100" cy="48" r="34" />
-                                        {/* Neck */}
-                                        <rect x="88" y="80" width="24" height="20" rx="4" />
-                                        {/* Torso */}
-                                        <path d="M55 100 L145 100 L158 220 L42 220 Z" />
-                                        {/* Left arm */}
-                                        <path d="M55 108 L18 190 Q14 200 20 205 L28 208 Q36 210 40 200 L72 125 Z" />
-                                        {/* Right arm */}
-                                        <path d="M145 108 L182 190 Q186 200 180 205 L172 208 Q164 210 160 200 L128 125 Z" />
-                                        {/* Left leg */}
-                                        <path d="M70 218 L58 340 Q56 355 66 358 L80 360 Q90 362 92 348 L98 224 Z" />
-                                        {/* Right leg */}
-                                        <path d="M130 218 L142 340 Q144 355 134 358 L120 360 Q110 362 108 348 L102 224 Z" />
-                                    </svg>
-                                </motion.div>
-
-                                <div
-                                    className="absolute inset-0 pointer-events-none"
-                                    style={{ background: `radial-gradient(ellipse 55% 65% at 35% 50%, ${theme.accent}06 0%, transparent 70%)` }}
-                                />
-
-                                <div className="relative flex flex-col px-8 py-8">
-                                    {/* Single panel — no dull ring */}
-                                    <div className="flex flex-col gap-5">
-                                        <div>
-                                            <p className="text-[9px] font-black uppercase tracking-[0.55em] opacity-30 mb-1">
-                                                Central Nervous System
-                                            </p>
-                                            <h3
-                                                className="text-3xl font-black uppercase leading-tight"
-                                                style={{
-                                                    fontFamily:    'var(--font-archivo-black), sans-serif',
-                                                    color:         theme.accent,
-                                                    textShadow:    `0 0 30px ${theme.accent}40`,
-                                                    letterSpacing: '-0.03em',
-                                                }}
-                                            >
-                                                {cnsScore >= 95 ? 'Fully\nRecovered' : 'Neural\nRecovery'}
-                                            </h3>
-                                        </div>
-
-                                        {/* Metric rows — now using real data */}
-                                        {[
-                                            { label: "Fatigue Index",   value: `${100 - cnsScore}%` },
-                                            { label: "Readiness",       value: `${cnsScore}%` },
-                                            { label: "Recovery Window", value: cnsScore >= 95 ? "Full Power" : `${Math.ceil((100 - cnsScore) * 0.24)}h remaining` },
-                                        ].map(({ label, value }) => (
-                                            <div key={label} className="flex items-center justify-between">
-                                                <p className="text-[11px] font-black uppercase tracking-widest opacity-35">{label}</p>
-                                                <p
-                                                    className="text-[11px] font-black uppercase tracking-widest"
-                                                    style={{ color: theme.accent }}
-                                                >
-                                                    {value}
-                                                </p>
-                                            </div>
-                                        ))}
-
-                                        <div className="h-px" style={{ background: `linear-gradient(90deg, ${theme.accent}30, transparent)` }} />
-
-                                        <p className="text-[11px] opacity-25 leading-relaxed">
-                                            {cnsScore >= 95
-                                                ? 'Your nervous system is primed. This is the window to push maximum intensity.'
-                                                : 'Training frequency and recovery fuel your CNS score. The more consistent you are, the stronger your neural pathways become.'
-                                            }
-                                        </p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </div>
 
                         {/* Bento Grid */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -572,15 +480,6 @@ export default function Home() {
                     goal={profile?.goal ?? null}
                     missionExercises={missionExercises}
                     onStartMission={handleStartMission}
-                />
-
-                {/* Welcome / onboarding overlay */}
-                <WelcomeOverlay
-                    isVisible={showWelcome}
-                    onEnter={() => {
-                        setShowWelcome(false);
-                        setProfile(loadProfile());
-                    }}
                 />
 
                 {/* Biometric scan — first visit only */}

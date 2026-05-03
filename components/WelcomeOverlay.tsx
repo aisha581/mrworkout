@@ -311,6 +311,7 @@ export default function WelcomeOverlay({ isVisible, onEnter }: WelcomeOverlayPro
             } catch {}
         }
         setSaving(false);
+        try { localStorage.setItem('mw_onboarded', '1'); } catch {}
         onEnter();
     };
 
@@ -729,7 +730,10 @@ export default function WelcomeOverlay({ isVisible, onEnter }: WelcomeOverlayPro
                                 </motion.button>
 
                                 <button
-                                    onClick={handleEmailSubmit}
+                                    onClick={() => {
+                                        try { localStorage.setItem('mw_onboarded', '1'); } catch {}
+                                        handleEmailSubmit();
+                                    }}
                                     className="text-[10px] font-black uppercase tracking-[0.3em] opacity-25 hover:opacity-50 transition-opacity"
                                 >
                                     Skip for now

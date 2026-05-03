@@ -6,10 +6,15 @@ import ThemeToggle from './ThemeToggle';
 import BrandLogo from './BrandLogo';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useIsPro } from '@/hooks/useIsPro';
+import { useRouter } from 'next/navigation';
+import { Crown } from 'lucide-react';
 
 export default function Navbar() {
     const { theme } = useTheme();
     const { isPlayerOpen } = useWorkout();
+    const { isPro } = useIsPro();
+    const router    = useRouter();
 
     return (
         <motion.nav
@@ -59,8 +64,27 @@ export default function Navbar() {
                         {/* Reserved for future nav items */}
                     </div>
 
-                    {/* Theme Toggle */}
-                    <ThemeToggle />
+                    {/* Right: Upgrade + Theme Toggle */}
+                    <div className="flex items-center gap-3">
+                        {!isPro && (
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => router.push('/join')}
+                                className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-full font-black uppercase tracking-[0.18em] text-xs whitespace-nowrap"
+                                style={{
+                                    background:  'rgba(255,215,0,0.10)',
+                                    border:      '1px solid rgba(255,215,0,0.30)',
+                                    color:       '#FFD700',
+                                    boxShadow:   '0 0 16px rgba(255,215,0,0.12)',
+                                    touchAction: 'manipulation',
+                                }}
+                            >
+                                <Crown size={11} fill="rgba(255,215,0,0.6)" color="#FFD700" />
+                                Upgrade
+                            </motion.button>
+                        )}
+                        <ThemeToggle />
+                    </div>
                 </div>
             </div>
         </motion.nav>
