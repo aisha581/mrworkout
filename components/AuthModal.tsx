@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 const CYAN        = "#00FFFF";
+const RED         = "#ef4444";
 const RESEND_SECS = 30;
 
 // ── Google SVG ────────────────────────────────────────────────────────────────
@@ -25,47 +26,52 @@ function GoogleIcon() {
     );
 }
 
-// ── 6-box OTP input — one real <input> per box, auto-advances on digit ────────
-function OtpBoxes({ value, onChange, onComplete, isVerifying, disabled }: {
+// ── 6-box OTP input ───────────────────────────────────────────────────────────
+// • One real <input> per box, auto-advances on digit
+// • No auto-submit — user must click Unlock
+// • hasError: shakes the row and turns borders red; clears on any keypress
+function OtpBoxes({ value, onChange, isVerifying, disabled, hasError }: {
     value:        string;
     onChange:     (v: string) => void;
-    onComplete:   () => void;
     isVerifying?: boolean;
     disabled?:    boolean;
+    hasError?:    boolean;
 }) {
-    const boxRefs    = useRef<(HTMLInputElement | null)[]>([]);
+    const boxRefs  = useRef<(HTMLInputElement | null)[]>([]);
     const [focused, setFocused] = useState(-1);
+    // Incrementing key triggers the shake animation
+    const [shakeKey, setShakeKey] = useState(0);
 
-    // Focus first empty box on mount
+    // Trigger shake whenever hasError flips to true
+    const prevError = useRef(false);
+    useEffect(() => {
+        if (hasError && !prevError.current) setShakeKey(k => k + 1);
+        prevError.current = !!hasError;
+    }, [hasError]);
+
     useEffect(() => { setTimeout(() => boxRefs.current[0]?.focus(), 120); }, []);
 
-    // When disabled/verifying, keep boxes non-interactive
     const isLocked = !!(disabled || isVerifying);
 
     const handleChange = (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
         const digit = e.target.value.replace(/\D/g, "").slice(-1);
         if (!digit) return;
-
         const chars  = value.padEnd(6, " ").split("");
         chars[i]     = digit;
         const newVal = chars.join("").replace(/ /g, "").slice(0, 6);
         onChange(newVal);
-
-        // Advance focus
         if (i < 5) boxRefs.current[i + 1]?.focus();
-        if (newVal.length === 6) onComplete();
+        // No onComplete / auto-submit — user must manually tap Unlock
     };
 
     const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Backspace") {
             e.preventDefault();
             if (value[i]) {
-                // Clear current box
-                const chars  = value.split("");
-                chars[i]     = "";
+                const chars = value.split("");
+                chars[i]    = "";
                 onChange(chars.join(""));
             } else if (i > 0) {
-                // Move back and clear previous box
                 const chars  = value.padEnd(6, " ").split("");
                 chars[i - 1] = "";
                 onChange(chars.join("").replace(/ /g, ""));
@@ -78,22 +84,25 @@ function OtpBoxes({ value, onChange, onComplete, isVerifying, disabled }: {
         }
     };
 
-    // Paste: distribute digits across boxes
     const handlePaste = (e: React.ClipboardEvent) => {
         e.preventDefault();
         const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
         if (!pasted) return;
         onChange(pasted);
-        const nextIdx = Math.min(pasted.length, 5);
-        boxRefs.current[nextIdx]?.focus();
-        if (pasted.length === 6) onComplete();
+        boxRefs.current[Math.min(pasted.length, 5)]?.focus();
     };
 
     return (
-        <div className="flex gap-2 justify-center">
+        <motion.div
+            key={shakeKey}
+            animate={shakeKey > 0 ? { x: [0, -10, 10, -10, 10, -6, 6, -3, 3, 0] } : {}}
+            transition={{ duration: 0.45, ease: "easeInOut" }}
+            className="flex gap-2 justify-center"
+        >
             {Array.from({ length: 6 }).map((_, i) => {
                 const isFocused = focused === i && !isLocked;
                 const hasDigit  = !!value[i];
+                const showRed   = hasError && !isVerifying;
 
                 return (
                     <motion.input
@@ -111,7 +120,6 @@ function OtpBoxes({ value, onChange, onComplete, isVerifying, disabled }: {
                         onBlur={() => setFocused(-1)}
                         disabled={isLocked}
                         autoComplete={i === 0 ? "one-time-code" : "off"}
-                        // Pulse cyan glow when verifying
                         animate={isVerifying ? {
                             boxShadow: [
                                 `0 0 10px ${CYAN}44`,
@@ -120,31 +128,37 @@ function OtpBoxes({ value, onChange, onComplete, isVerifying, disabled }: {
                             ],
                         } : {}}
                         transition={isVerifying ? {
-                            duration:  0.85,
-                            repeat:    Infinity,
-                            ease:      "easeInOut",
-                            delay:     i * 0.09,
+                            duration: 0.85,
+                            repeat:   Infinity,
+                            ease:     "easeInOut",
+                            delay:    i * 0.09,
                         } : {}}
                         className="w-11 h-14 rounded-xl text-xl font-black text-center outline-none"
                         style={{
-                            background:  isVerifying ? `${CYAN}1E`
-                                       : hasDigit    ? `${CYAN}14`
-                                       :               "rgba(255,255,255,0.04)",
-                            border:      isVerifying  ? `1.5px solid ${CYAN}`
-                                       : isFocused    ? `1.5px solid ${CYAN}`
-                                       : hasDigit     ? `1px solid ${CYAN}55`
-                                       :                "1px solid rgba(255,255,255,0.10)",
-                            boxShadow:   isFocused && !isVerifying ? `0 0 16px ${CYAN}45` : undefined,
-                            color:       CYAN,
-                            fontFamily:  "var(--font-archivo-black), sans-serif",
-                            caretColor:  "transparent",
-                            cursor:      isLocked ? "not-allowed" : "text",
-                            transition:  "background 0.12s, border-color 0.12s",
+                            background: isVerifying ? `${CYAN}1E`
+                                      : showRed     ? "rgba(239,68,68,0.10)"
+                                      : hasDigit    ? `${CYAN}14`
+                                      :               "rgba(255,255,255,0.04)",
+                            border: isVerifying  ? `1.5px solid ${CYAN}`
+                                  : showRed      ? `1.5px solid ${RED}`
+                                  : isFocused    ? `1.5px solid ${CYAN}`
+                                  : hasDigit     ? `1px solid ${CYAN}55`
+                                  :                "1px solid rgba(255,255,255,0.10)",
+                            boxShadow: showRed && !isVerifying
+                                ? `0 0 12px rgba(239,68,68,0.35)`
+                                : isFocused && !isVerifying
+                                    ? `0 0 16px ${CYAN}45`
+                                    : undefined,
+                            color:      showRed ? "#fca5a5" : CYAN,
+                            fontFamily: "var(--font-archivo-black), sans-serif",
+                            caretColor: "transparent",
+                            cursor:     isLocked ? "not-allowed" : "text",
+                            transition: "background 0.12s, border-color 0.12s, color 0.12s",
                         }}
                     />
                 );
             })}
-        </div>
+        </motion.div>
     );
 }
 
@@ -181,6 +195,7 @@ export default function AuthModal({
     const [loading,      setLoading]      = useState(false);
     const [isVerifying,  setIsVerifying]  = useState(false);
     const [error,        setError]        = useState<string | null>(null);
+    const [hasOtpError,  setHasOtpError]  = useState(false);
     const [resendIn,     setResendIn]     = useState(0);
     const [autoSwitched, setAutoSwitched] = useState(false);
     const [isInApp,      setIsInApp]      = useState(false);
@@ -190,7 +205,7 @@ export default function AuthModal({
         setIsInApp(/Instagram|FBAN|FBAV|TikTok|Snapchat|Twitter|Line|MicroMessenger|LinkedInApp/.test(navigator.userAgent));
     }, []);
 
-    // Auto-proceed if session already exists
+    // Auto-proceed if session already authenticated
     useEffect(() => {
         if (sessionStatus !== "authenticated") return;
         onAuthenticated ? onAuthenticated() : finish();
@@ -204,14 +219,15 @@ export default function AuthModal({
         return () => clearTimeout(id);
     }, [resendIn]);
 
-    const clrErr = () => setError(null);
+    const clrErr = () => { setError(null); setHasOtpError(false); };
 
     const finish = () => {
         try { localStorage.setItem("mw_onboarded", "1"); } catch {}
         if (onAuthenticated) {
             onAuthenticated();
         } else {
-            router.replace(redirectTo === "/auth-redirect" ? "/" : redirectTo);
+            // redirectTo defaults to /auth-redirect which bridges Supabase → NextAuth session
+            router.replace(redirectTo);
         }
     };
 
@@ -229,6 +245,7 @@ export default function AuthModal({
         setLoading(false);
         if (err) { setError(err.message ?? "Couldn't send code — please try again."); return; }
         setCode("");
+        setHasOtpError(false);
         setPhase("code");
         setResendIn(RESEND_SECS);
         setAutoSwitched(false);
@@ -236,28 +253,26 @@ export default function AuthModal({
 
     // ── Path 2b: Verify OTP ─────────────────────────────────────────────────
     //
-    // Spec:
-    //   1. If < 6 digits and user manually taps Unlock → show red error.
-    //   2. Spinner appears immediately on the button.
-    //   3. Wait 800 ms before calling verifyOtp (Supabase propagation window).
-    //   4. Try type:'magiclink', fall back to type:'signup'.
-    //   5. Red "Incorrect or expired code" ONLY if both types return an error.
-    //   6. On success → finish() which sets mw_onboarded and navigates.
+    //   1. Red "Please enter full 6-digit code" ONLY on manual Unlock tap when < 6 digits.
+    //   2. 800 ms delay before verifyOtp — Supabase propagation window.
+    //   3. Try type:'magiclink', fall back to type:'signup'.
+    //   4. On wrong code: shake boxes + red borders. Digits stay visible.
+    //   5. On success: finish() → auth-redirect bridges Supabase → NextAuth.
     const handleVerifyCode = async () => {
-        // Only show red for an explicitly incomplete manual tap
         if (code.length !== 6) {
             setError("Please enter the full 6-digit code.");
+            setHasOtpError(true);
             return;
         }
         if (isVerifying) return;
 
         setIsVerifying(true);
-        clrErr();
+        setError(null);
+        setHasOtpError(false);
 
-        // 800 ms delay — lets Supabase finish propagating the OTP
+        // 800 ms — lets Supabase finish propagating the OTP before we verify
         await new Promise<void>(r => setTimeout(r, 800));
 
-        // Attempt with magiclink, then signup (covers both Supabase project configs)
         let res = await supabase.auth.verifyOtp({ email, token: code, type: "magiclink" });
         if (res.error) {
             res = await supabase.auth.verifyOtp({ email, token: code, type: "signup" });
@@ -270,9 +285,9 @@ export default function AuthModal({
             return;
         }
 
-        // Both types failed — show error and clear boxes for a fresh attempt
+        // Both types failed — shake boxes, show red error, keep digits in place
+        setHasOtpError(true);
         setError("Incorrect or expired code. Try again.");
-        setCode("");
     };
 
     // ── Path 3: Password (auto-falls back to OTP) ───────────────────────────
@@ -297,7 +312,7 @@ export default function AuthModal({
         const { error: otpErr } = await sbSendOTP(email);
         setLoading(false);
         if (!otpErr) {
-            setPassword(""); setCode(""); setAutoSwitched(true);
+            setPassword(""); setCode(""); setHasOtpError(false); setAutoSwitched(true);
             setPhase("code"); setResendIn(RESEND_SECS);
         } else {
             setError("Sign-in failed. Try Google or check your connection.");
@@ -473,18 +488,18 @@ export default function AuthModal({
                         ) : (
                             <motion.p key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                 className="text-center text-xs font-medium" style={{ color: `${CYAN}90` }}>
-                                Enter the 6-digit code sent to your inbox
+                                Enter the 6-digit code, then tap Unlock
                             </motion.p>
                         )}
                     </AnimatePresence>
 
-                    {/* 6 individual boxes */}
+                    {/* 6 individual boxes — no auto-submit, digits stay on error */}
                     <OtpBoxes
                         value={code}
                         onChange={v => { setCode(v); clrErr(); }}
-                        onComplete={handleVerifyCode}
                         isVerifying={isVerifying}
                         disabled={loading}
+                        hasError={hasOtpError}
                     />
 
                     <Err />
@@ -512,7 +527,7 @@ export default function AuthModal({
                     {/* Back + Resend row */}
                     <div className="flex items-center justify-between pt-0.5">
                         <button
-                            onClick={() => { setPhase("email"); setCode(""); setAutoSwitched(false); clrErr(); }}
+                            onClick={() => { setPhase("email"); setCode(""); setHasOtpError(false); setAutoSwitched(false); clrErr(); }}
                             disabled={isVerifying}
                             className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest opacity-25 hover:opacity-55 transition-opacity disabled:opacity-10">
                             <ArrowLeft size={12} /> Back

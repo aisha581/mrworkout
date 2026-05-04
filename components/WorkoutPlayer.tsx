@@ -384,8 +384,10 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
 
                 {/* ══════════════════════════════════════════════════════════
                     NEXT EXERCISE BUTTON (header, top-right)
+                    Hidden during an active set — user must finish the set
+                    (or be in rest) before skipping to the next exercise.
                 ══════════════════════════════════════════════════════════ */}
-                {hasNext && (
+                {hasNext && (!isSetStarted || isResting) && (
                     <button
                         onClick={skipExercise}
                         className="absolute z-50 flex flex-col items-center justify-center gap-0.5 active:scale-90 transition-transform"
