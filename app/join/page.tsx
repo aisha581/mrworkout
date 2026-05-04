@@ -540,17 +540,18 @@ export default function JoinPage() {
         return () => clearTimeout(id);
     }, [pwaDismissed]);
 
-    // Called by AuthModal when auth succeeds — resume pending checkout
+    // Called by AuthModal when auth succeeds.
+    // Do NOT retry checkout here — NextAuth session isn't ready yet after Supabase OTP,
+    // so calling checkout() would see !session and open the AuthModal a second time
+    // (the "double loop" bug). Instead, mark the user as onboarded and send them to
+    // the dashboard. They can upgrade from there once the session is fully bridged.
     const handleAuthSuccess = () => {
         setShowAuthModal(false);
         try {
-            const pendingPlan = sessionStorage.getItem("mw_join_plan") as "monthly" | "annual" | null;
-            if (pendingPlan) {
-                sessionStorage.removeItem("mw_join_plan");
-                // Session will be available on next tick after NextAuth updates
-                setTimeout(() => checkout(pendingPlan), 300);
-            }
+            localStorage.setItem("mw_onboarded", "1");
+            sessionStorage.removeItem("mw_join_plan"); // clear stale intent
         } catch {}
+        router.replace("/");
     };
 
     const handleNameContinue = (name: string) => {
