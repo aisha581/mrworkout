@@ -8,6 +8,23 @@ import VictoryScreen from './VictoryScreen';
 import { getRandomSavageQuote } from '@/data/quotes';
 import { useWorkout } from '@/contexts/WorkoutContext';
 
+// ── Audio ─────────────────────────────────────────────────────────────────────
+// Converts an exercise name to its intro filename.
+// "Barbell Bench Press" → "barbell_bench_press_intro.mp3"
+function toAudioSlug(name: string): string {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+// Plays an MP3 from /public/audio/<fileName>.
+// Silently no-ops if the file is missing or autoplay is blocked.
+function playSavageAudio(fileName: string) {
+    try {
+        const audio = new Audio(`/audio/${fileName}`);
+        audio.volume = 1.0;
+        audio.play().catch(() => {});   // swallow NotAllowedError / 404
+    } catch {}
+}
+
 // ── Muscle legend — category fallback ────────────────────────────────────────
 const CATEGORY_MUSCLES: Record<string, { primary: string; secondary: string; stretch: string }> = {
     Chest:     { primary: 'Pectoralis Major',  secondary: 'Triceps & Front Delts',  stretch: 'Pec Minor'        },
@@ -211,6 +228,11 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
             v.load();
             v.play().catch(() => {});
         }
+
+        // Trigger 1 — exercise intro voiceover
+        if (exercise?.name) {
+            playSavageAudio(`${toAudioSlug(exercise.name)}_intro.mp3`);
+        }
     }, [activeIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Pause/resume on rest toggle ───────────────────────────────────────────
@@ -251,6 +273,7 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
                 const tid = setTimeout(() => {
                     setIsSetJustComplete(false);
                     setIsWorkoutComplete(true);
+                    playSavageAudio('workout_complete.mp3'); // Trigger 4
                 }, 1400);
                 return () => clearTimeout(tid);
             }
@@ -261,6 +284,7 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
                 setIsResting(true);
                 setRestTimer(restDur);
                 setRestQuote(getRandomSavageQuote());
+                playSavageAudio('rest_start.mp3'); // Trigger 2
             }, 1400);
             return () => clearTimeout(tid);
         }
@@ -274,6 +298,7 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
     useEffect(() => {
         if (!isResting || restTimer === null) return;
         if (restTimer <= 0) { navigator.vibrate?.([50, 30, 50]); advanceAfterRest(); return; }
+        if (restTimer === 5) playSavageAudio('get_ready.mp3'); // Trigger 3
         const iv = setInterval(() => setRestTimer(p => p! - 1), 1000);
         return () => clearInterval(iv);
     }, [isResting, restTimer]); // eslint-disable-line react-hooks/exhaustive-deps
