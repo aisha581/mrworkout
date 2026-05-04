@@ -387,15 +387,23 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
                     Hidden during an active set — user must finish the set
                     (or be in rest) before skipping to the next exercise.
                 ══════════════════════════════════════════════════════════ */}
-                {hasNext && (!isSetStarted || isResting) && (
+                {hasNext && (
                     <button
                         onClick={skipExercise}
                         className="absolute z-50 flex flex-col items-center justify-center gap-0.5 active:scale-90 transition-transform"
-                        style={{ top: '3rem', right: '1rem', width: 56, height: 56, borderRadius: '50%', ...glassCircle, ...touchBtn }}
+                        style={{
+                            top: '3rem', right: '1rem', width: 56, height: 56, borderRadius: '50%',
+                            background:   'rgba(0,229,204,0.15)',
+                            backdropFilter: 'blur(20px)',
+                            WebkitBackdropFilter: 'blur(20px)',
+                            border:       '1px solid rgba(0,229,204,0.45)',
+                            boxShadow:    '0 0 18px rgba(0,229,204,0.30), 0 4px 20px rgba(0,0,0,0.4)',
+                            ...touchBtn,
+                        }}
                         aria-label="Next exercise"
                     >
-                        <ChevronRight size={18} strokeWidth={2.5} className="text-white" />
-                        <span className="text-white font-black uppercase" style={{ fontSize: '6px', letterSpacing: '0.12em', opacity: 0.6 }}>Next</span>
+                        <ChevronRight size={18} strokeWidth={2.5} style={{ color: '#00E5CC' }} />
+                        <span className="font-black uppercase" style={{ fontSize: '6px', letterSpacing: '0.12em', color: '#00E5CC', opacity: 0.8 }}>Next</span>
                     </button>
                 )}
 

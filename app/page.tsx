@@ -47,6 +47,10 @@ export default function Home() {
     const [allExercises,    setAllExercises]    = useState<LiveExercise[]>([]);
     const [lastExercise,    setLastExercise]    = useState<LiveExercise | null>(null);
     const [quickStartOpen,  setQuickStartOpen]  = useState(false);
+    // Quick Start playlist: prefer today's mission; fall back to last exercise
+    const quickStartPlaylist = missionExercises.length > 0
+        ? missionExercises
+        : lastExercise ? [lastExercise] : [];
     const [isMissionOpen,   setIsMissionOpen]   = useState(false);
     // Profile + generated mission
     const [profile,          setProfile]         = useState<UserProfile | null>(null);
@@ -362,8 +366,8 @@ export default function Home() {
                             </motion.button>
                         </div>
 
-                        {/* Right: Quick Start (primary CTA) */}
-                        {lastExercise ? (
+                        {/* Right: Quick Start (primary CTA) — launches Active Mission */}
+                        {quickStartPlaylist.length > 0 ? (
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => { hapticMedium(); setQuickStartOpen(true); }}
@@ -589,9 +593,9 @@ export default function Home() {
                 />
 
                 {/* ── Modals ── */}
-                {quickStartOpen && lastExercise && (
+                {quickStartOpen && quickStartPlaylist.length > 0 && (
                     <WorkoutPlayer
-                        playlist={[lastExercise]}
+                        playlist={quickStartPlaylist}
                         initialIndex={0}
                         onClose={() => setQuickStartOpen(false)}
                     />
