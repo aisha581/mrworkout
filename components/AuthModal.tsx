@@ -139,16 +139,15 @@ async function sbSendOTP(email: string) {
 }
 
 /**
- * Try verifying the code with all three token types that Supabase supports.
- * Returns the first successful result, or the last error.
+ * Verify a Supabase Email OTP.
+ *
+ * IMPORTANT: Only try ONE type per call. The old loop (magiclink → email →
+ * signup) consumed one of Supabase's 3 allowed OTP attempts per type, so the
+ * token was exhausted before the correct type was reached. Email OTP always
+ * uses type "email".
  */
 async function sbVerifyOTP(email: string, token: string) {
-    const types = ["magiclink", "email", "signup"] as const;
-    for (const type of types) {
-        const res = await supabase.auth.verifyOtp({ email, token, type });
-        if (!res.error) return res;
-    }
-    return supabase.auth.verifyOtp({ email, token, type: "magiclink" });
+    return supabase.auth.verifyOtp({ email, token, type: "email" });
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -232,16 +231,22 @@ export default function AuthModal({
         setAutoSwitched(false);
     };
 
-    // ── Path 2b: Verify OTP — with one automatic retry ─────────────────────
+    // ── Path 2b: Verify OTP ─────────────────────────────────────────────────
     //
-    // Flow:
-    //   1. 6th digit entered → boxes pulse cyan, no error shown yet
-    //   2. First attempt with sbVerifyOTP (tries magiclink → email → signup)
-    //   3. If first attempt fails → wait 500 ms (Supabase propagation lag) → retry
-    //   4. Success on either attempt → finish()
-    //   5. Red error ONLY shown after second failure
+    // Rules per product spec:
+    //   • Red error ONLY when user manually taps Unlock with < 6 digits.
+    //   • Never show red after a failed network/Supabase response — the code
+    //     is almost always correct; the issue is Supabase propagation timing.
+    //   • Attempt 1 immediately; if it fails wait 800 ms and try once more.
+    //   • On final failure: reset boxes silently so user can re-enter / resend.
     const handleVerifyCode = async () => {
-        if (code.length !== 6 || isVerifying) return;
+        // Guard: only show red error for incomplete manual taps
+        if (code.length !== 6) {
+            setError("Please enter the full 6-digit code.");
+            return;
+        }
+        if (isVerifying) return;
+
         setIsVerifying(true);
         clrErr();
 
@@ -254,8 +259,8 @@ export default function AuthModal({
             return;
         }
 
-        // ── 500 ms grace period then retry ─────────────────────────────────
-        await new Promise<void>(r => setTimeout(r, 500));
+        // ── 800 ms grace period — Supabase OTP propagation lag ─────────────
+        await new Promise<void>(r => setTimeout(r, 800));
         res = await sbVerifyOTP(email, code);
 
         setIsVerifying(false);
@@ -265,8 +270,10 @@ export default function AuthModal({
             return;
         }
 
-        // ── Both attempts failed — now show the error ───────────────────────
-        setError("Incorrect or expired code — check your inbox and try again.");
+        // ── Both attempts failed — reset boxes silently, no red text ────────
+        // User can re-enter the code or tap Resend. Showing a red error here
+        // causes false-positive UX since the code is usually valid.
+        setCode("");
     };
 
     // ── Path 3: Password ────────────────────────────────────────────────────
