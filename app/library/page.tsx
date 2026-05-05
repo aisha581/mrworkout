@@ -27,7 +27,7 @@ const GYM_ONLY_PATTERN  = /barbell|cable|machine|lat\s*pull|leg\s*press|t.bar|ez
 export default function LibraryPage() {
     const { theme } = useTheme();
 
-    const { setQueue, startCircuit } = useCircuit();
+    const { setQueue } = useCircuit();
     const router = useRouter();
 
     const [exercises,         setExercises]       = useState<LiveExercise[]>([]);
@@ -108,7 +108,7 @@ export default function LibraryPage() {
         // Audio must fire here — directly inside the click handler — so the
         // browser's autoplay policy allows it. useEffect calls after navigation
         // are outside the gesture window and get silently blocked.
-        const slug = exercise.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const slug = exercise.name.toLowerCase().replace(/ /g, '_');
         const audioFileName = `${slug}_intro.mp3`;
         console.log('🔊 Playing Savage Cue: ' + audioFileName);
         new Audio(`/audio/${audioFileName}`).play().catch((err) =>

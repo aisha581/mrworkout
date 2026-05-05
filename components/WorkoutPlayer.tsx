@@ -9,9 +9,9 @@ import { getRandomSavageQuote } from '@/data/quotes';
 import { useWorkout } from '@/contexts/WorkoutContext';
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
-// "Barbell Bench Press" → "barbell_bench_press_intro.mp3"
+// "Hip Thrusts" → "hip_thrusts_intro.mp3"  (spaces → underscores, lowercase)
 function toAudioSlug(name: string): string {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    return name.toLowerCase().replace(/ /g, '_');
 }
 
 // ── Muscle legend — category fallback ────────────────────────────────────────
@@ -100,7 +100,7 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
     const [audioSynced, setAudioSynced] = useState(false);
 
     const playSavageAudio = useCallback((fileName: string) => {
-        console.log(`🔊 Attempting to play: ${fileName}`);
+        console.log('🔊 Playing Savage Cue: ' + fileName);
         try {
             // Stop any in-progress voiceover before starting a new one
             if (voiceRef.current) {
