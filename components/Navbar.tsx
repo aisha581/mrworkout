@@ -70,10 +70,10 @@ export default function Navbar() {
                         </div>
 
                         {/* Right: Upgrade / PRO badge + Theme Toggle */}
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3">
                             {isPro ? (
                                 <div
-                                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-full font-black uppercase tracking-[0.22em] text-[11px] whitespace-nowrap select-none"
+                                    className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-full font-black uppercase tracking-[0.22em] text-[11px] select-none"
                                     style={{
                                         background: 'linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,215,0,0.08))',
                                         border:     '1px solid rgba(255,215,0,0.50)',
@@ -82,13 +82,14 @@ export default function Navbar() {
                                     }}
                                 >
                                     <Crown size={11} fill="#FFD700" color="#FFD700" />
-                                    Pro
+                                    {/* Text hidden on mobile — icon alone signals Pro */}
+                                    <span className="hidden sm:inline">Pro</span>
                                 </div>
                             ) : (
                                 <motion.button
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => setShowUpgrade(true)}
-                                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-full font-black uppercase tracking-[0.2em] text-[11px] whitespace-nowrap"
+                                    className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2.5 rounded-full font-black uppercase tracking-[0.2em] text-[11px]"
                                     style={{
                                         background:  'linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,215,0,0.08))',
                                         border:      '1px solid rgba(255,215,0,0.50)',
@@ -98,7 +99,8 @@ export default function Navbar() {
                                     }}
                                 >
                                     <Crown size={11} fill="#FFD700" color="#FFD700" />
-                                    Upgrade to Pro
+                                    {/* "Upgrade to Pro" text collapses on mobile to keep ThemeToggle visible */}
+                                    <span className="hidden sm:inline">Upgrade to Pro</span>
                                 </motion.button>
                             )}
                             <ThemeToggle />

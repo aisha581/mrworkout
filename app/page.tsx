@@ -59,6 +59,7 @@ export default function Home() {
 
     // Biometric scan overlay (first-visit only)
     const [showScan,    setShowScan]    = useState(false);
+    const [shareCopied, setShareCopied] = useState(false);
 
     // Onboarding gate — dashboard hidden until user completes biometric wall
     const [onboarded, setOnboarded] = useState(false);
@@ -350,17 +351,28 @@ export default function Home() {
                                     if (typeof navigator !== 'undefined' && navigator.share) {
                                         try { await navigator.share({ title: 'My Savage Status', text, url: window.location.origin }); } catch {}
                                     } else {
-                                        try { await navigator.clipboard.writeText(`${text}\n${window.location.origin}`); } catch {}
+                                        try {
+                                            await navigator.clipboard.writeText(`${text}\n${window.location.origin}`);
+                                            setShareCopied(true);
+                                            setTimeout(() => setShareCopied(false), 2000);
+                                        } catch {}
                                     }
                                 }}
-                                className="w-10 h-10 flex items-center justify-center rounded-2xl backdrop-blur-md"
+                                className="h-10 flex items-center justify-center rounded-2xl backdrop-blur-md px-3 gap-1.5"
                                 style={{
-                                    background:  'rgba(255,255,255,0.05)',
-                                    border:      '1px solid rgba(255,255,255,0.08)',
+                                    background:  shareCopied ? `${theme.accent}22` : 'rgba(255,255,255,0.05)',
+                                    border:      shareCopied ? `1px solid ${theme.accent}60` : '1px solid rgba(255,255,255,0.08)',
                                     touchAction: 'manipulation',
+                                    transition:  'background 0.2s, border 0.2s',
+                                    minWidth:    40,
                                 }}
                             >
-                                <Share2 size={14} className="opacity-50" />
+                                <Share2 size={14} style={{ opacity: shareCopied ? 1 : 0.5, color: shareCopied ? theme.accent : undefined }} />
+                                {shareCopied && (
+                                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: theme.accent }}>
+                                        Copied!
+                                    </span>
+                                )}
                             </motion.button>
                         </div>
 

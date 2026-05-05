@@ -164,6 +164,17 @@ export default function CircuitPlayer() {
         }
     };
 
+    // Skip rest — same logic as restTimeRemaining=0, called from user tap
+    const handleSkipRest = () => {
+        const lastSet = currentSet >= (currentExercise?.defaultSets ?? 3);
+        if (lastSet) {
+            handleRestComplete();
+        } else {
+            setCurrentSet(prev => prev + 1);
+            advanceToNextSet();
+        }
+    };
+
     // Logger submit — user logged reps + weight
     const submitLogger = () => {
         // Could persist to localStorage here if needed in future
@@ -234,6 +245,34 @@ export default function CircuitPlayer() {
 
                 {/* Recovery Screen — shown by context isResting */}
                 <RecoveryScreen />
+
+                {/* Skip Rest button — floats above RecoveryScreen, only shown while resting */}
+                <AnimatePresence>
+                    {isResting && (
+                        <motion.button
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 8 }}
+                            transition={{ delay: 0.4 }}
+                            onClick={handleSkipRest}
+                            className="absolute z-[60] flex items-center gap-2 px-6 py-3 rounded-full font-black uppercase text-[11px] tracking-[0.28em] active:scale-95 transition-transform"
+                            style={{
+                                bottom:      'calc(max(env(safe-area-inset-bottom, 0px), 24px) + 20px)',
+                                left:        '50%',
+                                transform:   'translateX(-50%)',
+                                background:  'rgba(0,150,255,0.12)',
+                                border:      '1px solid rgba(0,150,255,0.35)',
+                                color:       '#0096FF',
+                                touchAction: 'manipulation',
+                            }}
+                        >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M5.5 5H7v14H5.5V5zm2.5.86L17.77 12 8 18.14V5.86z"/>
+                            </svg>
+                            Skip Rest
+                        </motion.button>
+                    )}
+                </AnimatePresence>
 
                 {/* Main video */}
                 {!isResting && currentExercise && (
