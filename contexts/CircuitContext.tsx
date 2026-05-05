@@ -28,6 +28,7 @@ interface CircuitContextType extends CircuitState {
     completeWorkout: () => void;
     handleLoopComplete: () => void;
     handleRestComplete: () => void;
+    advanceToNextSet: () => void;
     isComplete: boolean;
     clearComplete: () => void;
 }
@@ -78,16 +79,10 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
         return () => clearInterval(interval);
     }, [isCircuitActive, isResting]);
 
-    // Rest timer
+    // Rest timer — counts down only; CircuitPlayer decides what to do at 0
     useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isResting && restTimeRemaining > 0) {
-            interval = setInterval(() => {
-                setRestTimeRemaining(prev => prev - 1);
-            }, 1000);
-        } else if (isResting && restTimeRemaining === 0) {
-            handleRestComplete();
-        }
+        if (!isResting || restTimeRemaining <= 0) return;
+        const interval = setInterval(() => setRestTimeRemaining(prev => prev - 1), 1000);
         return () => clearInterval(interval);
     }, [isResting, restTimeRemaining]);
 
@@ -134,6 +129,11 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
     const startRest = () => {
         setRestTimeRemaining(30);
         setIsResting(true);
+    };
+
+    // End rest without advancing exercise (more sets remain on the same exercise)
+    const advanceToNextSet = () => {
+        setIsResting(false);
     };
 
     const clearComplete = () => {
@@ -217,6 +217,7 @@ export function CircuitProvider({ children }: { children: ReactNode }) {
                 completeWorkout,
                 handleLoopComplete,
                 handleRestComplete,
+                advanceToNextSet,
                 clearComplete,
             }}
         >
