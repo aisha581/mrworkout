@@ -370,7 +370,7 @@ export default function Home() {
                         {quickStartPlaylist.length > 0 ? (
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => { hapticMedium(); setQuickStartOpen(true); }}
+                                onClick={() => { hapticMedium(); setQueue(quickStartPlaylist); router.push('/playground'); }}
                                 className="flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest"
                                 style={{
                                     background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}bb 100%)`,

@@ -46,6 +46,22 @@ export default function CircuitPlayer() {
         }
     }, [isCircuitActive]);
 
+    // ── Audio test: play first-exercise intro when workout activates ──────────
+    const voiceRef = useRef<HTMLAudioElement | null>(null);
+    useEffect(() => {
+        if (!isCircuitActive || !currentExercise?.name) return;
+        const slug = currentExercise.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const audioPath = `${slug}_intro.mp3`;
+        console.log('Savage Audio Path:', audioPath);
+        if (voiceRef.current) {
+            voiceRef.current.pause();
+            voiceRef.current.currentTime = 0;
+        }
+        const audio = new Audio(`/audio/${audioPath}`);
+        voiceRef.current = audio;
+        audio.play().catch((err) => console.warn('Audio blocked or missing:', audioPath, err));
+    }, [isCircuitActive]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // ── Workout countdown timer ───────────────────────────────────────────────
     // Resets when exercise changes. When it hits 0, triggers rest.
     useEffect(() => {
