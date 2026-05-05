@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Volume2, Loader2, Crown, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { hapticLight, hapticMedium, hapticHeavy } from "@/utils/haptic";
+import { openUpgradeModal } from "@/utils/openUpgradeModal";
 import { loadProfile } from "@/utils/missionGenerator";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -365,7 +366,7 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
                                     onUpgrade={() => {
                                         hapticHeavy();
                                         onClose();
-                                        router.push("/join");
+                                        openUpgradeModal();
                                     }}
                                 />
                             )}
@@ -473,10 +474,10 @@ export default function CoachDrawer({ isOpen, onClose, accent }: Props) {
                                     <p className="text-[11px] font-bold" style={{ color: "#FFD700" }}>
                                         Log in to chat with Gym.{" "}
                                         <button
-                                            onClick={() => { onClose(); router.push("/login"); }}
+                                            onClick={() => { onClose(); openUpgradeModal(); }}
                                             className="underline"
                                         >
-                                            Sign in →
+                                            Upgrade →
                                         </button>
                                     </p>
                                 </motion.div>

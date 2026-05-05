@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useIsPro } from '@/hooks/useIsPro';
 import { Crown } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 // Lazy-load so the Supabase client isn't bundled into the initial navbar chunk
@@ -19,6 +19,13 @@ export default function Navbar() {
     const { isPlayerOpen } = useWorkout();
     const { isPro } = useIsPro();
     const [showUpgrade, setShowUpgrade] = useState(false);
+
+    // Any component can trigger the upgrade sheet via openUpgradeModal()
+    useEffect(() => {
+        const handler = () => setShowUpgrade(true);
+        window.addEventListener('mw:open-upgrade', handler);
+        return () => window.removeEventListener('mw:open-upgrade', handler);
+    }, []);
 
     return (
         <>

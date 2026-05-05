@@ -6,6 +6,7 @@ import { useIsPro } from '@/hooks/useIsPro';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Trash2, Play, Database, Plus, Lock, Crown } from 'lucide-react';
+import { openUpgradeModal } from '@/utils/openUpgradeModal';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 
@@ -130,18 +131,18 @@ export default function VaultPage() {
                         className="mt-6"
                     >
                         <motion.button
-                            whileTap={{ scale: isPro ? 0.97 : 1 }}
-                            onClick={isPro ? handleStart : () => router.push('/join')}
-                            className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm text-black flex items-center justify-center gap-3 relative overflow-hidden"
+                            whileTap={{ scale: 0.97 }}
+                            onClick={isPro ? handleStart : openUpgradeModal}
+                            className="w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-sm flex items-center justify-center gap-3 relative overflow-hidden"
                             style={{
                                 background:  isPro
                                     ? `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}cc 100%)`
-                                    : 'rgba(255,255,255,0.07)',
+                                    : 'linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,215,0,0.06))',
                                 boxShadow:   isPro
                                     ? `0 0 40px ${theme.accent}50, 0 8px 32px rgba(0,0,0,0.4)`
-                                    : 'none',
-                                border:      isPro ? 'none' : '1px solid rgba(255,255,255,0.15)',
-                                color:       isPro ? '#000' : '#fff',
+                                    : '0 0 28px rgba(255,215,0,0.18), 0 4px 24px rgba(0,0,0,0.5)',
+                                border:      isPro ? 'none' : '1px solid rgba(255,215,0,0.45)',
+                                color:       isPro ? '#000' : '#FFD700',
                                 touchAction: 'manipulation',
                             }}
                         >
@@ -152,16 +153,16 @@ export default function VaultPage() {
                                 </>
                             ) : (
                                 <>
-                                    <Lock size={15} />
+                                    <Crown size={14} fill="#FFD700" color="#FFD700" />
                                     Custom Routine — Pro Only
-                                    <Crown size={14} color="#FFD700" style={{ marginLeft: 4 }} />
+                                    <Lock size={13} style={{ opacity: 0.6 }} />
                                 </>
                             )}
                         </motion.button>
 
                         {!isPro && (
-                            <p className="text-center text-[10px] opacity-30 mt-2 font-medium">
-                                Start a 7-day free trial to unlock custom circuits.
+                            <p className="text-center text-[10px] mt-2 font-medium" style={{ color: 'rgba(255,215,0,0.35)' }}>
+                                Tap to unlock — Founder Rate available now.
                             </p>
                         )}
 
