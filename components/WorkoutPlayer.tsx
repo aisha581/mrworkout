@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Music, Zap, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Music, Zap, CheckCircle2, RefreshCw } from 'lucide-react';
 import type { LiveExercise } from '@/app/library/page';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import VictoryScreen from './VictoryScreen';
@@ -9,20 +9,9 @@ import { getRandomSavageQuote } from '@/data/quotes';
 import { useWorkout } from '@/contexts/WorkoutContext';
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
-// Converts an exercise name to its intro filename.
 // "Barbell Bench Press" → "barbell_bench_press_intro.mp3"
 function toAudioSlug(name: string): string {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-}
-
-// Plays an MP3 from /public/audio/<fileName>.
-// Silently no-ops if the file is missing or autoplay is blocked.
-function playSavageAudio(fileName: string) {
-    try {
-        const audio = new Audio(`/audio/${fileName}`);
-        audio.volume = 1.0;
-        audio.play().catch(() => {});   // swallow NotAllowedError / 404
-    } catch {}
 }
 
 // ── Muscle legend — category fallback ────────────────────────────────────────
@@ -104,6 +93,47 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
 
     // ── Finish ────────────────────────────────────────────────────────────────
     const [isWorkoutComplete, setIsWorkoutComplete] = useState(false);
+
+    // ── Audio refs ────────────────────────────────────────────────────────────
+    const voiceRef = useRef<HTMLAudioElement | null>(null);
+    const musicRef = useRef<HTMLAudioElement | null>(null);
+    const [audioSynced, setAudioSynced] = useState(false);
+
+    const playSavageAudio = useCallback((fileName: string) => {
+        console.log(`🔊 Attempting to play: ${fileName}`);
+        try {
+            // Stop any in-progress voiceover before starting a new one
+            if (voiceRef.current) {
+                voiceRef.current.pause();
+                voiceRef.current.currentTime = 0;
+            }
+            // Duck background music while voice plays
+            if (musicRef.current && !musicRef.current.paused) {
+                musicRef.current.volume = 0.2;
+            }
+            const audio = new Audio(`/audio/${fileName}`);
+            audio.volume = 1.0;
+            voiceRef.current = audio;
+            audio.addEventListener('ended', () => {
+                if (musicRef.current) musicRef.current.volume = 1.0;
+            }, { once: true });
+            audio.play().catch((err) => {
+                console.warn(`🔇 Audio blocked or missing: ${fileName}`, err);
+            });
+        } catch (err) {
+            console.warn(`🔇 Audio error: ${fileName}`, err);
+        }
+    }, []);
+
+    const resyncAudio = useCallback(() => {
+        if (voiceRef.current) {
+            voiceRef.current.pause();
+            voiceRef.current = null;
+        }
+        if (musicRef.current) musicRef.current.volume = 1.0;
+        setAudioSynced(true);
+        setTimeout(() => setAudioSynced(false), 1500);
+    }, []);
 
     // ── Hot-path refs (readable in callbacks without stale closures) ──────────
     const isRestingRef    = useRef(false);
@@ -228,11 +258,6 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
             v.load();
             v.play().catch(() => {});
         }
-
-        // Trigger 1 — exercise intro voiceover
-        if (exercise?.name) {
-            playSavageAudio(`${toAudioSlug(exercise.name)}_intro.mp3`);
-        }
     }, [activeIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Pause/resume on rest toggle ───────────────────────────────────────────
@@ -333,6 +358,11 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
         const dur = exercise?.defaultTime ?? (exercise?.defaultReps ? exercise.defaultReps * 3 : 30);
         setTimeLeft(dur);
         setIsSetStarted(true);
+        // Trigger intro voiceover here — inside a click handler so the browser
+        // audio policy allows it. useEffect fires asynchronously and gets blocked.
+        if (exercise?.name) {
+            playSavageAudio(`${toAudioSlug(exercise.name)}_intro.mp3`);
+        }
     };
 
     const cycleSpeed = () => setPlaybackRate(p => p === 1.0 ? 0.5 : 1.0);
@@ -510,6 +540,25 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
                         <Zap size={15} className="text-white" fill={playbackRate === 0.5 ? 'white' : 'none'} />
                         <span className="text-white font-black" style={{ fontSize: '8px', lineHeight: 1 }}>
                             {playbackRate === 0.5 ? '0.5×' : '1×'}
+                        </span>
+                    </button>
+                    <button
+                        onClick={resyncAudio}
+                        className="w-12 h-12 rounded-full flex flex-col items-center justify-center gap-[2px] active:scale-90 transition-transform"
+                        style={{
+                            ...touchBtn,
+                            ...(audioSynced ? {
+                                background: 'rgba(0,229,204,0.35)',
+                                border:     '1px solid rgba(0,229,204,0.6)',
+                                boxShadow:  '0 0 18px rgba(0,229,204,0.45), 0 4px 20px rgba(0,0,0,0.4)',
+                                backdropFilter: 'blur(20px)',
+                            } : glassCircle),
+                        }}
+                        aria-label="Re-sync audio"
+                    >
+                        <RefreshCw size={14} style={{ color: audioSynced ? '#00E5CC' : 'white' }} />
+                        <span className="font-black" style={{ fontSize: '7px', lineHeight: 1, color: audioSynced ? '#00E5CC' : 'rgba(255,255,255,0.7)' }}>
+                            {audioSynced ? 'SYNC' : 'AUDIO'}
                         </span>
                     </button>
                 </div>
