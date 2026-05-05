@@ -11,7 +11,6 @@ import { useWorkout } from "@/contexts/WorkoutContext";
 import dynamic from "next/dynamic";
 
 import FloatingMic from "@/components/FloatingMic";
-import WorkoutPlayer from "@/components/WorkoutPlayer";
 import MissionDrawer from "@/components/MissionDrawer";
 import WelcomeOverlay from "@/components/WelcomeOverlay";
 import type { LiveExercise } from "@/app/library/page";
@@ -46,7 +45,6 @@ export default function Home() {
     const [toastMessage]                        = useState('');
     const [allExercises,    setAllExercises]    = useState<LiveExercise[]>([]);
     const [lastExercise,    setLastExercise]    = useState<LiveExercise | null>(null);
-    const [quickStartOpen,  setQuickStartOpen]  = useState(false);
     const [isMissionOpen,   setIsMissionOpen]   = useState(false);
     // Profile + generated mission
     const [profile,          setProfile]         = useState<UserProfile | null>(null);
@@ -370,7 +368,19 @@ export default function Home() {
                         {quickStartPlaylist.length > 0 ? (
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => { hapticMedium(); setQuickStartOpen(true); }}
+                                onClick={() => {
+                                    hapticMedium();
+                                    // Play first-exercise intro inside the click handler so the
+                                    // browser's autoplay policy allows it (same as Library/Armoury).
+                                    const first = quickStartPlaylist[0];
+                                    if (first?.name) {
+                                        const audioFile = first.name.toLowerCase().replace(/ /g, '_') + '_intro.mp3';
+                                        console.log('🔊 Playing Savage Cue: ' + audioFile);
+                                        new Audio(`/audio/${audioFile}`).play().catch(() => {});
+                                    }
+                                    setQueue(quickStartPlaylist);
+                                    router.push('/playground');
+                                }}
                                 className="flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest"
                                 style={{
                                     background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}bb 100%)`,
@@ -593,13 +603,6 @@ export default function Home() {
                 />
 
                 {/* ── Modals ── */}
-                {quickStartOpen && quickStartPlaylist.length > 0 && (
-                    <WorkoutPlayer
-                        playlist={quickStartPlaylist}
-                        initialIndex={0}
-                        onClose={() => setQuickStartOpen(false)}
-                    />
-                )}
 
                 {/* Mission Drawer — slides up from chest tap */}
                 <MissionDrawer
