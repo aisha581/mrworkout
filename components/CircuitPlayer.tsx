@@ -46,11 +46,14 @@ export default function CircuitPlayer() {
         }
     }, [isCircuitActive]);
 
-    // ── Savage voiceover — fires on start and on every exercise change ────────
+    // ── Savage voiceover — fires on every exercise change mid-session ─────────
+    // First-exercise audio is triggered in the Library/Quick Start click handler
+    // (inside the gesture window). This useEffect handles subsequent exercises.
     const voiceRef = useRef<HTMLAudioElement | null>(null);
 
-    const playSavageAudio = (exerciseName: string) => {
-        const slug = exerciseName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    useEffect(() => {
+        if (!isCircuitActive || currentIndex === 0 || !currentExercise?.name) return;
+        const slug = currentExercise.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
         const audioFileName = `${slug}_intro.mp3`;
         console.log('🔊 Playing Savage Cue: ' + audioFileName);
         if (voiceRef.current) {
@@ -60,20 +63,6 @@ export default function CircuitPlayer() {
         const audio = new Audio(`/audio/${audioFileName}`);
         voiceRef.current = audio;
         audio.play().catch((err) => console.warn('🔇 Audio blocked or missing:', audioFileName, err));
-    };
-
-    // Trigger intro when workout starts
-    useEffect(() => {
-        if (isCircuitActive && currentExercise?.name) {
-            playSavageAudio(currentExercise.name);
-        }
-    }, [isCircuitActive]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    // Trigger intro on each exercise change during the workout
-    useEffect(() => {
-        if (isCircuitActive && currentExercise?.name) {
-            playSavageAudio(currentExercise.name);
-        }
     }, [currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Workout countdown timer ───────────────────────────────────────────────

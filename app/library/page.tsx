@@ -105,6 +105,15 @@ export default function LibraryPage() {
     // ── Handlers ──────────────────────────────────────────────────────────────
     const handleStartWorkout = useCallback((exercise: LiveExercise) => {
         navigator.vibrate?.([30, 20, 30]);
+        // Audio must fire here — directly inside the click handler — so the
+        // browser's autoplay policy allows it. useEffect calls after navigation
+        // are outside the gesture window and get silently blocked.
+        const slug = exercise.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        const audioFileName = `${slug}_intro.mp3`;
+        console.log('🔊 Playing Savage Cue: ' + audioFileName);
+        new Audio(`/audio/${audioFileName}`).play().catch((err) =>
+            console.warn('🔇 Audio blocked or missing:', audioFileName, err)
+        );
         setQueue([exercise]);
         router.push('/playground');
     }, [setQueue, router]);

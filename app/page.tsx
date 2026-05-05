@@ -370,7 +370,20 @@ export default function Home() {
                         {quickStartPlaylist.length > 0 ? (
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => { hapticMedium(); setQueue(quickStartPlaylist); router.push('/playground'); }}
+                                onClick={() => {
+                                    hapticMedium();
+                                    const first = quickStartPlaylist[0];
+                                    if (first?.name) {
+                                        const slug = first.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+                                        const audioFileName = `${slug}_intro.mp3`;
+                                        console.log('🔊 Playing Savage Cue: ' + audioFileName);
+                                        new Audio(`/audio/${audioFileName}`).play().catch((err) =>
+                                            console.warn('🔇 Audio blocked or missing:', audioFileName, err)
+                                        );
+                                    }
+                                    setQueue(quickStartPlaylist);
+                                    router.push('/playground');
+                                }}
                                 className="flex items-center gap-2.5 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest"
                                 style={{
                                     background:  `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}bb 100%)`,
