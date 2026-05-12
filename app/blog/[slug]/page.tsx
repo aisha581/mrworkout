@@ -1,6 +1,7 @@
 import { MDXRemote } from 'next-mdx-remote/rsc'
 import { getAllSlugs, getPost } from '@/lib/blog'
 import { DownloadCTA } from '@/components/DownloadCTA'
+import { DownloadAppButton } from '@/components/DownloadAppButton'
 import type { Metadata } from 'next'
 
 export async function generateStaticParams() {
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-const components = { DownloadCTA }
+const components = { DownloadCTA, DownloadAppButton }
 
 export default async function BlogPost({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
