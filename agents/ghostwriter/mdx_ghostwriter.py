@@ -26,9 +26,11 @@ from typing import Optional
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
 ROOT        = Path(__file__).parent.parent.parent
+AGENTS_DIR  = Path(__file__).parent.parent
 ARCHIVE_DIR = ROOT / "archive"
 OUT_DIR     = ROOT / "vercel_blogs"
 LOG_FILE    = Path(__file__).parent / "mdx_ghostwriter_log.json"
+INTEL_FILE  = AGENTS_DIR / "intel_report.md"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 GROK_API_KEY   = os.environ.get("GROK_API_KEY", "")
@@ -43,6 +45,39 @@ SEO_TAGS = [
     "CNS recovery",
     "fitness app",
 ]
+
+# ── Intel report ─────────────────────────────────────────────────────────────
+
+def load_intel() -> dict:
+    """Parse intel_report.md and return trending topics + recommended hooks."""
+    if not INTEL_FILE.exists():
+        return {"topics": [], "keywords": [], "hooks": []}
+
+    text = INTEL_FILE.read_text(encoding="utf-8", errors="ignore")
+
+    # Extract trending topic names from "## Trending Topics" section
+    trending: list[str] = []
+    m = re.search(r"## Trending Topics\n(.*?)(?=\n##|\Z)", text, re.DOTALL)
+    if m:
+        for line in m.group(1).splitlines():
+            t = re.search(r"\*\*(.+?)\*\*", line)
+            if t:
+                trending.append(t.group(1).strip())
+
+    # Extract breakout keywords: backtick-wrapped tokens
+    keywords: list[str] = re.findall(r"`([^`]+)`", text)
+
+    # Extract recommended blog titles
+    hooks: list[str] = []
+    m = re.search(r"## Recommended Blog Topics\n(.*?)(?=\n##|\Z)", text, re.DOTALL)
+    if m:
+        for line in m.group(1).splitlines():
+            t = re.search(r"\*\*(.+?)\*\*", line)
+            if t:
+                hooks.append(t.group(1).strip())
+
+    return {"topics": trending[:5], "keywords": keywords[:8], "hooks": hooks[:5]}
+
 
 # ── Log ───────────────────────────────────────────────────────────────────────
 
@@ -67,7 +102,7 @@ def slugify(text: str) -> str:
 
 # ── Grok ──────────────────────────────────────────────────────────────────────
 
-_SYSTEM = r"""You are the lead content writer for MR. WORKOUT — a science-backed fitness app.
+_SYSTEM_BASE = r"""You are the lead content writer for MR. WORKOUT — a science-backed fitness app.
 
 Brand voice: savage, authoritative, scientific. British English. No fluff.
 Call out gym myths by name. Back every claim with physiology.
@@ -102,20 +137,40 @@ Rules:
 - tags array: 4-5 slugified strings e.g. "progressive-overload"
 - Do NOT write a CTA section — added automatically"""
 
+def _build_system(intel: dict) -> str:
+    system = _SYSTEM_BASE
+    topics   = intel.get("topics", [])
+    keywords = intel.get("keywords", [])
+    if topics or keywords:
+        extras = []
+        if topics:
+            extras.append(f"Trending niche topics to weave in: {', '.join(topics[:3])}")
+        if keywords:
+            extras.append(f"Hot breakout keywords to consider: {', '.join(keywords[:5])}")
+        system += "\n\nINTEL PIVOT:\n" + "\n".join(f"- {e}" for e in extras)
+    return system
+
 _USER = 'Hook: "{hook}"\nPrimary keyword: {kw}\n\nWrite the blog JSON.'
 
-def _primary_kw(hook: str) -> str:
+def _primary_kw(hook: str, intel: dict | None = None) -> str:
     h = hook.lower()
+    # Check if any intel trending topic matches the hook
+    if intel:
+        for topic in intel.get("topics", []):
+            kw = topic.lower()
+            if any(w in h for w in kw.split()):
+                return topic
     if any(w in h for w in ("overload", "rpe", "blueprint", "genetics", "progress", "sets")):
         return "progressive overload"
     if any(w in h for w in ("muscle", "gains", "hypertrophy", "physique", "grow")):
         return "hypertrophy"
     return "optimal training frequency"
 
-def call_grok(hook: str) -> Optional[dict]:
+def call_grok(hook: str, intel: dict | None = None) -> Optional[dict]:
     if not GROK_API_KEY:
         print("  ✗  GROK_API_KEY not set")
         return None
+    system = _build_system(intel or {})
     for attempt in range(1, 4):
         try:
             resp = requests.post(
@@ -125,9 +180,9 @@ def call_grok(hook: str) -> Optional[dict]:
                 json={
                     "model": "grok-3-mini",
                     "messages": [
-                        {"role": "system", "content": _SYSTEM},
+                        {"role": "system", "content": system},
                         {"role": "user",   "content": _USER.format(
-                            hook=hook[:300], kw=_primary_kw(hook))},
+                            hook=hook[:300], kw=_primary_kw(hook, intel))},
                     ],
                     "max_tokens": 2200,
                     "temperature": 0.78,
@@ -281,7 +336,8 @@ def render_mdx(data: dict) -> str:
 
 # ── Processor ─────────────────────────────────────────────────────────────────
 
-def process_video(filename: str, log: dict, force: bool = False) -> bool:
+def process_video(filename: str, log: dict, force: bool = False,
+                  intel: dict | None = None) -> bool:
     if not force and filename in log["posts"]:
         return False
 
@@ -292,7 +348,7 @@ def process_video(filename: str, log: dict, force: bool = False) -> bool:
     print(f"\n  [{filename[:58]}]")
     print(f"  Hook : {hook[:72]}")
 
-    data = call_grok(hook)
+    data = call_grok(hook, intel)
     if not data:
         print("  ✗  Generation failed — skipping")
         return False
@@ -326,13 +382,16 @@ def main() -> None:
     if not GROK_API_KEY:
         sys.exit("✗  GROK_API_KEY not set.  Run: source ../savage_creator/set_env.sh")
 
-    log = load_log()
-    W   = 66
+    intel = load_intel()
+    log   = load_log()
+    W     = 66
 
     print(f"\n{'='*W}")
     print(f"  VERCEL SEO GHOSTWRITER")
     print(f"  Archive  → {ARCHIVE_DIR}")
     print(f"  Output   → {OUT_DIR}")
+    if intel["topics"]:
+        print(f"  Intel    → trending: {', '.join(intel['topics'][:3])}")
     print(f"{'='*W}")
 
     if args.file:
@@ -352,10 +411,15 @@ def main() -> None:
     print(f"\n  {len(targets)} video(s) in archive")
     print(f"  {already} already done  |  {len(todo)} to generate\n")
 
+    # If no archive videos but intel has recommended hooks, generate from them
+    if not todo and intel.get("hooks"):
+        print(f"  No new archive videos. Using {len(intel['hooks'])} intel-recommended topic(s).\n")
+        todo = [h for h in intel["hooks"] if h not in log["posts"]]
+
     written = 0
     for i, filename in enumerate(todo, 1):
         print(f"  ── [{i}/{len(todo)}]", end=" ")
-        if process_video(filename, log, force=args.force):
+        if process_video(filename, log, force=args.force, intel=intel):
             written += 1
         save_log(log)
         if i < len(todo):

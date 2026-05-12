@@ -49,6 +49,7 @@ COOKIES_FILE  = Path(__file__).parent / "savage_cookies.json"
 COMPETITORS   = Path(__file__).parent.parent / "competitors.json"
 GROK_API_KEY  = os.environ.get("GROK_API_KEY", "")
 VERCEL_DOMAIN = os.environ.get("VERCEL_DOMAIN", "https://mrworkout.pro").rstrip("/")
+SUCCESS_LOG   = Path(__file__).parent / "success_log.json"
 
 OWN_YT        = "https://www.youtube.com/@mrworkoutapp"
 OWN_IG        = "mrworkout.pro"
@@ -76,6 +77,34 @@ STEALTH_JS = """
 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
 window.chrome = { runtime: {} };
 """
+
+# ── Few-shot success examples ─────────────────────────────────────────────────
+
+def load_few_shots(n: int = 4) -> list[dict]:
+    """Return top-n successful reply examples from success_log.json."""
+    if not SUCCESS_LOG.exists():
+        return []
+    try:
+        entries = json.loads(SUCCESS_LOG.read_text())
+        entries.sort(key=lambda e: e.get("engagement", 0), reverse=True)
+        return [
+            {"context": e.get("post_context", "")[:120],
+             "reply":   e.get("drafted_reply", "")[:220]}
+            for e in entries[:n]
+            if e.get("drafted_reply")
+        ]
+    except Exception:
+        return []
+
+def _few_shot_block(few_shots: list[dict], label: str = "") -> str:
+    if not few_shots:
+        return ""
+    header = f"HIGH-PERFORMING {label}REPLY EXAMPLES (few-shot):\n"
+    body   = "\n".join(
+        f"Example {i+1}:\n  Context: {ex['context']}\n  Reply: {ex['reply']}"
+        for i, ex in enumerate(few_shots)
+    )
+    return f"\n\n{header}{body}\n\nMatch this style and impact:"
 
 # ── Blog index ────────────────────────────────────────────────────────────────
 
@@ -142,7 +171,8 @@ def extract_topic(comment: str) -> str:
     except Exception:
         return "training"
 
-def draft_reply_own(comment: str, platform: str, blog_url: str) -> str:
+def draft_reply_own(comment: str, platform: str, blog_url: str,
+                    few_shots: list[dict] | None = None) -> str:
     """Reply for comments on OWN posts — re-engagement + blog link."""
     fallback = (
         f"That plateau is a CNS signal, not a motivation issue. "
@@ -150,6 +180,7 @@ def draft_reply_own(comment: str, platform: str, blog_url: str) -> str:
     )
     if not GROK_API_KEY:
         return fallback
+    fs_block = _few_shot_block(few_shots or [], "OWN-POST ")
     try:
         resp = requests.post(
             "https://api.x.ai/v1/chat/completions",
@@ -163,6 +194,7 @@ def draft_reply_own(comment: str, platform: str, blog_url: str) -> str:
                            "Write ONE reply (max 200 chars): address their point brutally and helpfully, "
                            "drop one science fact, end with: 'Full breakdown: [BLOG_URL]'. "
                            "British English. No hashtags. Return ONLY the reply."
+                           + fs_block
                        ).replace("[BLOG_URL]", blog_url)},
                       {"role": "user",
                        "content": f"Platform: {platform}\nComment: {comment[:250]}"}],
@@ -177,15 +209,45 @@ def draft_reply_own(comment: str, platform: str, blog_url: str) -> str:
     except Exception:
         return fallback
 
-def draft_reply_competitor(comment: str, blog_url: str) -> str:
+def draft_reply_competitor(comment: str, blog_url: str,
+                           few_shots: list[dict] | None = None) -> str:
     """Intercept reply for competitor fan questions."""
-    topic = extract_topic(comment)
-    return (
-        f"Saw your question about {topic}. I actually just broke this down "
-        f"in a deep dive here: {blog_url} — hope it helps!"
-    )
+    if not GROK_API_KEY or not few_shots:
+        topic = extract_topic(comment)
+        return (
+            f"Saw your question about {topic}. I actually just broke this down "
+            f"in a deep dive here: {blog_url} — hope it helps!"
+        )
+    fs_block = _few_shot_block(few_shots, "COMPETITOR-INTERCEPT ")
+    try:
+        resp = requests.post(
+            "https://api.x.ai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROK_API_KEY}",
+                     "Content-Type": "application/json"},
+            json={"model": "grok-3-mini",
+                  "messages": [
+                      {"role": "system",
+                       "content": (
+                           "You reply to competitor fans who asked a fitness question. "
+                           "Format: 'Saw your question about [topic]. I broke this down here: [URL]' "
+                           "Max 200 chars. British English. No hashtags. Return ONLY the reply."
+                           f"{fs_block}"
+                       ).replace("[URL]", blog_url)},
+                      {"role": "user", "content": f"Comment: {comment[:250]}"}],
+                  "max_tokens": 80, "temperature": 0.75},
+            timeout=18,
+        )
+        resp.raise_for_status()
+        reply = resp.json()["choices"][0]["message"]["content"].strip().strip('"')
+        if blog_url not in reply:
+            reply = reply.rstrip(".") + f" {blog_url}"
+        return reply[:280]
+    except Exception:
+        topic = extract_topic(comment)
+        return (f"Saw your question about {topic}. Broke this down here: {blog_url}")
 
-def draft_reddit_comment(post_title: str, post_body: str, blog_url: str) -> str:
+def draft_reddit_comment(post_title: str, post_body: str, blog_url: str,
+                         few_shots: list[dict] | None = None) -> str:
     fallback = (
         f"Your plateau is almost always a training frequency issue, not effort. "
         f"Your CNS needs stimulus + recovery in the right ratio. "
@@ -193,6 +255,7 @@ def draft_reddit_comment(post_title: str, post_body: str, blog_url: str) -> str:
     )
     if not GROK_API_KEY:
         return fallback
+    fs_block = _few_shot_block(few_shots or [], "REDDIT ")
     try:
         resp = requests.post(
             "https://api.x.ai/v1/chat/completions",
@@ -207,6 +270,7 @@ def draft_reddit_comment(post_title: str, post_body: str, blog_url: str) -> str:
                            "science-backed answer, name the mechanism (progressive overload / "
                            "CNS recovery / training frequency), end with: "
                            f"'Full breakdown: {blog_url}'. No bold markdown. Return ONLY the comment."
+                           + fs_block
                        )},
                       {"role": "user",
                        "content": f'Post: "{post_title[:200]}"\nContext: "{post_body[:150]}"'}],
@@ -441,7 +505,8 @@ def fetch_reddit(sub: str, limit: int = 15) -> list[dict]:
 # ── Mission runners ───────────────────────────────────────────────────────────
 
 def mission_own(page: Page, blog_index: list[dict],
-                limit: int, seen: set, new_leads: list[dict]) -> None:
+                limit: int, seen: set, new_leads: list[dict],
+                few_shots: list[dict] | None = None) -> None:
     """Patrol OWN YouTube + Instagram + X for incoming questions."""
     print(f"\n  ── OWN POSTS ──────────────────────────────────────")
 
@@ -460,7 +525,7 @@ def mission_own(page: Page, blog_index: list[dict],
                 continue
             seen.add(key)
             blog    = pick_blog(hit["text"], blog_index)
-            reply   = draft_reply_own(hit["text"], platform, blog["url"])
+            reply   = draft_reply_own(hit["text"], platform, blog["url"], few_shots)
             new_leads.append({
                 "url":           hit["url"],
                 "platform":      platform,
@@ -472,7 +537,8 @@ def mission_own(page: Page, blog_index: list[dict],
             })
 
 def mission_competitor(page: Page, blog_index: list[dict],
-                       limit: int, seen: set, new_leads: list[dict]) -> None:
+                       limit: int, seen: set, new_leads: list[dict],
+                       few_shots: list[dict] | None = None) -> None:
     """Intercept fan questions on competitor posts."""
     print(f"\n  ── COMPETITOR PATROL ──────────────────────────────")
     competitors = json.loads(COMPETITORS.read_text()) if COMPETITORS.exists() else {}
@@ -491,7 +557,7 @@ def mission_competitor(page: Page, blog_index: list[dict],
                     continue
                 seen.add(key)
                 blog  = pick_blog(hit["text"], blog_index)
-                reply = draft_reply_competitor(hit["text"], blog["url"])
+                reply = draft_reply_competitor(hit["text"], blog["url"], few_shots)
                 new_leads.append({
                     "url":           hit["url"],
                     "platform":      platform,
@@ -504,7 +570,8 @@ def mission_competitor(page: Page, blog_index: list[dict],
             time.sleep(random.uniform(1.5, 3))
 
 def mission_reddit(blog_index: list[dict],
-                   seen: set, new_leads: list[dict]) -> None:
+                   seen: set, new_leads: list[dict],
+                   few_shots: list[dict] | None = None) -> None:
     """Scan Reddit fitness subs for hot questions."""
     print(f"\n  ── REDDIT PATROL ──────────────────────────────────")
     for sub in REDDIT_SUBS:
@@ -514,7 +581,7 @@ def mission_reddit(blog_index: list[dict],
         for p in new:
             seen.add(p["url"])
             blog  = pick_blog(p["title"] + " " + p["body"], blog_index)
-            reply = draft_reddit_comment(p["title"], p["body"], blog["url"])
+            reply = draft_reddit_comment(p["title"], p["body"], blog["url"], few_shots)
             new_leads.append({
                 "url":           p["url"],
                 "platform":      "reddit",
@@ -543,6 +610,7 @@ def main() -> None:
     if not blog_index:
         sys.exit("✗  No blog posts in content/blog/ — run ghostwriter first.")
 
+    few_shots      = load_few_shots()
     existing_leads = load_leads()
     seen           = {r.get("post_context", "")[:80] for r in existing_leads}
     seen          |= {r.get("url", "") for r in existing_leads}
@@ -551,6 +619,7 @@ def main() -> None:
     print(f"\n{'='*60}")
     print(f"  OMNI EMPIRE  —  {'|'.join(m.upper() for m in args.missions)}")
     print(f"  Blog posts  : {len(blog_index)}")
+    print(f"  Few-shots   : {len(few_shots)} success example(s) loaded")
     print(f"  Missions    : {', '.join(args.missions)}")
     print(f"{'='*60}")
 
@@ -562,10 +631,10 @@ def main() -> None:
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
 
             if "own" in args.missions:
-                mission_own(page, blog_index, args.limit, seen, new_leads)
+                mission_own(page, blog_index, args.limit, seen, new_leads, few_shots)
 
             if "competitor" in args.missions:
-                mission_competitor(page, blog_index, args.limit, seen, new_leads)
+                mission_competitor(page, blog_index, args.limit, seen, new_leads, few_shots)
 
             try:
                 COOKIES_FILE.write_text(json.dumps(ctx.cookies(), indent=2))
@@ -575,7 +644,7 @@ def main() -> None:
             browser.close()
 
     if "reddit" in args.missions:
-        mission_reddit(blog_index, seen, new_leads)
+        mission_reddit(blog_index, seen, new_leads, few_shots)
 
     if new_leads:
         all_leads = existing_leads + new_leads
