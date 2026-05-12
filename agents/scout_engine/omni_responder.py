@@ -47,7 +47,7 @@ HOT_WORDS  = ["how", "why", "help", "advice", "stuck", "plateau",
 COLD_WORDS = ["spam", "follow", "promo", "check my", "link in bio",
               "giveaway", "subscribe", "collab"]
 
-HOT_THRESHOLD = 2
+HOT_THRESHOLD = 1
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
       "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
@@ -124,7 +124,7 @@ def extract_topic(comment: str) -> str:
     except Exception:
         return "training"
 
-def draft_reply(comment: str, blog_url: str, blog_title: str) -> str:
+def draft_reply(comment: str, blog_url: str, _blog_title: str) -> str:
     topic = extract_topic(comment)
     return (
         f"Saw your question about {topic}. I actually just broke this down "
@@ -172,47 +172,69 @@ def human_scroll(page: Page, times: int = 3) -> None:
         page.mouse.wheel(0, random.randint(400, 800))
         time.sleep(random.uniform(0.8, 1.6))
 
+def scroll_to_comments(page: Page) -> None:
+    """YouTube comments lazy-load — click body then use End key + wheel."""
+    try:
+        page.click("body")
+    except Exception:
+        pass
+    # Jump to bottom with End key to trigger lazy load
+    for _ in range(3):
+        page.keyboard.press("End")
+        time.sleep(1.5)
+    # Wheel scroll back up slightly so comment renderer enters viewport
+    for _ in range(6):
+        page.mouse.wheel(0, 500)
+        time.sleep(0.6)
+    time.sleep(2)
+
 # ── Platform scrapers ─────────────────────────────────────────────────────────
 
 def scrape_youtube_handle(page: Page, handle_url: str, handle: str,
                           limit: int) -> list[dict]:
     results = []
     try:
-        page.goto(handle_url + "/videos", wait_until="domcontentloaded", timeout=30_000)
-        time.sleep(random.uniform(2, 3.5))
-        human_scroll(page, 2)
+        page.set_default_timeout(12_000)
+        page.goto(handle_url + "/videos", wait_until="domcontentloaded", timeout=25_000)
+        time.sleep(2)
 
-        video_links = page.locator("a#video-title-link").all()[:limit]
+        video_links = page.locator("ytd-rich-item-renderer a[href*='/watch']").all()[:limit * 4]
         urls = []
+        seen_hrefs: set = set()
         for v in video_links:
             href = v.get_attribute("href")
-            if href:
+            if href and "/watch" in href and href not in seen_hrefs:
+                seen_hrefs.add(href)
                 urls.append("https://www.youtube.com" + href
                             if href.startswith("/") else href)
+            if len(urls) >= limit:
+                break
 
         for vurl in urls:
-            page.goto(vurl, wait_until="domcontentloaded", timeout=30_000)
-            time.sleep(random.uniform(3, 5))
-            human_scroll(page, 4)
             try:
-                page.wait_for_selector("ytd-comment-thread-renderer", timeout=10_000)
-            except PWTimeout:
-                continue
-            for c in page.locator("ytd-comment-thread-renderer").all()[:20]:
-                try:
-                    author = c.locator("#author-text").inner_text(timeout=3_000).strip()
-                    text   = c.locator("#content-text").inner_text(timeout=3_000).strip()
-                    if not text or author.lower() in (handle.lower(), "mrworkout", "mr. workout"):
+                page.goto(vurl, wait_until="domcontentloaded", timeout=25_000)
+                time.sleep(2)
+                scroll_to_comments(page)
+                page.wait_for_selector("ytd-comment-thread-renderer", timeout=12_000)
+                for c in page.locator("ytd-comment-thread-renderer").all()[:20]:
+                    try:
+                        author = c.locator("#author-text").inner_text(timeout=2_000).strip()
+                        text   = c.locator("#content-text").inner_text(timeout=2_000).strip()
+                        if not text or author.lower() in (handle.lower(), "mrworkout", "mr. workout"):
+                            continue
+                        score = score_comment(text)
+                        if score >= HOT_THRESHOLD:
+                            results.append({"url": vurl, "text": text,
+                                            "score": score, "context": f"YT @{handle}"})
+                    except Exception:
                         continue
-                    score = score_comment(text)
-                    if score >= HOT_THRESHOLD:
-                        results.append({"url": vurl, "text": text,
-                                        "score": score, "context": f"YT @{handle}"})
-                except Exception:
-                    continue
-            time.sleep(random.uniform(2, 3.5))
+            except PWTimeout:
+                print(f"    YT timeout on {vurl[-40:]} — skipping")
+            time.sleep(1)
     except Exception as e:
         print(f"    YT scrape error ({handle}): {e}")
+    finally:
+        page.set_default_timeout(30_000)
     return results
 
 def scrape_instagram_handle(page: Page, handle_url: str, handle: str,
