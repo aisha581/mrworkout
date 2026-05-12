@@ -113,7 +113,7 @@ $PY "$REPO/agents/scout_engine/social_monitor.py" \
     >> "$LOG" 2>&1 && log "      Social Monitor complete" \
     || log "      Social Monitor error (non-fatal)"
 
-# ── 8. Mailer — drip sequence for new email signups ────────────
+# ── 10. Mailer — Supabase drip (Day 0 template + Day 3 followup) ─
 log "[10/10] Running Email Mailer…"
 $PY "$REPO/agents/mailer.py" \
     >> "$LOG" 2>&1 && log "      Mailer complete" \
