@@ -7,7 +7,6 @@ slug: "efficient-gym-routines-outpace-her-now"
 author: "MR. WORKOUT"
 ---
 
-import {{ DownloadAppButton }} from '@/components/DownloadAppButton'
 
 # Efficient Gym Routines: Outpace Her Now
 
@@ -58,42 +57,4 @@ Efficient gym routines mean 45-minute sessions that deliver results, not three-h
 // Drop this file into your Next.js project.
 // Usage in MDX: <DownloadAppButton />
 
-import React from 'react'
-
-interface DownloadAppButtonProps {
-  appStoreUrl?: string
-  playStoreUrl?: string
-}
-
-export function DownloadAppButton({
-  appStoreUrl = 'https://apps.apple.com/app/mr-workout',
-  playStoreUrl = 'https://play.google.com/store/apps/mr-workout',
-}: DownloadAppButtonProps) {
-  return (
-    <div style={{
-      background: '#000', borderRadius: '14px', padding: '2.5rem 2rem',
-      marginTop: '3rem', textAlign: 'center', color: '#fff',
-    }}>
-      <h2 style={{ color: '#FFD700', marginBottom: '0.75rem' }}>
-        Stop Guessing. Start Dominating.
-      </h2>
-      <p style={{ color: '#bbb', marginBottom: '1.75rem' }}>
-        MR. WORKOUT tracks your CNS score, builds your progressive overload
-        blueprint, and coaches every rep. 89 exercises. Zero excuses. Free to start.
-      </p>
-      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <a href={appStoreUrl} target="_blank" rel="noopener noreferrer"
-           style={{ background: '#FFD700', color: '#000', padding: '0.8rem 2rem',
-                    borderRadius: '8px', fontWeight: 800, textDecoration: 'none' }}>
-          ↓ App Store
-        </a>
-        <a href={playStoreUrl} target="_blank" rel="noopener noreferrer"
-           style={{ border: '2px solid #FFD700', color: '#FFD700', padding: '0.8rem 2rem',
-                    borderRadius: '8px', fontWeight: 800, textDecoration: 'none' }}>
-          ↓ Google Play
-        </a>
-      </div>
-    </div>
-  )
-}
-```
+<DownloadCTA />
