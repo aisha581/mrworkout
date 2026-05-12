@@ -246,6 +246,48 @@ def draft_reply_competitor(comment: str, blog_url: str,
         topic = extract_topic(comment)
         return (f"Saw your question about {topic}. Broke this down here: {blog_url}")
 
+def draft_reply_hijack(comment: str, blog_url: str, competitor_handle: str,
+                       few_shots: list[dict] | None = None) -> str:
+    """Competitor Hijack: acknowledge → expose the gap → provide the savage solution."""
+    fallback = (
+        f"Good question. Most mainstream advice covers the surface but misses "
+        f"the CNS recovery mechanism that actually drives results. "
+        f"Full breakdown: {blog_url}"
+    )
+    if not GROK_API_KEY:
+        return fallback
+    fs_block = _few_shot_block(few_shots or [], "HIJACK ")
+    try:
+        resp = requests.post(
+            "https://api.x.ai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROK_API_KEY}",
+                     "Content-Type": "application/json"},
+            json={"model": "grok-3-mini",
+                  "messages": [
+                      {"role": "system",
+                       "content": (
+                           "You are MR. WORKOUT intercepting a fan question under a competitor's post. "
+                           "Write ONE reply using exactly this 3-part structure (max 240 chars total):\n"
+                           "1. Acknowledge their question directly (1 short sentence)\n"
+                           "2. Point out the specific gap in standard advice on this topic — "
+                           "   savage but scientific, do NOT name the competitor (1 sentence)\n"
+                           "3. End with: 'Full answer: [BLOG_URL]'\n"
+                           "British English. No hashtags. No emojis. Return ONLY the reply."
+                           + fs_block
+                       ).replace("[BLOG_URL]", blog_url)},
+                      {"role": "user",
+                       "content": f"Fan comment under @{competitor_handle} post:\n{comment[:250]}"}],
+                  "max_tokens": 100, "temperature": 0.88},
+            timeout=20,
+        )
+        resp.raise_for_status()
+        reply = resp.json()["choices"][0]["message"]["content"].strip().strip('"')
+        if blog_url not in reply:
+            reply = reply.rstrip(".") + f" Full answer: {blog_url}"
+        return reply[:290]
+    except Exception:
+        return fallback
+
 def draft_reddit_comment(post_title: str, post_body: str, blog_url: str,
                          few_shots: list[dict] | None = None) -> str:
     fallback = (
@@ -473,6 +515,74 @@ def scrape_twitter(page: Page, handle: str, label: str) -> list[dict]:
         print(f"    X error ({label}): {e}")
     return results
 
+# ── TikTok scraper ───────────────────────────────────────────────────────────
+
+def scrape_tiktok(page: Page, handle: str, label: str) -> list[dict]:
+    """Scrape comments from recent TikTok videos. Raises on bot-block detection."""
+    results = []
+    profile_url = f"https://www.tiktok.com/@{handle}"
+
+    page.goto(profile_url, wait_until="domcontentloaded", timeout=30_000)
+    time.sleep(random.uniform(3, 5))
+
+    # Detect captcha / redirect to verify page — raise so caller logs BLOCKED
+    title_lower = page.title().lower()
+    url_lower   = page.url.lower()
+    if any(kw in title_lower + url_lower for kw in ("captcha", "verify", "robot", "blocked")):
+        raise RuntimeError(f"TikTok bot-protection on @{handle}")
+
+    # Collect up to 3 video links from the profile grid
+    video_urls: list[str] = []
+    seen_hrefs: set = set()
+    for v in page.locator("a[href*='/video/']").all()[:9]:
+        href = v.get_attribute("href")
+        if href and "/video/" in href and href not in seen_hrefs:
+            seen_hrefs.add(href)
+            video_urls.append(
+                f"https://www.tiktok.com{href}" if href.startswith("/") else href
+            )
+        if len(video_urls) >= 3:
+            break
+
+    if not video_urls:
+        # No videos found — could be private or bot-detected
+        raise RuntimeError(f"TikTok no video links found for @{handle} — possibly blocked")
+
+    for vurl in video_urls[:2]:
+        try:
+            page.goto(vurl, wait_until="domcontentloaded", timeout=30_000)
+            time.sleep(random.uniform(2.5, 4))
+            human_scroll(page, 3)
+
+            for sel in (
+                "[data-e2e='comment-level-1']",
+                "div[class*='CommentItemWrapper']",
+                "[class*='comment-item-wrapper']",
+                "p[data-e2e='comment-level-1-text']",
+            ):
+                try:
+                    page.wait_for_selector(sel, timeout=6_000)
+                    for item in page.locator(sel).all()[:20]:
+                        try:
+                            text = item.inner_text(timeout=2_000).strip()
+                            if len(text) < 8:
+                                continue
+                            score = score_comment(text)
+                            if score >= HOT_THRESHOLD:
+                                results.append({"url": vurl, "text": text,
+                                                "score": score, "context": f"TT {label}"})
+                        except Exception:
+                            continue
+                    break
+                except PWTimeout:
+                    continue
+
+            time.sleep(random.uniform(2, 3))
+        except Exception as e:
+            print(f"    TT video skip ({handle}): {e}")
+
+    return results
+
 # ── Reddit RSS ────────────────────────────────────────────────────────────────
 
 REDDIT_HOT_WORDS = ["help", "how do i", "should i", "advice", "plateau",
@@ -538,35 +648,72 @@ def mission_own(page: Page, blog_index: list[dict],
 
 def mission_competitor(page: Page, blog_index: list[dict],
                        limit: int, seen: set, new_leads: list[dict],
-                       few_shots: list[dict] | None = None) -> None:
-    """Intercept fan questions on competitor posts."""
+                       few_shots: list[dict] | None = None,
+                       blocked_log: list[str] | None = None) -> None:
+    """Intercept fan questions on competitor posts.
+
+    Routes primary/hijack competitors to draft_reply_hijack().
+    All platform scrapers are wrapped — failures auto-skip and are logged
+    to blocked_log so the loop can alert and continue on other platforms.
+    """
+    if blocked_log is None:
+        blocked_log = []
+
     print(f"\n  ── COMPETITOR PATROL ──────────────────────────────")
     competitors = json.loads(COMPETITORS.read_text()) if COMPETITORS.exists() else {}
 
-    for platform, scrape_fn_map in [
+    platform_scrapers = [
         ("youtube",   lambda comp: scrape_youtube(page, comp["url"], f'@{comp["handle"]}', limit, own=False)),
         ("instagram", lambda comp: scrape_instagram(page, comp["handle"], f'@{comp["handle"]}', limit)),
         ("twitter",   lambda comp: scrape_twitter(page, comp["handle"], f'@{comp["handle"]}')),
-    ]:
+        ("tiktok",    lambda comp: scrape_tiktok(page, comp["handle"], f'@{comp["handle"]}')),
+    ]
+
+    for platform, scrape_fn in platform_scrapers:
         for comp in competitors.get(platform, []):
-            hits = scrape_fn_map(comp)
-            print(f"    @{comp['handle']:<22} {len(hits)} question(s)")
+            handle     = comp["handle"]
+            is_primary = comp.get("primary", False)
+            is_hijack  = comp.get("hijack", False) or is_primary
+
+            # ── Platform failover: catch any block / timeout ─────────────
+            try:
+                hits = scrape_fn(comp)
+            except Exception as e:
+                msg = (f"PLATFORM BLOCKED — {platform.upper()} @{handle}: "
+                       f"{type(e).__name__}: {str(e)[:80]}")
+                print(f"    [ALERT] {msg}")
+                blocked_log.append(msg)
+                time.sleep(random.uniform(2, 4))
+                continue  # auto-switch to next handle / platform
+
+            tag = "★ HIJACK" if is_hijack else "  COMP  "
+            print(f"    [{tag}] @{handle:<22} {len(hits)} question(s)")
+
             for hit in hits:
                 key = hit["context"][:40] + hit["text"][:40]
                 if key in seen:
                     continue
                 seen.add(key)
-                blog  = pick_blog(hit["text"], blog_index)
-                reply = draft_reply_competitor(hit["text"], blog["url"], few_shots)
+                blog = pick_blog(hit["text"], blog_index)
+
+                # Route: primary/hijack → 3-part hijack reply; others → standard intercept
+                if is_hijack:
+                    reply   = draft_reply_hijack(hit["text"], blog["url"], handle, few_shots)
+                    ctx_tag = "HIJACK"
+                else:
+                    reply   = draft_reply_competitor(hit["text"], blog["url"], few_shots)
+                    ctx_tag = "COMP"
+
                 new_leads.append({
                     "url":           hit["url"],
                     "platform":      platform,
-                    "post_context":  f'COMP {hit["context"]} | {hit["text"][:100]}',
+                    "post_context":  f'{ctx_tag} {hit["context"]} | {hit["text"][:100]}',
                     "drafted_reply": reply,
                     "status":        "pending",
                     "posted_at":     "",
                     "error_msg":     "",
                 })
+
             time.sleep(random.uniform(1.5, 3))
 
 def mission_reddit(blog_index: list[dict],
@@ -614,7 +761,8 @@ def main() -> None:
     existing_leads = load_leads()
     seen           = {r.get("post_context", "")[:80] for r in existing_leads}
     seen          |= {r.get("url", "") for r in existing_leads}
-    new_leads: list[dict] = []
+    new_leads:    list[dict] = []
+    blocked_log:  list[str]  = []
 
     print(f"\n{'='*60}")
     print(f"  OMNI EMPIRE  —  {'|'.join(m.upper() for m in args.missions)}")
@@ -634,7 +782,8 @@ def main() -> None:
                 mission_own(page, blog_index, args.limit, seen, new_leads, few_shots)
 
             if "competitor" in args.missions:
-                mission_competitor(page, blog_index, args.limit, seen, new_leads, few_shots)
+                mission_competitor(page, blog_index, args.limit, seen, new_leads,
+                                   few_shots, blocked_log)
 
             try:
                 COOKIES_FILE.write_text(json.dumps(ctx.cookies(), indent=2))
@@ -650,9 +799,20 @@ def main() -> None:
         all_leads = existing_leads + new_leads
         save_leads(all_leads)
         print(f"\n  ✓  {len(new_leads)} new lead(s) queued → {LEADS_CSV.name}")
-        print(f"     Savage Sniper will post them in the next loop.\n")
+        print(f"     Savage Sniper will post them in the next loop.")
+
     else:
-        print(f"\n  ✓  No new leads found.\n")
+        print(f"\n  ✓  No new leads found.")
+
+    # ── Platform block summary — logged for savage_loop.sh to surface ─────────
+    if blocked_log:
+        print(f"\n  {'='*56}")
+        print(f"  [ALERT] {len(blocked_log)} PLATFORM BLOCK(S) THIS RUN — auto-switched to others:")
+        for msg in blocked_log:
+            print(f"    ⚠  {msg}")
+        print(f"  {'='*56}")
+        print(f"  ACTION: Run with --headful to re-authenticate blocked platforms.")
+    print()
 
 
 if __name__ == "__main__":

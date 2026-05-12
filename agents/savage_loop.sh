@@ -1,9 +1,17 @@
 #!/bin/bash
 # ============================================================
 #  SAVAGE LOOP — Daily 8 AM Content Engine
-#  Order: Intel (Mon) → RSS scan → Ghostwriter → Blog Push →
-#         (5m wait) → Omni Empire → Sniper → Success Scan →
-#         Email Mailer
+#
+#  Step order is load-bearing:
+#    [2] Intel Scraper (Mon)   ← writes intel_report.md
+#    [4] Ghostwriter           ← READS intel_report.md to pivot topics
+#        Do NOT swap these steps.
+#
+#  Platform blocks: omni_empire.py auto-switches to other platforms
+#  and prints [ALERT] lines. These appear in the log below.
+#  If you see BLOCKED entries, run:
+#    python3 agents/scout_engine/omni_empire.py --headful
+#  to re-authenticate the affected platform.
 # ============================================================
 set -euo pipefail
 
@@ -127,3 +135,14 @@ $PY "$REPO/agents/mailer.py" \
 log "======================================================"
 log "  SAVAGE LOOP DONE"
 log "======================================================"
+
+# ── Surface any platform-block alerts at the very end ─────
+BLOCKS=$(grep -c "\[ALERT\].*PLATFORM BLOCKED" "$LOG" 2>/dev/null || true)
+if [ "${BLOCKS:-0}" -gt 0 ]; then
+    log ""
+    log "  ╔══════════════════════════════════════════════════╗"
+    log "  ║  ⚠  $BLOCKS PLATFORM BLOCK(S) DETECTED THIS RUN"
+    log "  ║  Run:  python3 agents/scout_engine/omni_empire.py --headful"
+    log "  ╚══════════════════════════════════════════════════╝"
+    log ""
+fi

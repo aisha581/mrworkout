@@ -1,23 +1,33 @@
 {
   "youtube": [
-    { "handle": "jeffnippard",               "url": "https://www.youtube.com/@jeffnippard" },
-    { "handle": "RenaissancePeriodization",   "url": "https://www.youtube.com/@RenaissancePeriodization" },
-    { "handle": "athleanx",                  "url": "https://www.youtube.com/@athleanx" },
-    { "handle": "JeremyEthier",              "url": "https://www.youtube.com/@JeremyEthier" },
-    { "handle": "cbum",                       "url": "https://www.youtube.com/@cbum" }
+    { "handle": "fitonomycoaching",            "url": "https://www.youtube.com/@FitonomyCoaching",        "primary": true,  "hijack": true  },
+    { "handle": "jeffnippard",                 "url": "https://www.youtube.com/@jeffnippard"                                               },
+    { "handle": "RenaissancePeriodization",    "url": "https://www.youtube.com/@RenaissancePeriodization"                                  },
+    { "handle": "athleanx",                    "url": "https://www.youtube.com/@athleanx"                                                  },
+    { "handle": "JeremyEthier",               "url": "https://www.youtube.com/@JeremyEthier"                                              },
+    { "handle": "cbum",                        "url": "https://www.youtube.com/@cbum"                                                      }
   ],
   "instagram": [
-    { "handle": "jeffnippard",    "url": "https://www.instagram.com/jeffnippard/" },
-    { "handle": "drmikeisraetel", "url": "https://www.instagram.com/drmikeisraetel/" },
-    { "handle": "athleanx",       "url": "https://www.instagram.com/athleanx/" },
-    { "handle": "jeremyethier",   "url": "https://www.instagram.com/jeremyethier/" },
-    { "handle": "cbum",           "url": "https://www.instagram.com/cbum/" }
+    { "handle": "fitonomy.coach",              "url": "https://www.instagram.com/fitonomy.coach/",        "primary": true,  "hijack": true  },
+    { "handle": "jeffnippard",                 "url": "https://www.instagram.com/jeffnippard/"                                             },
+    { "handle": "drmikeisraetel",              "url": "https://www.instagram.com/drmikeisraetel/"                                          },
+    { "handle": "athleanx",                    "url": "https://www.instagram.com/athleanx/"                                                },
+    { "handle": "jeremyethier",               "url": "https://www.instagram.com/jeremyethier/"                                            },
+    { "handle": "cbum",                        "url": "https://www.instagram.com/cbum/"                                                    }
   ],
   "twitter": [
-    { "handle": "jeffnippard",  "url": "https://x.com/jeffnippard" },
-    { "handle": "RPStrength",   "url": "https://x.com/RPStrength" },
-    { "handle": "AthLEAN_X",   "url": "https://x.com/AthLEAN_X" },
-    { "handle": "jeremyethier", "url": "https://x.com/jeremyethier" },
-    { "handle": "cbum",         "url": "https://x.com/cbum" }
+    { "handle": "jeffnippard",                 "url": "https://x.com/jeffnippard"                                                         },
+    { "handle": "RPStrength",                  "url": "https://x.com/RPStrength"                                                          },
+    { "handle": "AthLEAN_X",                  "url": "https://x.com/AthLEAN_X"                                                           },
+    { "handle": "jeremyethier",               "url": "https://x.com/jeremyethier"                                                        },
+    { "handle": "cbum",                        "url": "https://x.com/cbum"                                                                }
+  ],
+  "tiktok": [
+    { "handle": "fitonomy.coaching",           "url": "https://www.tiktok.com/@fitonomy.coaching",        "primary": true,  "hijack": true  },
+    { "handle": "jeffnippard",                 "url": "https://www.tiktok.com/@jeffnippard"                                                },
+    { "handle": "rpstrength",                  "url": "https://www.tiktok.com/@rpstrength"                                                 },
+    { "handle": "athlean_x",                   "url": "https://www.tiktok.com/@athlean_x"                                                  },
+    { "handle": "jeremyethier",               "url": "https://www.tiktok.com/@jeremyethier"                                               },
+    { "handle": "cbum",                        "url": "https://www.tiktok.com/@cbum"                                                       }
   ]
 }
