@@ -5,6 +5,112 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default resend;
 
+const DOMAIN = 'https://mrworkout.pro';
+
+// ── 3-Email Savage Drip Sequence ──────────────────────────────────────────────
+
+export async function sendDripEmail1(email: string, name: string) {
+    if (!process.env.RESEND_API_KEY) return { success: false, error: 'API Key missing' };
+    const firstName = name?.split(' ')[0] || 'Athlete';
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'MR. WORKOUT <coach@mrworkout.pro>',
+            to: [email],
+            replyTo: 'thebillion9@gmail.com',
+            subject: 'The #1 mistake killing your gains (and how to fix it)',
+            html: `
+<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#121212;color:#fff;padding:40px;border-radius:16px;border:1px solid #222;">
+  <h2 style="color:#FFD700;font-size:1.4rem;">Welcome to MR. WORKOUT, ${firstName}.</h2>
+  <p>No fluff. No motivational filler. Just the science you've been missing.</p>
+  <p>The #1 mistake: <strong>training without managing your CNS load.</strong></p>
+  <p>Your central nervous system controls every muscle contraction. Destroy it with back-to-back sessions and your strength <em>drops</em> — not because you're weak, but because your neural drive is cooked.</p>
+  <p>The fix? <strong>Optimal training frequency.</strong> Not more sessions. Smarter ones.</p>
+  <div style="margin:2rem 0;text-align:center;">
+    <a href="${DOMAIN}/blog/bro-really-thought-it-was-genetics-but-it-was-just-6-months-of-the-mr-workout-bl"
+       style="background:#FFD700;color:#000;padding:0.8rem 2rem;border-radius:8px;font-weight:800;text-decoration:none;font-size:0.95rem;">
+      Read: Conquer Progressive Overload →
+    </a>
+  </div>
+  <p style="color:#888;font-size:0.9rem;">More science landing in 4 days.</p>
+  <p style="color:#888;font-size:0.85rem;margin-top:2rem;">— MR. WORKOUT</p>
+</div>`,
+        });
+        return error ? { success: false, error } : { success: true, data };
+    } catch (e) { return { success: false, error: e }; }
+}
+
+export async function sendDripEmail2(email: string, name: string) {
+    if (!process.env.RESEND_API_KEY) return { success: false, error: 'API Key missing' };
+    const firstName = name?.split(' ')[0] || 'Athlete';
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'MR. WORKOUT <coach@mrworkout.pro>',
+            to: [email],
+            replyTo: 'thebillion9@gmail.com',
+            subject: "You're probably overtraining. Here's the test.",
+            html: `
+<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#121212;color:#fff;padding:40px;border-radius:16px;border:1px solid #222;">
+  <h2 style="color:#FFD700;">Are you overtraining, ${firstName}?</h2>
+  <p>Quick self-test. Answer yes or no:</p>
+  <ul>
+    <li>Strength going <em>down</em> despite consistent training?</li>
+    <li>Mood worse on rest days than training days?</li>
+    <li>Sleep getting worse, not better?</li>
+  </ul>
+  <p>Two or more yes answers — your CNS is fried.</p>
+  <p><strong>Progressive overload only works when your nervous system can recover between sessions.</strong> Hit the same muscle group too soon and you're breaking down tissue with no supercompensation window.</p>
+  <p>The science: 48–72 hours minimum between sessions targeting the same motor patterns. MR. WORKOUT tracks your fatigue index automatically.</p>
+  <div style="margin:2rem 0;text-align:center;">
+    <a href="${DOMAIN}/blog/pov-you-finally-stopped-guessing-your-rpe-and-let-mr-workout-take-the-wheel"
+       style="background:#FFD700;color:#000;padding:0.8rem 2rem;border-radius:8px;font-weight:800;text-decoration:none;font-size:0.95rem;">
+      Read: Stop Guessing Your RPE →
+    </a>
+  </div>
+  <p style="color:#888;font-size:0.85rem;margin-top:2rem;">— MR. WORKOUT</p>
+</div>`,
+        });
+        return error ? { success: false, error } : { success: true, data };
+    } catch (e) { return { success: false, error: e }; }
+}
+
+export async function sendDripEmail3(email: string, name: string) {
+    if (!process.env.RESEND_API_KEY) return { success: false, error: 'API Key missing' };
+    const firstName = name?.split(' ')[0] || 'Athlete';
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'MR. WORKOUT <coach@mrworkout.pro>',
+            to: [email],
+            replyTo: 'thebillion9@gmail.com',
+            subject: '89 exercises. 0 guesswork. Your move.',
+            html: `
+<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#121212;color:#fff;padding:40px;border-radius:16px;border:1px solid #222;">
+  <h2 style="color:#FFD700;">Last one, ${firstName}. Then I'll leave you to it.</h2>
+  <p>Over the past two weeks I showed you:</p>
+  <ol>
+    <li>Why CNS load is the real reason most people plateau</li>
+    <li>How to test whether you're overtraining right now</li>
+  </ol>
+  <p>MR. WORKOUT makes this automatic:</p>
+  <ul>
+    <li><strong>CNS score</strong> — tracks fatigue in real time</li>
+    <li><strong>Progressive overload blueprint</strong> — auto-adjusts load each session</li>
+    <li><strong>89 exercises</strong> coached with form cues, not just a timer</li>
+    <li><strong>Optimal frequency scheduler</strong> — tells you exactly when to train each muscle</li>
+  </ul>
+  <p>Zero guesswork. Free to start.</p>
+  <div style="margin:2rem 0;text-align:center;">
+    <a href="https://apps.apple.com/app/mr-workout"
+       style="background:#FFD700;color:#000;padding:1rem 3rem;border-radius:8px;font-weight:900;text-decoration:none;font-size:1.05rem;display:inline-block;">
+      ↓ Download MR. WORKOUT Free
+    </a>
+  </div>
+  <p style="color:#888;font-size:0.85rem;margin-top:2rem;">— MR. WORKOUT<br>You won't get another email from me unless you ask. Train smart.</p>
+</div>`,
+        });
+        return error ? { success: false, error } : { success: true, data };
+    } catch (e) { return { success: false, error: e }; }
+}
+
 /**
  * Sends a "Savage" welcome email to newly enrolled athletes.
  */
