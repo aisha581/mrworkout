@@ -31,8 +31,8 @@ const archivoBlack = Archivo_Black({
 });
 
 export const metadata: Metadata = {
-    title:       "Mr. Workout | Savage Protocol v.1",
-    description: "Stop decorating the gym. Enter the Clinic for savage routines, real-time tracking, and zero excuses. Built for those who actually train. #Fahhhhh",
+    title:       "Mr. Workout | Stop Decorating, Start Training.",
+    description: "The Clinic is open. Access the Savage Protocol v.1 and get roasted into the best shape of your life.",
     manifest:    "/manifest.webmanifest",
     keywords:    ["Savage Coaching", "Mr. Workout", "Fitness Protocol", "Sarcastic AI Coach", "Real-time Workout Timer"],
     authors:     [{ name: "Mr. Workout" }],
@@ -43,14 +43,14 @@ export const metadata: Metadata = {
         type:        "website",
         url:         "https://mrworkout.pro",
         siteName:    "Mr. Workout",
-        title:       "Mr. Workout | Savage Protocol v.1",
-        description: "Stop decorating the gym. Enter the Clinic for savage routines, real-time tracking, and zero excuses. Built for those who actually train. #Fahhhhh",
+        title:       "Mr. Workout | Stop Decorating, Start Training.",
+        description: "The Clinic is open. Access the Savage Protocol v.1 and get roasted into the best shape of your life.",
         images:      [{ url: "/og-image.png", width: 1200, height: 630, alt: "Mr. Workout — Savage Protocol v.1" }],
     },
     twitter: {
         card:        "summary_large_image",
-        title:       "Mr. Workout | Savage Protocol v.1",
-        description: "Stop decorating the gym. Enter the Clinic for savage routines, real-time tracking, and zero excuses. Built for those who actually train. #Fahhhhh",
+        title:       "Mr. Workout | Stop Decorating, Start Training.",
+        description: "The Clinic is open. Access the Savage Protocol v.1 and get roasted into the best shape of your life.",
         images:      ["/og-image.png"],
     },
     appleWebApp: {
