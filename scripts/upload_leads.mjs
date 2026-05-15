@@ -66,7 +66,7 @@ function normalise(row, source) {
         row.first        ||
         (row.name || '').split(' ')[0] ||
         '';
-    return { email, first_name: first.trim(), source, status: 'pending', email_step: 0 };
+    return { email, first_name: first.trim(), source, status: 'pending' };
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────

@@ -6,20 +6,20 @@ import { sendSavageEmail1, sendSavageEmail2 } from '@/lib/resend';
  * Savage Hunter — Cold Lead Drip
  * Runs daily at 09:00 UTC via vercel.json cron.
  *
- * Pass 1 (email_step=0, status=pending):
- *   Grab 50 fresh leads → send Email 1 "The Clinic is waiting."
- *   → set email_step=1, status=active, last_sent_date=now
+ * Pass 1 (status='pending'):
+ *   Grab 50 fresh leads → send Email 1 "Honestly? Your gym routine."
+ *   → status='sent', last_sent_date=now
  *
- * Pass 2 (email_step=1, last_sent_date ≥ 3 days ago):
- *   Grab up to 100 leads → send Email 2 "You still haven't shown up."
- *   → set email_step=2, last_sent_date=now
+ * Pass 2 (status='sent', last_sent_date ≥ 3 days ago):
+ *   Send Email 2 "You still haven't shown up."
+ *   → status='followup_sent', last_sent_date=now
  */
 
 export const dynamic = 'force-dynamic';
 
-const BATCH_EMAIL1 = 50;
-const BATCH_EMAIL2 = 100;
-const EMAIL2_DELAY_DAYS = 3;
+const BATCH_EMAIL1    = 50;
+const BATCH_EMAIL2    = 100;
+const FOLLOWUP_DAYS   = 3;
 
 function daysAgoIso(n: number): string {
     const d = new Date();
@@ -34,27 +34,24 @@ export async function GET(req: Request) {
     }
 
     const results = { email1_sent: 0, email2_sent: 0, errors: 0 };
+    const now = new Date().toISOString();
 
-    // ── Pass 1: fresh leads → Email 1 ────────────────────────────────────────
+    // ── Pass 1: pending → Email 1 ─────────────────────────────────────────────
     const { data: freshLeads, error: e1q } = await supabaseAdmin
         .from('outbound_leads')
         .select('id, email, first_name')
         .eq('status', 'pending')
-        .eq('email_step', 0)
         .order('created_at', { ascending: true })
         .limit(BATCH_EMAIL1);
 
-    if (e1q) {
-        console.error('[SAVAGE-SEND] Pass 1 query failed:', e1q.message);
-        results.errors++;
-    }
+    if (e1q) console.error('[SAVAGE-SEND] Pass1 query failed:', e1q.message);
 
     for (const lead of freshLeads || []) {
         const r = await sendSavageEmail1(lead.email, lead.first_name);
         if (r.success) {
             await supabaseAdmin
                 .from('outbound_leads')
-                .update({ status: 'active', email_step: 1, last_sent_date: new Date().toISOString() })
+                .update({ status: 'sent', last_sent_date: now })
                 .eq('id', lead.id);
             results.email1_sent++;
         } else {
@@ -63,29 +60,23 @@ export async function GET(req: Request) {
         }
     }
 
-    // ── Pass 2: active leads 3+ days since Email 1 → Email 2 ─────────────────
-    const cutoff = daysAgoIso(EMAIL2_DELAY_DAYS);
-
+    // ── Pass 2: sent 3+ days ago → Email 2 ───────────────────────────────────
     const { data: followupLeads, error: e2q } = await supabaseAdmin
         .from('outbound_leads')
         .select('id, email, first_name')
-        .eq('status', 'active')
-        .eq('email_step', 1)
-        .lte('last_sent_date', cutoff)
+        .eq('status', 'sent')
+        .lte('last_sent_date', daysAgoIso(FOLLOWUP_DAYS))
         .order('last_sent_date', { ascending: true })
         .limit(BATCH_EMAIL2);
 
-    if (e2q) {
-        console.error('[SAVAGE-SEND] Pass 2 query failed:', e2q.message);
-        results.errors++;
-    }
+    if (e2q) console.error('[SAVAGE-SEND] Pass2 query failed:', e2q.message);
 
     for (const lead of followupLeads || []) {
         const r = await sendSavageEmail2(lead.email, lead.first_name);
         if (r.success) {
             await supabaseAdmin
                 .from('outbound_leads')
-                .update({ email_step: 2, last_sent_date: new Date().toISOString() })
+                .update({ status: 'followup_sent', last_sent_date: now })
                 .eq('id', lead.id);
             results.email2_sent++;
         } else {

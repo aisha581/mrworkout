@@ -399,18 +399,20 @@ export async function sendSavageEmail1(email: string, firstName: string) {
     if (!process.env.RESEND_API_KEY) return { success: false, error: 'API key missing' };
     const name = firstName || 'Athlete';
     const body = `
-      <p style="margin:0 0 16px;">Most fitness apps treat you like a customer, ${name}.</p>
-      <p style="margin:0 0 16px;">Mr. Workout treats you like an athlete in the Clinic.</p>
-      <p style="margin:0 0 16px;">No streak celebrations. No pastel dashboards. No coach named Brittany.</p>
-      <p style="margin:0 0 16px;">Just the <strong style="color:#FFD700;">Savage Protocol</strong> — real-time circuit training, CNS recovery tracking, and an AI coach that will roast you into the best shape of your life.</p>
-      <p style="margin:0 0 16px;">The Armoury has 89 movements. The timer doesn't care about your mood. The results are not optional.</p>
+      <p style="margin:0 0 16px;">Let's be honest, ${name}.</p>
+      <p style="margin:0 0 16px;">Most people don't train. They <em>decorate</em> the gym.</p>
+      <p style="margin:0 0 16px;">They show up, do three sets of whatever feels comfortable, take a mirror selfie, and call it a session. Their app gives them a streak badge. Their coach sends a thumbs up emoji. Everyone pretends this is progress.</p>
+      <p style="margin:0 0 16px;">It is not progress.</p>
+      <p style="margin:0 0 16px;"><strong style="color:#FFD700;">Mr. Workout</strong> was built for the ones who are done decorating. The Savage Protocol tracks your CNS load, times your sets with zero mercy, and tells you — clearly, without sugarcoating — when you're coasting.</p>
+      <p style="margin:0 0 16px;">89 movements. Real-time circuit mode. An AI coach that will roast you into the best shape of your life.</p>
+      <p style="margin:0 0 16px;">The Clinic is open. Whether you walk in is on you.</p>
       <p style="margin:0 0 16px;color:#888;font-size:13px;">— MR. WORKOUT &nbsp;|&nbsp; #Fahhhhh</p>`;
     try {
         const { data, error } = await resend.emails.send({
             from:    'MR. WORKOUT <coach@mrworkout.pro>',
             to:      [email],
             replyTo: 'thebillion9@gmail.com',
-            subject: 'The Clinic is waiting.',
+            subject: 'Honestly? Your gym routine.',
             html:    SAVAGE_HTML(name, body),
         });
         return error ? { success: false, error } : { success: true, data };
