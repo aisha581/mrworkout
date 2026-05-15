@@ -74,6 +74,46 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" suppressHydrationWarning>
+            <head>
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "SoftwareApplication",
+                            "name": "Mr. Workout",
+                            "url": "https://mrworkout.pro",
+                            "applicationCategory": "HealthApplication",
+                            "operatingSystem": "Web, iOS, Android",
+                            "description": "Stop decorating the gym. Enter the Clinic for savage routines, real-time tracking, and zero excuses. Built for those who actually train.",
+                            "featureList": [
+                                "Savage Protocol real-time workout timer",
+                                "89-move Armoury exercise library",
+                                "CNS Recovery Tracker",
+                                "Sarcastic AI Coach",
+                                "Circuit Mode with PR tracking",
+                                "XP-based progression system"
+                            ],
+                            "offers": {
+                                "@type": "Offer",
+                                "name": "Savage Protocol",
+                                "price": "9.99",
+                                "priceCurrency": "USD",
+                                "description": "Full access to Mr. Workout's Savage Protocol — real-time training, AI coaching, and CNS recovery science."
+                            },
+                            "aggregateRating": {
+                                "@type": "AggregateRating",
+                                "ratingValue": "5",
+                                "reviewCount": "1"
+                            },
+                            "author": {
+                                "@type": "Organization",
+                                "name": "Mr. Workout"
+                            }
+                        })
+                    }}
+                />
+            </head>
             <body className={`${inter.className} ${archivoBlack.variable}`} suppressHydrationWarning>
                 <script
                     dangerouslySetInnerHTML={{
