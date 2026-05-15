@@ -54,12 +54,26 @@ export default function DashboardAlpha() {
     const [hunterError, setHunterError]     = useState('');
     const [hunterAuthed, setHunterAuthed]   = useState(false);
 
+    // New Recruits
+    const [recruits, setRecruits]           = useState<{ id: string; email: string; name: string; created_at: string; source: string; confirmed: boolean }[]>([]);
+    const [recruitsTotal, setRecruitsTotal] = useState(0);
+    const [recruitsLoading, setRecruitsLoading] = useState(false);
+
+    function fetchRecruits(secret: string) {
+        setRecruitsLoading(true);
+        fetch('/api/savage-hunter/recruits', { headers: { 'x-dashboard-secret': secret } })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(d => { setRecruits(d.recruits ?? []); setRecruitsTotal(d.total ?? 0); })
+            .catch(() => {})
+            .finally(() => setRecruitsLoading(false));
+    }
+
     function fetchHunterStats(secret: string) {
         setHunterLoading(true);
         setHunterError('');
         fetch('/api/savage-hunter/stats', { headers: { 'x-dashboard-secret': secret } })
             .then(r => r.ok ? r.json() : Promise.reject(r.status))
-            .then((data: HunterStats) => { setHunterStats(data); setHunterAuthed(true); })
+            .then((data: HunterStats) => { setHunterStats(data); setHunterAuthed(true); fetchRecruits(secret); })
             .catch(() => setHunterError('Wrong secret.'))
             .finally(() => setHunterLoading(false));
     }
@@ -489,6 +503,66 @@ export default function DashboardAlpha() {
                     </div>
                 </div>
 
+                {/* ══ New Recruits ═══════════════════════════════════════════ */}
+                {hunterAuthed && (
+                    <div style={{ marginTop: '3rem', background: '#0d0d0d', border: '1px solid #00E5CC33', borderRadius: '16px', padding: '2rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div>
+                                <h2 style={{ color: '#00E5CC', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
+                                    🎯 New Recruits
+                                </h2>
+                                <p style={{ color: '#555', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: '4px' }}>
+                                    Total App Sign-ups: <span style={{ color: '#00E5CC', fontWeight: 700 }}>{recruitsTotal}</span>
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => fetchRecruits(hunterSecret)}
+                                style={{ background: 'transparent', border: '1px solid #333', color: '#888', fontSize: '11px', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer' }}
+                            >
+                                {recruitsLoading ? '…' : '↻ Refresh'}
+                            </button>
+                        </div>
+
+                        {recruits.length === 0 && !recruitsLoading && (
+                            <p style={{ color: '#333', fontSize: '12px', fontStyle: 'italic' }}>No sign-ups yet.</p>
+                        )}
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                            {recruits.slice(0, 20).map((r, i) => {
+                                const isToday = r.created_at?.slice(0, 10) === new Date().toISOString().slice(0, 10);
+                                return (
+                                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #1a1a1a' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#111', border: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00E5CC', fontSize: '11px', fontWeight: 900, flexShrink: 0 }}>
+                                                {(r.name || r.email)[0].toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <div style={{ color: '#e0e0e0', fontSize: '13px', fontWeight: 600 }}>
+                                                    {r.name || '—'} &nbsp;
+                                                    {isToday && <span style={{ fontSize: '9px', color: '#00ff88', border: '1px solid #00ff8844', borderRadius: '4px', padding: '1px 5px', letterSpacing: '0.1em' }}>NEW TODAY</span>}
+                                                </div>
+                                                <div style={{ color: '#555', fontSize: '11px' }}>{r.email}</div>
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                            <div style={{ fontSize: '9px', color: r.confirmed ? '#00ff88' : '#FFD700', border: `1px solid ${r.confirmed ? '#00ff8844' : '#FFD70044'}`, borderRadius: '4px', padding: '2px 6px', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                                {r.confirmed ? 'Verified' : 'Unverified'}
+                                            </div>
+                                            <div style={{ color: '#444', fontSize: '10px' }}>
+                                                {new Date(r.created_at).toLocaleString('en', { dateStyle: 'short', timeStyle: 'short' })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {recruits.length > 20 && (
+                            <p style={{ color: '#444', fontSize: '11px', textAlign: 'center', marginTop: '1rem' }}>Showing 20 of {recruits.length} recruits</p>
+                        )}
+                    </div>
+                )}
+                {/* ══ End New Recruits ═══════════════════════════════════════ */}
+
                 {/* ══ Savage Hunter ══════════════════════════════════════════ */}
                 <div style={{ marginTop: '3rem', background: '#0d0d0d', border: '1px solid #FFD70033', borderRadius: '16px', padding: '2rem' }}>
                     <h2 style={{ color: '#FFD700', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>
@@ -525,8 +599,8 @@ export default function DashboardAlpha() {
                         return (
                             <>
                                 {/* Refresh */}
-                                <button onClick={() => fetchHunterStats(hunterSecret)} style={{ marginBottom: '1.5rem', background: 'transparent', border: '1px solid #333', color: '#888', fontSize: '11px', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer', letterSpacing: '0.08em' }}>
-                                    ↻ Refresh
+                                <button onClick={() => { fetchHunterStats(hunterSecret); fetchRecruits(hunterSecret); }} style={{ marginBottom: '1.5rem', background: 'transparent', border: '1px solid #333', color: '#888', fontSize: '11px', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer', letterSpacing: '0.08em' }}>
+                                    ↻ Refresh All
                                 </button>
 
                                 {/* Stat pills */}
