@@ -8,6 +8,8 @@ import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import CircuitHUD from './CircuitHUD';
 import RecoveryScreen from './RecoveryScreen';
+import { addSetXP } from '@/utils/userStats';
+import { checkAndUpdatePR } from '@/utils/prTracker';
 
 const SET_DURATION = 45;
 
@@ -139,6 +141,13 @@ export default function CircuitPlayer() {
         return () => v.removeEventListener('ended', restart);
     }, [currentIndex, isCircuitActive]);
 
+    // ── Re-focus: override in-app browser auto-pause on UI overlay changes ────
+    useEffect(() => {
+        const v = videoRef.current;
+        if (!v || v.paused === false || v.ended || isResting || !isCircuitActive) return;
+        v.play().catch(() => {});
+    }, [isResting, restTimeRemaining, currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // ── Navigate on workout complete ──────────────────────────────────────────
     useEffect(() => {
         if (isComplete) { clearComplete(); router.push('/summary'); }
@@ -177,7 +186,14 @@ export default function CircuitPlayer() {
 
     // Logger submit — user logged reps + weight
     const submitLogger = () => {
-        // Could persist to localStorage here if needed in future
+        localStorage.setItem('mw_last_set_time', String(Date.now()));
+        addSetXP();
+        const w = parseFloat(logWeight);
+        const r = parseInt(logReps);
+        const currentExercise = queue[currentIndex];
+        if (currentExercise && !isNaN(w) && !isNaN(r) && w > 0 && r > 0) {
+            checkAndUpdatePR(currentExercise.name, w, r);
+        }
         setLogReps('');
         setLogWeight('');
         setShowLogger(false);
@@ -195,6 +211,8 @@ export default function CircuitPlayer() {
     // Finish workout (Finale button) — user-gesture path for audio
     const handleFinish = () => {
         if (timerInterval.current) clearInterval(timerInterval.current);
+        // Heavy celebration haptic — mission accomplished
+        navigator.vibrate?.([100, 60, 150, 60, 200, 60, 400]);
         playSavageAudio('workout_complete.mp3');
         setTimeout(() => completeWorkout(), 700);
     };
@@ -286,6 +304,7 @@ export default function CircuitPlayer() {
                                 src={currentExercise.videoUrl}
                                 className="w-full h-full object-cover"
                                 playsInline preload="auto" muted autoPlay loop
+                                disablePictureInPicture
                             />
                         ) : (
                             <div className="text-[#00FFFF] text-center pointer-events-none">

@@ -3,10 +3,12 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Music, Zap, CheckCircle2, RefreshCw } from 'lucide-react';
 import type { LiveExercise } from '@/app/library/page';
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import VictoryScreen from './VictoryScreen';
 import { getRandomSavageQuote } from '@/data/quotes';
 import { useWorkout } from '@/contexts/WorkoutContext';
+import { addSetXP } from '@/utils/userStats';
+import { saveWorkoutSession, loadWorkoutSession, clearWorkoutSession } from '@/utils/workoutSession';
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
 // "Hip Thrusts" → "hip_thrusts_intro.mp3"  (spaces → underscores, lowercase)
@@ -54,7 +56,7 @@ interface WorkoutPlayerProps {
 
 export default function WorkoutPlayer({ playlist, initialIndex, onClose }: WorkoutPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const { setPlayerOpen } = useWorkout();
+    const { setPlayerOpen, workoutHistory } = useWorkout();
 
     // Signal nav components to hide themselves while player is visible
     useEffect(() => {
@@ -62,9 +64,40 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
         return () => setPlayerOpen(false);
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // ── Session resume prompt ─────────────────────────────────────────────────
+    const [pendingSession,  setPendingSession]  = useState<ReturnType<typeof loadWorkoutSession>>(null);
+    const [showResumePrompt, setShowResumePrompt] = useState(false);
+    useEffect(() => {
+        const s = loadWorkoutSession();
+        if (!s || !s.playlist?.length) return;
+        // Only offer resume if it's the same playlist (match on first exercise name)
+        if (s.playlist[0]?.name === playlist[0]?.name) {
+            setPendingSession(s);
+            setShowResumePrompt(true);
+        } else {
+            clearWorkoutSession();
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
     // ── Navigation ────────────────────────────────────────────────────────────
     const [activeIndex, setActiveIndex] = useState(initialIndex);
     const exercise = playlist[activeIndex];
+
+    // Ghost target: best previous set for this exercise (highest weight, then reps)
+    // Declared after `exercise` to avoid temporal dead zone
+    const ghostTarget = useMemo(() => {
+        const name = exercise?.name?.toLowerCase();
+        if (!name || !workoutHistory.length) return null;
+        const logs = workoutHistory.filter(
+            l => l.title.toLowerCase() === name && (l.weight || l.reps)
+        );
+        if (!logs.length) return null;
+        return logs.reduce((best, log) => {
+            if ((log.weight ?? 0) > (best.weight ?? 0)) return log;
+            if ((log.weight ?? 0) === (best.weight ?? 0) && (log.reps ?? 0) > (best.reps ?? 0)) return log;
+            return best;
+        });
+    }, [workoutHistory, exercise?.name]);
     const nextEx   = activeIndex < playlist.length - 1 ? playlist[activeIndex + 1] : null;
     const hasPrev  = activeIndex > 0;
     const hasNext  = !!nextEx;
@@ -280,20 +313,37 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
         if (v && !isResting) v.playbackRate = playbackRate;
     }, [playbackRate, isResting]);
 
+    // ── Persist session on meaningful state transitions ───────────────────────
+    // Saves on exercise/set/rest changes — NOT every second (timeLeft excluded).
+    // Cleared on workout complete or explicit close.
+    useEffect(() => {
+        if (isWorkoutComplete) { clearWorkoutSession(); return; }
+        if (showResumePrompt) return; // don't overwrite while prompt is showing
+        saveWorkoutSession({ playlist, activeIndex, currentSet, isResting, restTimer });
+    }, [activeIndex, currentSet, isResting]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // ── Countdown → auto-log → rest ───────────────────────────────────────────
     useEffect(() => {
         if (!isSetStarted || isResting || isSetJustComplete) return;
         if (timeLeft <= 0) {
-            navigator.vibrate?.([100, 50, 100]);
+            const isLastSet      = currentSet >= totalSets;
+            const isLastExercise = activeIndex >= playlist.length - 1;
+            const isFinalSet     = isLastSet && isLastExercise;
+
+            // Heavy celebration haptic on the final set; standard pulse otherwise
+            navigator.vibrate?.(
+                isFinalSet
+                    ? [100, 60, 150, 60, 200, 60, 400] // mission accomplished
+                    : [100, 50, 100]
+            );
+            addSetXP();
+            localStorage.setItem('mw_last_set_time', String(Date.now()));
             setTotalVolume(v  => v + (exercise?.defaultReps ?? 1));
             setTimeUnderTension(t => t + setDuration);
             setCompletedSets(s => s + 1);
             setIsSetJustComplete(true);
 
-            const isLastSet      = currentSet >= totalSets;
-            const isLastExercise = activeIndex >= playlist.length - 1;
-
-            if (isLastSet && isLastExercise) {
+            if (isFinalSet) {
                 // Final set of final exercise — skip rest, show VictoryScreen
                 const tid = setTimeout(() => {
                     setIsSetJustComplete(false);
@@ -327,6 +377,15 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
         const iv = setInterval(() => setRestTimer(p => p! - 1), 1000);
         return () => clearInterval(iv);
     }, [isResting, restTimer]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ── Re-focus: override in-app browser auto-pause on UI overlay changes ────
+    // Instagram/TikTok WebView pauses video when overlays (timer, Next Up) appear.
+    // On every relevant state change, kick the video back to playing if it stopped.
+    useEffect(() => {
+        const v = videoRef.current;
+        if (!v || v.paused === false || v.ended || isResting) return;
+        v.play().catch(() => { /* browser blocked — nothing to do */ });
+    }, [isResting, restTimer, hasNext]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!exercise) return null;
 
@@ -369,6 +428,25 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
     const goToPrev   = () => { if (hasPrev) setActiveIndex(p => p - 1); };
     const goToNext   = () => { if (hasNext) setActiveIndex(p => p + 1); };
 
+    const acceptResume = () => {
+        if (!pendingSession) return;
+        setActiveIndex(pendingSession.activeIndex);
+        setCurrentSet(pendingSession.currentSet);
+        if (pendingSession.isResting && pendingSession.restTimer !== null) {
+            setIsResting(true);
+            setRestTimer(pendingSession.restTimer);
+            setRestQuote(getRandomSavageQuote());
+        }
+        setPendingSession(null);
+        setShowResumePrompt(false);
+    };
+
+    const dismissResume = () => {
+        clearWorkoutSession();
+        setPendingSession(null);
+        setShowResumePrompt(false);
+    };
+
     // ── Victory ───────────────────────────────────────────────────────────────
     if (isWorkoutComplete) {
         return (
@@ -393,6 +471,59 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-[500] overflow-hidden bg-black"
             >
+                {/* ── Resume prompt ────────────────────────────────────────── */}
+                <AnimatePresence>
+                    {showResumePrompt && pendingSession && (
+                        <motion.div
+                            key="resume"
+                            initial={{ y: 80, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 80, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                            className="absolute bottom-0 inset-x-0 z-[800] px-5 pb-10"
+                        >
+                            <div
+                                className="rounded-[28px] p-6"
+                                style={{
+                                    background:  'linear-gradient(135deg, #0f0f0f, #080808)',
+                                    border:      '1px solid rgba(0,229,204,0.25)',
+                                    boxShadow:   '0 -20px 60px rgba(0,0,0,0.8)',
+                                }}
+                            >
+                                <p className="text-[9px] font-black uppercase tracking-[0.5em] opacity-35 mb-1">
+                                    Session Found
+                                </p>
+                                <p className="text-lg font-black uppercase mb-1" style={{ letterSpacing: '-0.02em' }}>
+                                    Resume Mission?
+                                </p>
+                                <p className="text-xs opacity-40 font-medium mb-5">
+                                    Set {pendingSession.currentSet} of{' '}
+                                    {pendingSession.playlist[pendingSession.activeIndex]?.defaultSets ?? 3}
+                                    {' · '}{pendingSession.playlist[pendingSession.activeIndex]?.name}
+                                    {pendingSession.isResting ? ' (in rest)' : ''}
+                                </p>
+                                <div className="flex gap-3">
+                                    <motion.button
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={acceptResume}
+                                        className="flex-1 py-3.5 rounded-2xl font-black uppercase tracking-[0.18em] text-sm text-black"
+                                        style={{ background: '#00E5CC', touchAction: 'manipulation' }}
+                                    >
+                                        Resume
+                                    </motion.button>
+                                    <motion.button
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={dismissResume}
+                                        className="flex-1 py-3.5 rounded-2xl font-black uppercase tracking-[0.18em] text-sm opacity-40"
+                                        style={{ background: 'rgba(255,255,255,0.06)', touchAction: 'manipulation' }}
+                                    >
+                                        Start Fresh
+                                    </motion.button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                 {/*
                   ── MAIN VIDEO ────────────────────────────────────────────────
                   • src absent from JSX — managed imperatively for explicit flush.
@@ -514,6 +645,30 @@ export default function WorkoutPlayer({ playlist, initialIndex, onClose }: Worko
                     <p className="text-[14px] text-white/65 font-semibold mt-2 tracking-wide text-center px-20">
                         {exercise.name}
                     </p>
+
+                    {/* Ghost target — previous best for this exercise */}
+                    {ghostTarget && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4, duration: 0.4 }}
+                            className="mt-3 flex items-center gap-2 px-4 py-1.5 rounded-full pointer-events-none"
+                            style={{
+                                background: 'rgba(0,229,204,0.10)',
+                                border:     '1px solid rgba(0,229,204,0.25)',
+                            }}
+                        >
+                            <Zap size={10} style={{ color: '#00E5CC' }} fill="#00E5CC" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: 'rgba(0,229,204,0.75)' }}>
+                                Target to Beat:
+                            </span>
+                            <span className="text-[10px] font-black" style={{ color: '#00E5CC' }}>
+                                {ghostTarget.weight ? `${ghostTarget.weight}kg` : ''}
+                                {ghostTarget.weight && ghostTarget.reps ? ' × ' : ''}
+                                {ghostTarget.reps ? `${ghostTarget.reps} reps` : ''}
+                            </span>
+                        </motion.div>
+                    )}
                 </div>
 
                 {/* ══════════════════════════════════════════════════════════
