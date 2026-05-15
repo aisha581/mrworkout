@@ -37,6 +37,8 @@ function usePasswordGate() {
 
 export default function DashboardAlpha() {
     const [stats, setStats] = useState({ sent: 0, opened: 0, uploads: 0, leads: 0, waitlist: 0, partners: 0, athletes: 0, socialShares: 0, whatsappClicks: 0, partnerConversions: 0, apolloLeads: 0, apolloToday: 0 });
+    const [outboundSentToday, setOutboundSentToday] = useState(0);
+    const [outboundTotalSent, setOutboundTotalSent] = useState(0);
     const [activity, setActivity] = useState<any[]>([]);
     const [vectors, setVectors] = useState<any[]>([]);
     const [waitlist, setWaitlist] = useState<any[]>([]);
@@ -188,6 +190,24 @@ export default function DashboardAlpha() {
             }));
 
             setWaitlist(mergedWaitlist);
+
+            // ── Outbound leads (Savage Hunter) ────────────────────────────────
+            try {
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const { data: outbound } = await supabase
+                    .from('outbound_leads')
+                    .select('status, last_sent_date')
+                    .in('status', ['sent', 'followup_sent', 'converted']);
+
+                const totalSent  = outbound?.length ?? 0;
+                const sentToday  = outbound?.filter(r =>
+                    r.last_sent_date?.slice(0, 10) === todayStr
+                ).length ?? 0;
+
+                setOutboundTotalSent(totalSent);
+                setOutboundSentToday(sentToday);
+            } catch (e) { console.error('Outbound leads fetch fail', e); }
+
             setLoading(false);
         } catch (err) {
             console.error('Dashboard Error:', err);
@@ -215,7 +235,7 @@ export default function DashboardAlpha() {
             if (response.ok) {
                 setImportStatus('success');
                 setBulkData('');
-                fetchData();
+                await fetchData();
                 setTimeout(() => setImportStatus('idle'), 3000);
             } else {
                 throw new Error('Import failed');
@@ -264,13 +284,13 @@ export default function DashboardAlpha() {
                             <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/><path d="M12 2a14.5 14.5 0 0 0 0 20"/><path d="M12 2a14.5 14.5 0 0 0 0 20"/></svg>
                         </div>
                         <h3 className="text-[12px] text-cyan-400 uppercase tracking-[4px] font-black mb-2">Automated Leads Today</h3>
-                        <p className="text-6xl font-black">{stats.apolloToday}</p>
+                        <p className="text-6xl font-black">{outboundSentToday}</p>
                         <p className="text-[10px] text-neutral-500 uppercase mt-4 tracking-[2px]">Goal: 50/Day</p>
                     </div>
                     <div className="glass-card rounded-3xl p-10 border-white/10 relative overflow-hidden">
                         <h3 className="text-[12px] text-neutral-400 uppercase tracking-[4px] font-black mb-2">Total Automated Sends</h3>
-                        <p className="text-6xl font-black">{stats.apolloLeads}</p>
-                        <p className="text-[10px] text-neutral-500 uppercase mt-4 tracking-[2px]">Channel: Apollo.io</p>
+                        <p className="text-6xl font-black">{outboundTotalSent}</p>
+                        <p className="text-[10px] text-neutral-500 uppercase mt-4 tracking-[2px]">Channel: Instagram Scraper</p>
                     </div>
                 </div>
 
