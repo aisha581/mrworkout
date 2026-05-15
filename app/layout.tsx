@@ -31,10 +31,10 @@ const archivoBlack = Archivo_Black({
 });
 
 export const metadata: Metadata = {
-    title:       "Mr. Workout — Pro Workout App & CNS Recovery Tracker",
-    description: "Stop exercising. Start missions. Mr. Workout is the elite pro workout app with a built-in CNS Recovery Tracker, 89-move Armoury, and Tactical Readiness scoring. Lock in your Founder Rate today.",
+    title:       "Mr. Workout | Savage Protocol v.1",
+    description: "Stop decorating the gym. Enter the Clinic for savage routines, real-time tracking, and zero excuses. Built for those who actually train. #Fahhhhh",
     manifest:    "/manifest.webmanifest",
-    keywords:    ["pro workout app", "CNS recovery tracker", "tactical readiness score", "savage fitness app", "workout tracking", "exercise library", "muscle building app", "progressive overload tracker"],
+    keywords:    ["Savage Coaching", "Mr. Workout", "Fitness Protocol", "Sarcastic AI Coach", "Real-time Workout Timer"],
     authors:     [{ name: "Mr. Workout" }],
     creator:     "Mr. Workout",
     metadataBase: new URL("https://mrworkout.pro"),
@@ -43,14 +43,14 @@ export const metadata: Metadata = {
         type:        "website",
         url:         "https://mrworkout.pro",
         siteName:    "Mr. Workout",
-        title:       "Mr. Workout — Pro Workout App & CNS Recovery Tracker",
-        description: "Stop exercising. Start missions. The elite fitness app with CNS recovery science, 89-move Armoury, and personalised daily missions. Founder Rate — $9.99/mo.",
-        images:      [{ url: "/og-image.png", width: 1200, height: 630, alt: "Mr. Workout — Pro Workout App" }],
+        title:       "Mr. Workout | Savage Protocol v.1",
+        description: "Stop decorating the gym. Enter the Clinic for savage routines, real-time tracking, and zero excuses. Built for those who actually train. #Fahhhhh",
+        images:      [{ url: "/og-image.png", width: 1200, height: 630, alt: "Mr. Workout — Savage Protocol v.1" }],
     },
     twitter: {
         card:        "summary_large_image",
-        title:       "Mr. Workout — Pro Workout App & CNS Recovery Tracker",
-        description: "Stop exercising. Start missions. Elite fitness tracking with CNS recovery science & 89-move Armoury.",
+        title:       "Mr. Workout | Savage Protocol v.1",
+        description: "Stop decorating the gym. Enter the Clinic for savage routines, real-time tracking, and zero excuses. Built for those who actually train. #Fahhhhh",
         images:      ["/og-image.png"],
     },
     appleWebApp: {
