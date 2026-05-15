@@ -3,6 +3,38 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
+// ── Savage Hunter types ───────────────────────────────────────────────────────
+interface HunterStats {
+    total: number; pending: number; sent: number;
+    followup: number; converted: number; contacted: number;
+    recent: { email: string; first_name: string; status: string; last_sent_date: string }[];
+    chart: { date: string; count: number }[];
+}
+
+// ── Password gate ─────────────────────────────────────────────────────────────
+function usePasswordGate() {
+    const [unlocked, setUnlocked] = useState(false);
+    const [input, setInput]       = useState('');
+    const [error, setError]       = useState(false);
+
+    useEffect(() => {
+        if (sessionStorage.getItem('sh_auth') === '1') setUnlocked(true);
+    }, []);
+
+    const submit = () => {
+        if (input === process.env.NEXT_PUBLIC_DASHBOARD_HINT || input.length > 8) {
+            // client-side hint check — real auth is on the API
+            fetch('/api/savage-hunter/stats', { headers: { 'x-dashboard-secret': input } })
+                .then(r => {
+                    if (r.ok) { sessionStorage.setItem('sh_auth', '1'); setUnlocked(true); }
+                    else { setError(true); }
+                });
+        } else { setError(true); }
+    };
+
+    return { unlocked, input, setInput, error, submit };
+}
+
 export default function DashboardAlpha() {
     const [stats, setStats] = useState({ sent: 0, opened: 0, uploads: 0, leads: 0, waitlist: 0, partners: 0, athletes: 0, socialShares: 0, whatsappClicks: 0, partnerConversions: 0, apolloLeads: 0, apolloToday: 0 });
     const [activity, setActivity] = useState<any[]>([]);
@@ -12,6 +44,23 @@ export default function DashboardAlpha() {
     const [bulkData, setBulkData] = useState('');
     const [importSource, setImportSource] = useState('Apollo');
     const [importStatus, setImportStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
+
+    // Savage Hunter
+    const [hunterSecret, setHunterSecret]   = useState('');
+    const [hunterStats, setHunterStats]     = useState<HunterStats | null>(null);
+    const [hunterLoading, setHunterLoading] = useState(false);
+    const [hunterError, setHunterError]     = useState('');
+    const [hunterAuthed, setHunterAuthed]   = useState(false);
+
+    function fetchHunterStats(secret: string) {
+        setHunterLoading(true);
+        setHunterError('');
+        fetch('/api/savage-hunter/stats', { headers: { 'x-dashboard-secret': secret } })
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then((data: HunterStats) => { setHunterStats(data); setHunterAuthed(true); })
+            .catch(() => setHunterError('Wrong secret.'))
+            .finally(() => setHunterLoading(false));
+    }
 
     async function fetchData() {
         try {
@@ -419,6 +468,127 @@ export default function DashboardAlpha() {
                         </table>
                     </div>
                 </div>
+
+                {/* ══ Savage Hunter ══════════════════════════════════════════ */}
+                <div style={{ marginTop: '3rem', background: '#0d0d0d', border: '1px solid #FFD70033', borderRadius: '16px', padding: '2rem' }}>
+                    <h2 style={{ color: '#FFD700', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>
+                        ⚡ Savage Hunter — Cold Outreach
+                    </h2>
+
+                    {/* Auth gate */}
+                    {!hunterAuthed && (
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
+                            <input
+                                type="password"
+                                placeholder="Enter CRON_SECRET to unlock"
+                                value={hunterSecret}
+                                onChange={e => setHunterSecret(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && fetchHunterStats(hunterSecret)}
+                                style={{ background: '#111', border: '1px solid #333', color: '#fff', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', flex: 1, outline: 'none' }}
+                            />
+                            <button
+                                onClick={() => fetchHunterStats(hunterSecret)}
+                                style={{ background: '#FFD700', color: '#000', fontWeight: 900, fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', border: 'none', borderRadius: '8px', padding: '10px 20px', cursor: 'pointer' }}
+                            >
+                                {hunterLoading ? '…' : 'Unlock'}
+                            </button>
+                            {hunterError && <span style={{ color: '#ff4444', fontSize: '12px' }}>{hunterError}</span>}
+                        </div>
+                    )}
+
+                    {hunterAuthed && hunterStats && (() => {
+                        const pct = hunterStats.total > 0 ? Math.round((hunterStats.contacted / hunterStats.total) * 100) : 0;
+                        const maxChart = Math.max(...hunterStats.chart.map(d => d.count), 1);
+                        const STATUS_COLOR: Record<string, string> = {
+                            sent: '#00E5CC', followup_sent: '#FFD700', converted: '#00ff88', pending: '#555', blacklisted: '#ff4444',
+                        };
+                        return (
+                            <>
+                                {/* Refresh */}
+                                <button onClick={() => fetchHunterStats(hunterSecret)} style={{ marginBottom: '1.5rem', background: 'transparent', border: '1px solid #333', color: '#888', fontSize: '11px', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer', letterSpacing: '0.08em' }}>
+                                    ↻ Refresh
+                                </button>
+
+                                {/* Stat pills */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                                    {[
+                                        { label: 'Total Leads',  value: hunterStats.total,     color: '#fff' },
+                                        { label: 'Pending',      value: hunterStats.pending,    color: '#888' },
+                                        { label: 'Email 1 Sent', value: hunterStats.sent,       color: '#00E5CC' },
+                                        { label: 'Follow-up',    value: hunterStats.followup,   color: '#FFD700' },
+                                        { label: 'Converted',    value: hunterStats.converted,  color: '#00ff88' },
+                                    ].map(s => (
+                                        <div key={s.label} style={{ background: '#111', borderRadius: '10px', padding: '1rem', textAlign: 'center', border: '1px solid #1e1e1e' }}>
+                                            <div style={{ color: s.color, fontSize: '1.8rem', fontWeight: 900 }}>{s.value}</div>
+                                            <div style={{ color: '#555', fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: '4px' }}>{s.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Progress bar */}
+                                <div style={{ marginBottom: '2rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <span style={{ color: '#888', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Leads Contacted</span>
+                                        <span style={{ color: '#FFD700', fontSize: '11px', fontWeight: 700 }}>{hunterStats.contacted} / {hunterStats.total} &nbsp;({pct}%)</span>
+                                    </div>
+                                    <div style={{ background: '#1a1a1a', borderRadius: '99px', height: '10px', overflow: 'hidden' }}>
+                                        <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg,#FFD700,#00E5CC)', borderRadius: '99px', transition: 'width 0.6s ease' }} />
+                                    </div>
+                                </div>
+
+                                {/* 7-day chart */}
+                                <div style={{ marginBottom: '2rem' }}>
+                                    <div style={{ color: '#555', fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '12px' }}>Emails Sent — Last 7 Days</div>
+                                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '80px' }}>
+                                        {hunterStats.chart.map(d => (
+                                            <div key={d.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', height: '100%', justifyContent: 'flex-end' }}>
+                                                <span style={{ color: '#555', fontSize: '9px' }}>{d.count || ''}</span>
+                                                <div style={{
+                                                    width: '100%',
+                                                    height: `${Math.max((d.count / maxChart) * 60, d.count > 0 ? 6 : 2)}px`,
+                                                    background: d.count > 0 ? '#FFD700' : '#1e1e1e',
+                                                    borderRadius: '4px 4px 0 0',
+                                                    transition: 'height 0.4s ease',
+                                                }} />
+                                                <span style={{ color: '#444', fontSize: '9px', letterSpacing: '0.04em' }}>
+                                                    {new Date(d.date + 'T12:00:00Z').toLocaleDateString('en', { weekday: 'short' })}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Recent activity */}
+                                <div>
+                                    <div style={{ color: '#555', fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '12px' }}>Recent Activity</div>
+                                    {hunterStats.recent.length === 0 && (
+                                        <p style={{ color: '#333', fontSize: '12px', fontStyle: 'italic' }}>No emails sent yet.</p>
+                                    )}
+                                    {hunterStats.recent.map((lead, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #1a1a1a' }}>
+                                            <div>
+                                                <div style={{ color: '#e0e0e0', fontSize: '13px', fontWeight: 600 }}>{lead.email}</div>
+                                                <div style={{ color: '#555', fontSize: '11px', marginTop: '2px' }}>
+                                                    {lead.last_sent_date ? new Date(lead.last_sent_date).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                                                </div>
+                                            </div>
+                                            <span style={{
+                                                fontSize: '9px', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase',
+                                                color: STATUS_COLOR[lead.status] ?? '#888',
+                                                border: `1px solid ${STATUS_COLOR[lead.status] ?? '#333'}44`,
+                                                borderRadius: '6px', padding: '3px 8px',
+                                            }}>
+                                                {lead.status.replace('_', ' ')}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        );
+                    })()}
+                </div>
+                {/* ══ End Savage Hunter ══════════════════════════════════════ */}
+
             </div>
         </div>
     );
