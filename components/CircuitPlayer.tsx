@@ -302,8 +302,14 @@ export default function CircuitPlayer() {
                             <video
                                 ref={videoRef}
                                 src={currentExercise.videoUrl}
-                                className="w-full h-full object-cover"
-                                playsInline preload="auto" muted autoPlay loop
+                                className="w-full object-cover"
+                                style={{ height: '100dvh', objectFit: 'cover' }}
+                                playsInline
+                                {...{ 'webkit-playsinline': 'true' } as React.VideoHTMLAttributes<HTMLVideoElement>}
+                                preload="auto"
+                                muted
+                                autoPlay
+                                loop
                                 disablePictureInPicture
                             />
                         ) : (
