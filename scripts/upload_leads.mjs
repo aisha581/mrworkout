@@ -32,7 +32,7 @@ if (fs.existsSync(envFile)) {
 
 const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const CSV_DIR       = path.join(os.homedir(), 'email_csv');
+const CSV_DIR       = path.join(process.cwd(), 'Email CSV');
 const DRY_RUN       = process.argv.includes('--dry-run');
 
 if (!SUPABASE_URL || !SERVICE_KEY) {
@@ -55,7 +55,7 @@ function parseCsv(raw) {
         const row  = {};
         headers.forEach((h, i) => { row[h] = vals[i] ?? ''; });
         return row;
-    }).filter(r => r.email && r.email.includes('@'));
+    }).filter(r => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((r.email || '').trim()));
 }
 
 function normalise(row, source) {
