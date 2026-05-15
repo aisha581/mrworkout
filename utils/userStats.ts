@@ -2,8 +2,9 @@
 //  userStats.ts — persistent XP + streak tracking via localStorage
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STATS_KEY = 'mw_user_stats';
+const STATS_KEY     = 'mw_user_stats';
 const XP_PER_WORKOUT = 100;
+export const XP_PER_SET = 10;
 
 export interface UserStats {
     totalWorkouts: number;
@@ -129,6 +130,25 @@ export function recordDailyVisit(): UserStats {
         lastWorkoutTimestamp: stats.lastWorkoutTimestamp ?? null,
     };
 
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(updated)); } catch {}
+    return updated;
+}
+
+/**
+ * Returns the effective streak — 0 if the user hasn't logged a set in 48 h.
+ * Non-destructive: does not write to storage.
+ */
+export function getEffectiveStreak(stats: UserStats): number {
+    if (!stats.lastWorkoutTimestamp) return stats.currentStreak;
+    const hoursAgo = (Date.now() - stats.lastWorkoutTimestamp) / 3_600_000;
+    return hoursAgo > 48 ? 0 : stats.currentStreak;
+}
+
+/** Award XP for a single completed set without incrementing totalWorkouts. */
+export function addSetXP(): UserStats {
+    if (typeof window === 'undefined') return getUserStats();
+    const stats = getUserStats();
+    const updated: UserStats = { ...stats, totalXP: stats.totalXP + XP_PER_SET };
     try { localStorage.setItem(STATS_KEY, JSON.stringify(updated)); } catch {}
     return updated;
 }
