@@ -296,7 +296,6 @@ export default function CircuitPlayer() {
                 {!isResting && currentExercise && (
                     <div
                         className="relative w-full h-full flex items-center justify-center"
-                        onClick={togglePlay}
                     >
                         {currentExercise.videoUrl ? (
                             <video
@@ -305,12 +304,13 @@ export default function CircuitPlayer() {
                                 className="w-full object-cover"
                                 style={{ height: '100dvh', objectFit: 'cover' }}
                                 playsInline
-                                {...{ 'webkit-playsinline': 'true' } as React.VideoHTMLAttributes<HTMLVideoElement>}
+                                {...{ 'webkit-playsinline': 'true', 'x5-playsinline': 'true' } as React.VideoHTMLAttributes<HTMLVideoElement>}
                                 preload="auto"
                                 muted
                                 autoPlay
                                 loop
                                 disablePictureInPicture
+                                onCanPlay={e => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
                             />
                         ) : (
                             <div className="text-[#00FFFF] text-center pointer-events-none">
@@ -318,6 +318,12 @@ export default function CircuitPlayer() {
                                 <p className="opacity-40 uppercase tracking-widest text-sm">{currentExercise.name}</p>
                             </div>
                         )}
+                        {/* Transparent overlay — blocks TikTok double-tap-to-fullscreen */}
+                        <div
+                            className="absolute inset-0"
+                            style={{ zIndex: 5, background: 'transparent' }}
+                            onClick={togglePlay}
+                        />
                         {currentExercise.audioUrl && (
                             <audio ref={audioRef} src={currentExercise.audioUrl} autoPlay />
                         )}
