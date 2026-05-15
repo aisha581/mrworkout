@@ -364,3 +364,78 @@ export async function sendEnlistmentEmail(email: string, name: string, topic: st
         return { success: false, error };
     }
 }
+
+// ── Savage Hunter: outbound cold lead emails ──────────────────────────────────
+
+const SAVAGE_HTML = (firstName: string, body: string) => `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:'Helvetica Neue',Arial,sans-serif;color:#e0e0e0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+        <tr><td style="padding:0 0 24px 0;border-bottom:1px solid #1e1e1e;">
+          <span style="color:#FFD700;font-size:20px;font-weight:900;letter-spacing:0.12em;text-transform:uppercase;">MR. WORKOUT</span>
+          <span style="color:#333;font-size:11px;margin-left:10px;letter-spacing:0.2em;text-transform:uppercase;">Savage Protocol v.1</span>
+        </td></tr>
+        <tr><td style="padding:32px 0 8px;font-size:15px;line-height:1.7;">${body}</td></tr>
+        <tr><td style="padding:28px 0 36px;">
+          <a href="https://mrworkout.pro?ref=savage-hunter" style="display:inline-block;background:#FFD700;color:#000;font-weight:900;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;text-decoration:none;padding:14px 36px;border-radius:8px;">
+            Enter the Clinic
+          </a>
+        </td></tr>
+        <tr><td style="border-top:1px solid #1a1a1a;padding:20px 0 0;font-size:11px;color:#444;line-height:1.8;">
+          You're getting this because you showed interest in elite training.<br>
+          <a href="https://mrworkout.pro/unsubscribe" style="color:#555;text-decoration:underline;">Unsubscribe</a>
+          &nbsp;·&nbsp; mrworkout.pro
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+export async function sendSavageEmail1(email: string, firstName: string) {
+    if (!process.env.RESEND_API_KEY) return { success: false, error: 'API key missing' };
+    const name = firstName || 'Athlete';
+    const body = `
+      <p style="margin:0 0 16px;">Most fitness apps treat you like a customer, ${name}.</p>
+      <p style="margin:0 0 16px;">Mr. Workout treats you like an athlete in the Clinic.</p>
+      <p style="margin:0 0 16px;">No streak celebrations. No pastel dashboards. No coach named Brittany.</p>
+      <p style="margin:0 0 16px;">Just the <strong style="color:#FFD700;">Savage Protocol</strong> — real-time circuit training, CNS recovery tracking, and an AI coach that will roast you into the best shape of your life.</p>
+      <p style="margin:0 0 16px;">The Armoury has 89 movements. The timer doesn't care about your mood. The results are not optional.</p>
+      <p style="margin:0 0 16px;color:#888;font-size:13px;">— MR. WORKOUT &nbsp;|&nbsp; #Fahhhhh</p>`;
+    try {
+        const { data, error } = await resend.emails.send({
+            from:    'MR. WORKOUT <coach@mrworkout.pro>',
+            to:      [email],
+            replyTo: 'thebillion9@gmail.com',
+            subject: 'The Clinic is waiting.',
+            html:    SAVAGE_HTML(name, body),
+        });
+        return error ? { success: false, error } : { success: true, data };
+    } catch (e) { return { success: false, error: e }; }
+}
+
+export async function sendSavageEmail2(email: string, firstName: string) {
+    if (!process.env.RESEND_API_KEY) return { success: false, error: 'API key missing' };
+    const name = firstName || 'Athlete';
+    const body = `
+      <p style="margin:0 0 16px;">${name}.</p>
+      <p style="margin:0 0 16px;">Three days ago we told you about the Clinic. You haven't walked in yet.</p>
+      <p style="margin:0 0 16px;">That's fine. Most people don't.</p>
+      <p style="margin:0 0 16px;">Most people also plateau after 6 weeks, wonder why their strength is dropping, and blame genetics.</p>
+      <p style="margin:0 0 16px;">The <strong style="color:#FFD700;">Savage Protocol</strong> was built for the ones who don't accept that. It tracks your CNS load. It tells you when to push and when to recover. It doesn't lie to you.</p>
+      <p style="margin:0 0 16px;">The door's still open. The question is whether you're the type who walks through it.</p>
+      <p style="margin:0 0 16px;color:#888;font-size:13px;">— MR. WORKOUT &nbsp;|&nbsp; Savage Coaching</p>`;
+    try {
+        const { data, error } = await resend.emails.send({
+            from:    'MR. WORKOUT <coach@mrworkout.pro>',
+            to:      [email],
+            replyTo: 'thebillion9@gmail.com',
+            subject: "You still haven't shown up.",
+            html:    SAVAGE_HTML(name, body),
+        });
+        return error ? { success: false, error } : { success: true, data };
+    } catch (e) { return { success: false, error: e }; }
+}
