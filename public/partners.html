@@ -501,15 +501,72 @@
       </form>
 
       <!-- Success state -->
-      <div id="success-state" style="display:none;text-align:center;padding:20px 0;">
-        <div style="font-size:48px;margin-bottom:20px;">🎯</div>
-        <h3 style="font-size:24px;font-weight:900;margin-bottom:12px;">application received.</h3>
-        <p style="color:#666;font-size:15px;line-height:1.7;max-width:400px;margin:0 auto;">we'll review your profile and hit you back within 24 hours with your partner link and dashboard access.</p>
-        <div class="mono text-cyan" style="font-size:12px;margin-top:24px;opacity:0.6;">check your inbox — including spam.</div>
+      <div id="success-state" style="display:none;padding:8px 0;">
+
+        <!-- Approved badge -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:28px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:#00E5CC;box-shadow:0 0 12px rgba(0,229,204,0.8);animation:pulse 2s infinite;"></div>
+          <span class="mono text-cyan" style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;">Partner Approved</span>
+        </div>
+
+        <h3 style="font-size:28px;font-weight:900;letter-spacing:-0.02em;text-align:center;margin-bottom:6px;">you're in. welcome to the program.</h3>
+        <p style="color:#555;font-size:14px;text-align:center;margin-bottom:32px;">everything you need is right here. share your link and start earning today.</p>
+
+        <!-- Referral link -->
+        <div style="margin-bottom:20px;">
+          <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;margin-bottom:8px;">Your Affiliate Link</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div class="mono" id="ref-link-display" style="flex:1;background:rgba(0,229,204,0.05);border:1px solid rgba(0,229,204,0.15);border-radius:10px;padding:12px 16px;font-size:13px;color:#00E5CC;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"></div>
+            <button onclick="copyRefLink()" id="copy-btn"
+              style="padding:12px 18px;border-radius:10px;border:1px solid rgba(0,229,204,0.25);background:rgba(0,229,204,0.08);color:#00E5CC;font-size:12px;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;white-space:nowrap;transition:background 0.15s;">
+              Copy
+            </button>
+          </div>
+          <div style="font-size:11px;color:#333;margin-top:8px;">every signup through this link earns you 30% recurring — forever.</div>
+        </div>
+
+        <!-- Mini stats dashboard -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;text-align:center;">
+            <div class="mono text-cyan" id="stat-clicks" style="font-size:22px;font-weight:700;">0</div>
+            <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Link Clicks</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;text-align:center;">
+            <div class="mono text-cyan" id="stat-signups" style="font-size:22px;font-weight:700;">0</div>
+            <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Signups</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;text-align:center;">
+            <div class="mono text-cyan" style="font-size:22px;font-weight:700;">$0</div>
+            <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Earned</div>
+          </div>
+        </div>
+
+        <!-- Demo credentials -->
+        <div style="background:rgba(232,121,249,0.04);border:1px solid rgba(232,121,249,0.12);border-radius:14px;padding:20px;margin-bottom:20px;">
+          <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;margin-bottom:14px;">Explore the App — Demo Account</div>
+          <div style="display:flex;gap:24px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;">Email</div>
+              <div class="mono text-mag" style="font-size:14px;font-weight:700;">demo@mrworkout.pro</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;">Password</div>
+              <div class="mono text-mag" style="font-size:14px;font-weight:700;">Savage2026</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <a href="https://mrworkout.pro/login" target="_blank"
+          style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px;border-radius:12px;font-size:15px;font-weight:700;font-family:'Space Grotesk',sans-serif;text-decoration:none;color:#050505;background:linear-gradient(135deg,#00E5CC,#00bfa5);box-shadow:0 0 30px rgba(0,229,204,0.25);transition:transform 0.15s;"
+          onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+          Enter the App →
+        </a>
+
       </div>
 
       <!-- Error state -->
-      <div id="error-state" style="display:none;margin-top:16px;padding:14px 18px;background:rgba(255,68,68,0.06);border:1px solid rgba(255,68,68,0.2);border-radius:10px;font-size:13px;color:#ff6b6b;text-align:center;" id="error-msg">
+      <div id="error-state" style="display:none;margin-top:16px;padding:14px 18px;background:rgba(255,68,68,0.06);border:1px solid rgba(255,68,68,0.2);border-radius:10px;font-size:13px;color:#ff6b6b;text-align:center;">
         something went wrong. try again or email us directly.
       </div>
     </div>
@@ -588,29 +645,42 @@
 
       document.getElementById('error-state').style.display = 'none';
 
+      const rawHandle = document.getElementById('handle').value.trim();
+      const cleanHandle = rawHandle.replace(/^@/, '').toLowerCase().replace(/[^a-z0-9_.\-]/g, '');
+      const refCode = cleanHandle || Math.random().toString(36).slice(2, 8);
+      const refLink = 'https://mrworkout.pro/?ref=' + refCode;
+
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      const firstName = document.getElementById('first_name').value.trim();
+
       const payload = {
-        first_name:                 document.getElementById('first_name').value.trim(),
-        email:                      document.getElementById('email').value.trim().toLowerCase(),
-        handle:                     document.getElementById('handle').value.trim(),
+        first_name:                 firstName,
+        email:                      email,
+        handle:                     rawHandle,
         platform:                   document.getElementById('platform').value,
         audience_size:              document.getElementById('audience_size').value,
         estimated_monthly_earnings: window._calcMonthly || null,
-        status:                     'pending',
+        status:                     'approved',
+        ref_code:                   refCode,
       };
 
       try {
         const { error } = await sb.from('affiliates').insert([payload]);
 
-        if (error) {
-          // Duplicate email — still show success (don't expose DB errors)
-          if (error.code === '23505') {
-            showSuccess();
-            return;
-          }
-          throw error;
-        }
+        if (error && error.code !== '23505') throw error;
 
-        showSuccess();
+        // Fetch live stats for this affiliate
+        let clicks = 0, signups = 0;
+        try {
+          const { data: aff } = await sb
+            .from('affiliates')
+            .select('clicks, signups')
+            .eq('email', email)
+            .maybeSingle();
+          if (aff) { clicks = aff.clicks || 0; signups = aff.signups || 0; }
+        } catch (_) {}
+
+        showSuccess(firstName, refLink, clicks, signups);
 
       } catch (err) {
         console.error('Submit error:', err);
@@ -620,7 +690,20 @@
       }
     }
 
-    function showSuccess() {
+    function copyRefLink() {
+      const link = document.getElementById('ref-link-display').textContent;
+      navigator.clipboard.writeText(link).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copied!';
+        btn.style.background = 'rgba(0,229,204,0.2)';
+        setTimeout(() => { btn.textContent = 'Copy'; btn.style.background = 'rgba(0,229,204,0.08)'; }, 2000);
+      });
+    }
+
+    function showSuccess(name, refLink, clicks, signups) {
+      document.getElementById('ref-link-display').textContent = refLink;
+      document.getElementById('stat-clicks').textContent = clicks;
+      document.getElementById('stat-signups').textContent = signups;
       document.getElementById('partner-form').style.display = 'none';
       document.getElementById('success-state').style.display = 'block';
       window.scrollTo({ top: document.getElementById('apply').offsetTop - 80, behavior: 'smooth' });
