@@ -435,6 +435,20 @@
 
   <!-- ── APPLY FORM ────────────────────────────────────────────────────────── -->
   <section id="apply" style="max-width:680px;margin:0 auto;padding:80px 24px 120px;position:relative;z-index:1;">
+
+    <!-- Returning partner lookup (shown only if not auto-restored) -->
+    <div id="returning-lookup" style="display:none;margin-bottom:32px;text-align:center;">
+      <div style="font-size:12px;color:#333;margin-bottom:12px;">Already a partner? Access your dashboard →</div>
+      <div style="display:flex;gap:8px;max-width:400px;margin:0 auto;">
+        <input type="email" id="lookup-email" class="form-input" placeholder="your@email.com" style="flex:1;" />
+        <button onclick="lookupPartner()" id="lookup-btn"
+          style="padding:12px 20px;border-radius:10px;border:1px solid rgba(0,229,204,0.25);background:rgba(0,229,204,0.08);color:#00E5CC;font-size:13px;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;white-space:nowrap;">
+          Go →
+        </button>
+      </div>
+      <div id="lookup-error" style="display:none;font-size:12px;color:#ff6b6b;margin-top:8px;"></div>
+    </div>
+
     <div style="text-align:center;margin-bottom:48px;">
       <div class="mono text-cyan" style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;">Partner Application</div>
       <h2 style="font-size:clamp(28px,4vw,48px);font-weight:900;letter-spacing:-0.02em;">claim your slot.</h2>
@@ -719,14 +733,76 @@
       });
     }
 
-    function showSuccess(name, refLink, clicks, signups) {
+    function showSuccess(name, refLink, clicks, signups, skipScroll) {
+      // Persist so returning visits skip the form
+      try {
+        localStorage.setItem('mw_partner', JSON.stringify({ name, refLink }));
+      } catch (_) {}
+
       document.getElementById('ref-link-display').textContent = refLink;
       document.getElementById('stat-clicks').textContent = clicks;
       document.getElementById('stat-signups').textContent = signups;
       document.getElementById('partner-form').style.display = 'none';
+      document.getElementById('returning-lookup').style.display = 'none';
       document.getElementById('success-state').style.display = 'block';
-      window.scrollTo({ top: document.getElementById('apply').offsetTop - 80, behavior: 'smooth' });
+      if (!skipScroll) {
+        window.scrollTo({ top: document.getElementById('apply').offsetTop - 80, behavior: 'smooth' });
+      }
     }
+
+    // ── Returning partner lookup ──────────────────────────────────────────────
+    async function lookupPartner() {
+      const email = document.getElementById('lookup-email').value.trim().toLowerCase();
+      if (!email) return;
+      const btn = document.getElementById('lookup-btn');
+      btn.textContent = '…';
+      btn.disabled = true;
+      document.getElementById('lookup-error').style.display = 'none';
+
+      const { data, error } = await sb
+        .from('affiliates')
+        .select('first_name, ref_code, clicks, signups')
+        .eq('email', email)
+        .maybeSingle();
+
+      btn.textContent = 'Go →';
+      btn.disabled = false;
+
+      if (!data || error) {
+        document.getElementById('lookup-error').textContent = "no partner account found for that email.";
+        document.getElementById('lookup-error').style.display = 'block';
+        return;
+      }
+
+      const refLink = 'https://mrworkout.pro/?ref=' + (data.ref_code || email.split('@')[0]);
+      showSuccess(data.first_name || 'Partner', refLink, data.clicks || 0, data.signups || 0);
+    }
+
+    // ── Auto-restore from localStorage on page load ───────────────────────────
+    (async function restorePartner() {
+      try {
+        const saved = localStorage.getItem('mw_partner');
+        if (!saved) {
+          document.getElementById('returning-lookup').style.display = 'block';
+          return;
+        }
+        const { name, refLink } = JSON.parse(saved);
+        // Refresh live stats from Supabase
+        const refCode = new URL(refLink).searchParams.get('ref') || '';
+        let clicks = 0, signups = 0;
+        if (refCode) {
+          const { data } = await sb
+            .from('affiliates')
+            .select('clicks, signups')
+            .eq('ref_code', refCode)
+            .maybeSingle();
+          if (data) { clicks = data.clicks || 0; signups = data.signups || 0; }
+        }
+        showSuccess(name, refLink, clicks, signups, true);
+      } catch (_) {
+        document.getElementById('returning-lookup').style.display = 'block';
+      }
+    })();
 
     // ── Responsive calc grid ─────────────────────────────────────────────────
     function applyCalcLayout() {
