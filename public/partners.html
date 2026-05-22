@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Partner Program — Mr. Workout</title>
+  <meta name="description" content="Turn your fitness audience into a passive income stream. Join the Mr. Workout partner program." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+    * { box-sizing: border-box; }
+
+    body {
+      background: #050505;
+      color: #e5e5e5;
+      font-family: 'Space Grotesk', sans-serif;
+      overflow-x: hidden;
+    }
+
+    .mono { font-family: 'Space Mono', monospace; }
+
+    /* Neon glow utilities */
+    .glow-cyan  { box-shadow: 0 0 30px rgba(0,229,204,0.15), 0 0 60px rgba(0,229,204,0.05); }
+    .glow-mag   { box-shadow: 0 0 30px rgba(232,121,249,0.15), 0 0 60px rgba(232,121,249,0.05); }
+    .text-cyan  { color: #00E5CC; }
+    .text-mag   { color: #e879f9; }
+    .border-cyan { border-color: rgba(0,229,204,0.3); }
+    .border-mag  { border-color: rgba(232,121,249,0.3); }
+
+    /* Glass card */
+    .glass {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+    }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #00E5CC 0%, #e879f9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Slider custom style */
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: #1a1a1a;
+      border-radius: 99px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #00E5CC;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(0,229,204,0.6);
+      transition: transform 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Animated number */
+    @keyframes countUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .num-animate { animation: countUp 0.2s ease; }
+
+    /* Pulse dot */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+    .pulse { animation: pulse 2s infinite; }
+
+    /* CTA button */
+    .btn-primary {
+      background: linear-gradient(135deg, #00E5CC, #00b8a6);
+      color: #050505;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 0 24px rgba(0,229,204,0.3);
+    }
+    .btn-primary:hover  { transform: translateY(-2px); box-shadow: 0 0 40px rgba(0,229,204,0.5); }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* Form input */
+    .form-input {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 14px;
+      font-family: 'Space Grotesk', sans-serif;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus {
+      border-color: rgba(0,229,204,0.4);
+      box-shadow: 0 0 0 3px rgba(0,229,204,0.06);
+    }
+    .form-input::placeholder { color: #444; }
+
+    /* Select arrow fix */
+    select.form-input { cursor: pointer; }
+    option { background: #111; }
+
+    /* Step number */
+    .step-num {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(0,229,204,0.1);
+      border: 1px solid rgba(0,229,204,0.3);
+      color: #00E5CC;
+      font-weight: 900;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Noise overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0a0a0a; }
+    ::-webkit-scrollbar-thumb { background: #1e1e1e; border-radius: 99px; }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+  <!-- ── NAV ──────────────────────────────────────────────────────────────── -->
+  <nav style="position:sticky;top:0;z-index:50;background:rgba(5,5,5,0.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.04);">
+    <div style="max-width:1100px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;">
+      <div class="mono" style="font-size:13px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;">
+        <span class="text-cyan">MR.</span><span style="color:#fff;"> WORKOUT</span>
+      </div>
+      <a href="#apply" class="btn-primary" style="padding:10px 24px;border-radius:99px;font-size:11px;text-decoration:none;">
+        Apply Now
+      </a>
+    </div>
+  </nav>
+
+  <!-- ── HERO ─────────────────────────────────────────────────────────────── -->
+  <section style="max-width:1100px;margin:0 auto;padding:100px 24px 80px;text-align:center;position:relative;z-index:1;">
+
+    <!-- Live badge -->
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(0,229,204,0.06);border:1px solid rgba(0,229,204,0.2);border-radius:99px;padding:8px 18px;margin-bottom:40px;">
+      <span class="pulse" style="width:7px;height:7px;border-radius:50%;background:#00E5CC;display:inline-block;"></span>
+      <span class="mono text-cyan" style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">5 Founding Partner Slots — 2 Remaining</span>
+    </div>
+
+    <h1 style="font-size:clamp(42px,7vw,84px);font-weight:900;line-height:1.05;letter-spacing:-0.02em;margin-bottom:28px;">
+      turn your audience<br/>
+      <span class="gradient-text">into a revenue stream.</span>
+    </h1>
+
+    <p style="font-size:clamp(16px,2vw,20px);color:#888;max-width:580px;margin:0 auto 48px;line-height:1.7;">
+      you build the community. we built the ai training system. every subscription your audience buys — you keep 30%. forever.
+    </p>
+
+    <!-- Hero stat pills -->
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin-bottom:60px;">
+      <div class="glass" style="padding:16px 28px;border-radius:16px;border-color:rgba(0,229,204,0.15);">
+        <div class="mono text-cyan" style="font-size:28px;font-weight:700;">30%</div>
+        <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Revenue Split</div>
+      </div>
+      <div class="glass" style="padding:16px 28px;border-radius:16px;">
+        <div class="mono" style="font-size:28px;font-weight:700;color:#e879f9;">$19.99</div>
+        <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Monthly Sub Price</div>
+      </div>
+      <div class="glass" style="padding:16px 28px;border-radius:16px;">
+        <div class="mono" style="font-size:28px;font-weight:700;color:#fff;">∞</div>
+        <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">No Posting Requirements</div>
+      </div>
+      <div class="glass" style="padding:16px 28px;border-radius:16px;border-color:rgba(232,121,249,0.15);">
+        <div class="mono text-cyan" style="font-size:28px;font-weight:700;">$0</div>
+        <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Cost to Join</div>
+      </div>
+    </div>
+
+    <a href="#apply" class="btn-primary" style="display:inline-block;padding:18px 48px;border-radius:16px;font-size:14px;text-decoration:none;">
+      Claim Your Partner Slot →
+    </a>
+  </section>
+
+  <!-- ── BUSINESS IN A BOX ─────────────────────────────────────────────────── -->
+  <section style="max-width:1100px;margin:0 auto;padding:80px 24px;position:relative;z-index:1;">
+    <div style="text-align:center;margin-bottom:60px;">
+      <div class="mono text-cyan" style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;">The Offer</div>
+      <h2 style="font-size:clamp(28px,4vw,48px);font-weight:900;letter-spacing:-0.02em;">business in a box.</h2>
+      <p style="color:#555;margin-top:12px;font-size:15px;">you show up. we handle everything else.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+
+      <div class="glass glow-cyan" style="padding:36px;border-radius:24px;border:1px solid rgba(0,229,204,0.12);">
+        <div style="font-size:32px;margin-bottom:20px;">🏋️</div>
+        <h3 class="text-cyan" style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">You Bring</h3>
+        <ul style="color:#888;font-size:14px;line-height:2;list-style:none;padding:0;">
+          <li>→ your audience</li>
+          <li>→ your credibility</li>
+          <li>→ one link in bio</li>
+        </ul>
+        <p style="color:#444;font-size:12px;margin-top:20px;font-style:italic;">that's literally it.</p>
+      </div>
+
+      <div class="glass" style="padding:36px;border-radius:24px;border:1px solid rgba(255,255,255,0.06);">
+        <div style="font-size:32px;margin-bottom:20px;">⚡</div>
+        <h3 style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;color:#fff;">We Handle</h3>
+        <ul style="color:#888;font-size:14px;line-height:2;list-style:none;padding:0;">
+          <li>→ ai programming engine</li>
+          <li>→ payment processing</li>
+          <li>→ hosting &amp; infrastructure</li>
+          <li>→ customer support</li>
+          <li>→ affiliate tracking dashboard</li>
+          <li>→ monthly payouts</li>
+        </ul>
+      </div>
+
+      <div class="glass glow-mag" style="padding:36px;border-radius:24px;border:1px solid rgba(232,121,249,0.12);">
+        <div style="font-size:32px;margin-bottom:20px;">💸</div>
+        <h3 class="text-mag" style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">You Keep</h3>
+        <div class="mono" style="font-size:52px;font-weight:700;color:#e879f9;line-height:1;margin-bottom:12px;">30%</div>
+        <p style="color:#888;font-size:14px;line-height:1.7;">of every subscription your audience generates. paid monthly. no cap. forever — even if you stop posting.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── INCOME CALCULATOR ─────────────────────────────────────────────────── -->
+  <section id="calculator" style="max-width:1100px;margin:0 auto;padding:80px 24px;position:relative;z-index:1;">
+    <div style="text-align:center;margin-bottom:60px;">
+      <div class="mono text-cyan" style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;">Income Calculator</div>
+      <h2 style="font-size:clamp(28px,4vw,48px);font-weight:900;letter-spacing:-0.02em;">see your number.</h2>
+      <p style="color:#555;margin-top:12px;font-size:15px;">drag the sliders. this is real math.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;" class="calc-grid">
+
+      <!-- Sliders -->
+      <div class="glass" style="padding:40px;border-radius:24px;border:1px solid rgba(255,255,255,0.06);">
+
+        <!-- Followers -->
+        <div style="margin-bottom:36px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;">
+            <label style="font-size:13px;color:#666;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Followers</label>
+            <span class="mono text-cyan" style="font-size:20px;font-weight:700;" id="followers-display">50,000</span>
+          </div>
+          <input type="range" id="followers-slider" min="1000" max="1000000" step="1000" value="50000"
+                 style="accent-color:#00E5CC;" oninput="updateCalc()">
+          <div style="display:flex;justify-content:space-between;margin-top:8px;">
+            <span style="font-size:10px;color:#333;" class="mono">1K</span>
+            <span style="font-size:10px;color:#333;" class="mono">1M</span>
+          </div>
+        </div>
+
+        <!-- Conversion Rate -->
+        <div style="margin-bottom:36px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;">
+            <label style="font-size:13px;color:#666;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Conversion Rate</label>
+            <span class="mono text-cyan" style="font-size:20px;font-weight:700;" id="conv-display">2.0%</span>
+          </div>
+          <input type="range" id="conv-slider" min="0.5" max="5" step="0.1" value="2"
+                 style="accent-color:#00E5CC;" oninput="updateCalc()">
+          <div style="display:flex;justify-content:space-between;margin-top:8px;">
+            <span style="font-size:10px;color:#333;" class="mono">0.5%</span>
+            <span style="font-size:10px;color:#333;" class="mono">5%</span>
+          </div>
+        </div>
+
+        <!-- Sub Price -->
+        <div style="margin-bottom:36px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;">
+            <label style="font-size:13px;color:#666;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Monthly Sub Price</label>
+            <span class="mono text-cyan" style="font-size:20px;font-weight:700;" id="price-display">$19.99</span>
+          </div>
+          <input type="range" id="price-slider" min="9.99" max="49.99" step="1" value="19.99"
+                 style="accent-color:#00E5CC;" oninput="updateCalc()">
+          <div style="display:flex;justify-content:space-between;margin-top:8px;">
+            <span style="font-size:10px;color:#333;" class="mono">$9.99</span>
+            <span style="font-size:10px;color:#333;" class="mono">$49.99</span>
+          </div>
+        </div>
+
+        <!-- Affiliate Split (fixed) -->
+        <div style="padding:16px 20px;background:rgba(0,229,204,0.04);border:1px solid rgba(0,229,204,0.12);border-radius:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;color:#555;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Your Split</span>
+            <span class="mono text-cyan" style="font-size:20px;font-weight:700;">30% — locked in</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Results -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Monthly -->
+        <div class="glass glow-cyan" style="padding:36px;border-radius:24px;border:1px solid rgba(0,229,204,0.2);text-align:center;">
+          <div style="font-size:12px;color:#555;text-transform:uppercase;letter-spacing:0.15em;font-weight:700;margin-bottom:12px;">Monthly Earnings</div>
+          <div class="mono gradient-text" style="font-size:clamp(40px,6vw,64px);font-weight:700;line-height:1;" id="monthly-result">$599</div>
+          <div style="font-size:12px;color:#333;margin-top:10px;" class="mono" id="monthly-sub-count">≈ 300 subscribers</div>
+        </div>
+
+        <!-- Annual -->
+        <div class="glass" style="padding:28px;border-radius:20px;border:1px solid rgba(232,121,249,0.15);text-align:center;">
+          <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.15em;font-weight:700;margin-bottom:8px;">Annual Earnings</div>
+          <div class="mono text-mag" style="font-size:36px;font-weight:700;" id="annual-result">$7,188</div>
+        </div>
+
+        <!-- Per 1000 followers -->
+        <div class="glass" style="padding:28px;border-radius:20px;text-align:center;">
+          <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.15em;font-weight:700;margin-bottom:8px;">Per 1,000 Followers</div>
+          <div class="mono" style="font-size:28px;font-weight:700;color:#fff;" id="per-k-result">$11.99</div>
+          <div style="font-size:11px;color:#444;margin-top:6px;">monthly, recurring</div>
+        </div>
+
+        <!-- vs brand deal -->
+        <div style="padding:16px 20px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.06);border-radius:12px;">
+          <div style="font-size:11px;color:#444;line-height:1.7;">
+            a typical brand deal pays <span style="color:#666;">once</span>. your partner revenue pays <span class="text-cyan" style="font-weight:700;">every month</span> — with zero extra work after setup.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HOW IT WORKS ──────────────────────────────────────────────────────── -->
+  <section style="max-width:1100px;margin:0 auto;padding:80px 24px;position:relative;z-index:1;">
+    <div style="text-align:center;margin-bottom:60px;">
+      <div class="mono text-cyan" style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;">How It Works</div>
+      <h2 style="font-size:clamp(28px,4vw,48px);font-weight:900;letter-spacing:-0.02em;">three steps. then passive.</h2>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;">
+
+      <div class="glass" style="padding:32px;border-radius:20px;">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+          <div class="step-num">01</div>
+          <h3 style="font-size:16px;font-weight:700;">Apply &amp; Get Approved</h3>
+        </div>
+        <p style="color:#666;font-size:14px;line-height:1.7;">fill out the form below. we review your profile and reach out within 24 hours. founding partners get a permanent 30% split locked in — this rate drops when we open publicly.</p>
+      </div>
+
+      <div class="glass" style="padding:32px;border-radius:20px;border:1px solid rgba(0,229,204,0.1);">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+          <div class="step-num">02</div>
+          <h3 style="font-size:16px;font-weight:700;">Get Your Partner Link</h3>
+        </div>
+        <p style="color:#666;font-size:14px;line-height:1.7;">we set up your custom tracking link and a private dashboard where you can see clicks, conversions, and revenue in real time. one link. one bio slot.</p>
+      </div>
+
+      <div class="glass" style="padding:32px;border-radius:20px;">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+          <div class="step-num">03</div>
+          <h3 style="font-size:16px;font-weight:700;">Collect Monthly Payouts</h3>
+        </div>
+        <p style="color:#666;font-size:14px;line-height:1.7;">every subscriber your link generates pays you automatically. no invoicing, no chasing. payouts hit your account on the 1st of every month via stripe.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── APPLY FORM ────────────────────────────────────────────────────────── -->
+  <section id="apply" style="max-width:680px;margin:0 auto;padding:80px 24px 120px;position:relative;z-index:1;">
+    <div style="text-align:center;margin-bottom:48px;">
+      <div class="mono text-cyan" style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:16px;">Partner Application</div>
+      <h2 style="font-size:clamp(28px,4vw,48px);font-weight:900;letter-spacing:-0.02em;">claim your slot.</h2>
+      <p style="color:#555;margin-top:12px;font-size:14px;">founding partners lock in 30% forever. general release will be lower.</p>
+    </div>
+
+    <!-- Form card -->
+    <div class="glass glow-cyan" style="padding:48px;border-radius:28px;border:1px solid rgba(0,229,204,0.12);">
+      <form id="partner-form" onsubmit="handleSubmit(event)">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div>
+            <label style="display:block;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:8px;">First Name</label>
+            <input type="text" id="first_name" class="form-input" placeholder="your name" required />
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:8px;">Email</label>
+            <input type="email" id="email" class="form-input" placeholder="you@example.com" required />
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label style="display:block;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:8px;">Instagram / TikTok Handle</label>
+          <input type="text" id="handle" class="form-input" placeholder="@yourhandle" required />
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div>
+            <label style="display:block;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:8px;">Primary Platform</label>
+            <select id="platform" class="form-input" required>
+              <option value="" disabled selected>select platform</option>
+              <option value="instagram">Instagram</option>
+              <option value="tiktok">TikTok</option>
+              <option value="youtube">YouTube</option>
+              <option value="twitter">Twitter / X</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:8px;">Audience Size</label>
+            <select id="audience_size" class="form-input" required>
+              <option value="" disabled selected>select range</option>
+              <option value="1k-10k">1K – 10K</option>
+              <option value="10k-50k">10K – 50K</option>
+              <option value="50k-100k">50K – 100K</option>
+              <option value="100k-500k">100K – 500K</option>
+              <option value="500k+">500K+</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Estimated earnings (read-only, from calculator) -->
+        <div style="padding:16px 20px;background:rgba(0,229,204,0.04);border:1px solid rgba(0,229,204,0.1);border-radius:12px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;color:#555;text-transform:uppercase;letter-spacing:0.1em;">Est. Monthly Earnings</span>
+          <span class="mono text-cyan" style="font-size:18px;font-weight:700;" id="form-earnings">—</span>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width:100%;padding:18px;border-radius:14px;font-size:14px;" id="submit-btn">
+          Apply for Partner Access →
+        </button>
+
+        <p style="text-align:center;color:#333;font-size:11px;margin-top:16px;">we review every application within 24 hours. no spam.</p>
+
+      </form>
+
+      <!-- Success state -->
+      <div id="success-state" style="display:none;text-align:center;padding:20px 0;">
+        <div style="font-size:48px;margin-bottom:20px;">🎯</div>
+        <h3 style="font-size:24px;font-weight:900;margin-bottom:12px;">application received.</h3>
+        <p style="color:#666;font-size:15px;line-height:1.7;max-width:400px;margin:0 auto;">we'll review your profile and hit you back within 24 hours with your partner link and dashboard access.</p>
+        <div class="mono text-cyan" style="font-size:12px;margin-top:24px;opacity:0.6;">check your inbox — including spam.</div>
+      </div>
+
+      <!-- Error state -->
+      <div id="error-state" style="display:none;margin-top:16px;padding:14px 18px;background:rgba(255,68,68,0.06);border:1px solid rgba(255,68,68,0.2);border-radius:10px;font-size:13px;color:#ff6b6b;text-align:center;" id="error-msg">
+        something went wrong. try again or email us directly.
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── FOOTER ────────────────────────────────────────────────────────────── -->
+  <footer style="border-top:1px solid rgba(255,255,255,0.04);padding:40px 24px;text-align:center;">
+    <div class="mono" style="font-size:12px;color:#333;letter-spacing:0.12em;">
+      <span class="text-cyan">MR. WORKOUT</span> &nbsp;·&nbsp; mrworkout.pro &nbsp;·&nbsp; partner program
+    </div>
+    <div style="font-size:11px;color:#222;margin-top:10px;">the clinic is a registered ai fitness platform. affiliate payouts processed via stripe.</div>
+  </footer>
+
+  <!-- ── SCRIPTS ───────────────────────────────────────────────────────────── -->
+  <script>
+    // ── Supabase ──────────────────────────────────────────────────────────────
+    const { createClient } = supabase;
+    const sb = createClient(
+      'https://btmopyfbuvylmdfwqfuo.supabase.co',
+      'sb_publishable_q6qXYCW5pnFYLailU9fBMg_nNCwFT8h'
+    );
+
+    // ── Pre-fill from URL params (email campaign → landing page) ─────────────
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('name'))  document.getElementById('first_name').value = params.get('name');
+    if (params.get('email')) document.getElementById('email').value      = params.get('email');
+    if (params.get('handle')) document.getElementById('handle').value    = params.get('handle');
+
+    // ── Income Calculator ─────────────────────────────────────────────────────
+    function fmt(n) {
+      if (n >= 1000000) return '$' + (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000)    return '$' + (n / 1000).toFixed(1) + 'K';
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function fmtFollowers(n) {
+      if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000)    return (n / 1000).toFixed(0) + 'K';
+      return n.toLocaleString();
+    }
+
+    function updateCalc() {
+      const followers = parseInt(document.getElementById('followers-slider').value);
+      const convRate  = parseFloat(document.getElementById('conv-slider').value);
+      const subPrice  = parseFloat(document.getElementById('price-slider').value);
+      const split     = 0.30;
+
+      const subscribers = Math.floor(followers * (convRate / 100));
+      const monthly     = Math.floor(subscribers * subPrice * split);
+      const annual      = monthly * 12;
+      const perK        = ((1000 * (convRate / 100)) * subPrice * split).toFixed(2);
+
+      document.getElementById('followers-display').textContent = fmtFollowers(followers);
+      document.getElementById('conv-display').textContent      = convRate.toFixed(1) + '%';
+      document.getElementById('price-display').textContent     = '$' + subPrice.toFixed(2);
+      document.getElementById('monthly-result').textContent    = fmt(monthly);
+      document.getElementById('annual-result').textContent     = fmt(annual);
+      document.getElementById('per-k-result').textContent      = '$' + perK;
+      document.getElementById('monthly-sub-count').textContent = '≈ ' + subscribers.toLocaleString() + ' subscribers';
+
+      // Feed into form earnings display
+      document.getElementById('form-earnings').textContent = fmt(monthly) + ' / mo';
+      window._calcMonthly = monthly;
+    }
+
+    updateCalc(); // init on load
+
+    // ── Form submit ───────────────────────────────────────────────────────────
+    async function handleSubmit(e) {
+      e.preventDefault();
+
+      const btn = document.getElementById('submit-btn');
+      btn.textContent = 'Submitting…';
+      btn.disabled = true;
+
+      document.getElementById('error-state').style.display = 'none';
+
+      const payload = {
+        first_name:                 document.getElementById('first_name').value.trim(),
+        email:                      document.getElementById('email').value.trim().toLowerCase(),
+        handle:                     document.getElementById('handle').value.trim(),
+        platform:                   document.getElementById('platform').value,
+        audience_size:              document.getElementById('audience_size').value,
+        estimated_monthly_earnings: window._calcMonthly || null,
+        status:                     'pending',
+      };
+
+      try {
+        const { error } = await sb.from('affiliates').insert([payload]);
+
+        if (error) {
+          // Duplicate email — still show success (don't expose DB errors)
+          if (error.code === '23505') {
+            showSuccess();
+            return;
+          }
+          throw error;
+        }
+
+        showSuccess();
+
+      } catch (err) {
+        console.error('Submit error:', err);
+        btn.textContent = 'Apply for Partner Access →';
+        btn.disabled = false;
+        document.getElementById('error-state').style.display = 'block';
+      }
+    }
+
+    function showSuccess() {
+      document.getElementById('partner-form').style.display = 'none';
+      document.getElementById('success-state').style.display = 'block';
+      window.scrollTo({ top: document.getElementById('apply').offsetTop - 80, behavior: 'smooth' });
+    }
+
+    // ── Responsive calc grid ─────────────────────────────────────────────────
+    function applyCalcLayout() {
+      const grid = document.querySelector('.calc-grid');
+      if (!grid) return;
+      grid.style.gridTemplateColumns = window.innerWidth < 768 ? '1fr' : '1fr 1fr';
+    }
+    applyCalcLayout();
+    window.addEventListener('resize', applyCalcLayout);
+  </script>
+
+</body>
+</html>

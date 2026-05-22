@@ -1,0 +1,73 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files — never commit secrets
+.env
+.env.*
+.env*.local
+!.env.example
+
+# vercel
+.vercel
+
+# Local video files (hosted on Supabase Storage in production)
+/public/videos/
+/public/Workout_Preview.mp4
+/input_videos/
+/output_videos/
+
+# OAuth / session credentials — never commit
+agents/savage_creator/client_secrets.json
+agents/savage_creator/yt_token.pickle
+agents/scout_engine/savage_cookies.json
+agents/scout_engine/playwright_profile/
+
+# Runtime state & logs
+agents/outreach/campaign_state.json
+agents/outreach/day1_log.json
+agents/outreach/day1_run.log
+agents/outreach/followup.log
+agents/outreach/outreach_log.json
+agents/savage_loop.log
+agents/savage_loop_error.log
+*.log
+*.log.*
+
+# Lead data (personal emails — keep off GitHub)
+"Email CSV/"
+agents/scout_engine/leads.json
+agents/scout_engine/rss_listener_state.json
+
+# Large local data
+archive/
+blog_outputs/
+seo_blogs/
+vercel_blogs/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

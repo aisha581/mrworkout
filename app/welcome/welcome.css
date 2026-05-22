@@ -1,0 +1,44 @@
+.hud-grid {
+    background-image: 
+        linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+}
+
+.text-glow {
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.3), 0 0 40px rgba(0, 255, 255, 0.1);
+}
+
+@keyframes scan-line {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+}
+
+/* Custom Scrollbar for tactical feel */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: #060606;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 255, 0.4);
+}
+
+/* Mobile Optimizations for iPhone */
+@media (max-width: 640px) {
+    .text-glow {
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+    }
+    
+    .hud-grid {
+        background-size: 30px 30px;
+    }
+}
