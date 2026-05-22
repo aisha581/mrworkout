@@ -713,6 +713,13 @@
           if (aff) { clicks = aff.clicks || 0; signups = aff.signups || 0; }
         } catch (_) {}
 
+        // Fire welcome email (non-blocking — don't fail submission if this errors)
+        fetch('/api/partners/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, firstName, refCode }),
+        }).catch(() => {});
+
         showSuccess(firstName, refLink, clicks, signups);
 
       } catch (err) {
@@ -778,16 +785,31 @@
       showSuccess(data.first_name || 'Partner', refLink, data.clicks || 0, data.signups || 0);
     }
 
-    // ── Auto-restore from localStorage on page load ───────────────────────────
+    // ── Auto-restore from localStorage or ?ref= param on page load ──────────
     (async function restorePartner() {
       try {
+        // Priority 1: ?ref= in URL (clicked from welcome email)
+        const urlRef = new URLSearchParams(window.location.search).get('ref');
+        if (urlRef) {
+          const { data } = await sb
+            .from('affiliates')
+            .select('first_name, ref_code, clicks, signups')
+            .eq('ref_code', urlRef)
+            .maybeSingle();
+          if (data) {
+            const refLink = 'https://mrworkout.pro/?ref=' + data.ref_code;
+            showSuccess(data.first_name || 'Partner', refLink, data.clicks || 0, data.signups || 0, true);
+            return;
+          }
+        }
+
+        // Priority 2: localStorage (same device)
         const saved = localStorage.getItem('mw_partner');
         if (!saved) {
           document.getElementById('returning-lookup').style.display = 'block';
           return;
         }
         const { name, refLink } = JSON.parse(saved);
-        // Refresh live stats from Supabase
         const refCode = new URL(refLink).searchParams.get('ref') || '';
         let clicks = 0, signups = 0;
         if (refCode) {
