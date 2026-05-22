@@ -1,0 +1,32 @@
+name: Daily Outreach Batch
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 09:00 UTC — batch 1 (25 emails)
+    - cron: '0 12 * * *'  # 12:00 UTC — batch 2 (25 emails)
+    - cron: '0 15 * * *'  # 15:00 UTC — batch 3 (25 emails)
+  workflow_dispatch:       # manual trigger from GitHub UI
+
+jobs:
+  send-batch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150   # 25 emails × 5 min = 125 min max
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run batch
+        env:
+          BREVO_API_KEY:             ${{ secrets.BREVO_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL:  ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python agents/outreach/daily_batch.py
