@@ -654,22 +654,41 @@
       const firstName = document.getElementById('first_name').value.trim();
 
       const payload = {
-        first_name:                 firstName,
-        email:                      email,
-        handle:                     rawHandle,
-        platform:                   document.getElementById('platform').value,
-        audience_size:              document.getElementById('audience_size').value,
-        estimated_monthly_earnings: window._calcMonthly || null,
-        status:                     'approved',
-        ref_code:                   refCode,
+        first_name:    firstName,
+        email:         email,
+        handle:        rawHandle,
+        platform:      document.getElementById('platform').value,
+        audience_size: document.getElementById('audience_size').value,
+        status:        'approved',
+        ref_code:      refCode,
       };
+
+      // Only include estimated_monthly_earnings if calculator was used
+      if (window._calcMonthly) payload.estimated_monthly_earnings = window._calcMonthly;
 
       try {
         const { error } = await sb.from('affiliates').insert([payload]);
 
-        if (error && error.code !== '23505') throw error;
+        if (error) {
+          // Duplicate email — fetch existing row and show success anyway
+          if (error.code === '23505') {
+            const { data: existing } = await sb
+              .from('affiliates')
+              .select('ref_code, clicks, signups')
+              .eq('email', email)
+              .maybeSingle();
+            const rc = existing?.ref_code || refCode;
+            showSuccess(firstName, 'https://mrworkout.pro/?ref=' + rc, existing?.clicks || 0, existing?.signups || 0);
+            return;
+          }
+          // Log full error details to console for debugging
+          console.error('Supabase error:', JSON.stringify(error));
+          document.getElementById('error-state').innerHTML =
+            'error: ' + (error.message || error.details || JSON.stringify(error));
+          throw error;
+        }
 
-        // Fetch live stats for this affiliate
+        // Fetch live stats
         let clicks = 0, signups = 0;
         try {
           const { data: aff } = await sb
