@@ -6,7 +6,7 @@ import { Suspense, useEffect, useRef }  from 'react';
 import * as THREE                       from 'three';
 import { Zap }                          from 'lucide-react';
 
-useGLTF.preload('/models/mannequin.glb');
+if (typeof window !== 'undefined') useGLTF.preload('/models/mannequin.glb');
 
 // ── Module-level scratch vectors — allocated once, reused every frame ─────────
 const _chestLocal = new THREE.Vector3(0, 0.65, 0.32);
