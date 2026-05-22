@@ -389,6 +389,50 @@
     </div>
   </section>
 
+  <!-- ── DEMO ACCOUNT ─────────────────────────────────────────────────────── -->
+  <section style="max-width:680px;margin:0 auto;padding:0 24px 80px;position:relative;z-index:1;text-align:center;">
+    <div class="mono text-mag" style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:20px;">See it live first</div>
+    <button onclick="document.getElementById('demo-modal').style.display='flex'"
+      style="display:inline-flex;align-items:center;gap:12px;padding:18px 40px;border-radius:14px;font-size:17px;font-weight:700;font-family:'Space Grotesk',sans-serif;cursor:pointer;border:none;background:linear-gradient(135deg,#e879f9,#a855f7);color:#fff;box-shadow:0 0 40px rgba(232,121,249,0.35),0 0 80px rgba(232,121,249,0.1);transition:transform 0.15s,box-shadow 0.15s;letter-spacing:-0.01em;"
+      onmouseover="this.style.transform='scale(1.04)';this.style.boxShadow='0 0 60px rgba(232,121,249,0.5),0 0 100px rgba(232,121,249,0.15)'"
+      onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 0 40px rgba(232,121,249,0.35),0 0 80px rgba(232,121,249,0.1)'">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Live App Demo
+    </button>
+  </section>
+
+  <!-- Demo modal -->
+  <div id="demo-modal" onclick="if(event.target===this)this.style.display='none'"
+    style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;">
+    <div class="glass" style="width:100%;max-width:480px;border-radius:24px;padding:40px;border:1px solid rgba(232,121,249,0.2);box-shadow:0 0 60px rgba(232,121,249,0.15);position:relative;">
+      <!-- Close -->
+      <button onclick="document.getElementById('demo-modal').style.display='none'"
+        style="position:absolute;top:16px;right:16px;background:none;border:none;color:#555;cursor:pointer;font-size:22px;line-height:1;">✕</button>
+
+      <div class="mono text-mag" style="font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px;">Savage Zone Access</div>
+      <h3 style="font-size:24px;font-weight:900;letter-spacing:-0.02em;margin-bottom:8px;">Enter the Savage Zone instantly.</h3>
+      <p style="color:#666;font-size:14px;margin-bottom:32px;">Use these credentials at the login screen to explore the full app.</p>
+
+      <div style="background:rgba(232,121,249,0.05);border:1px solid rgba(232,121,249,0.15);border-radius:14px;padding:24px;margin-bottom:28px;">
+        <div style="margin-bottom:16px;">
+          <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;margin-bottom:6px;">Email</div>
+          <div class="mono text-cyan" style="font-size:16px;font-weight:700;">demo@mrworkout.pro</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;margin-bottom:6px;">Password</div>
+          <div class="mono text-cyan" style="font-size:16px;font-weight:700;">Savage2026</div>
+        </div>
+      </div>
+
+      <a href="https://mrworkout.pro/login" target="_blank"
+        style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px;border-radius:12px;font-size:15px;font-weight:700;font-family:'Space Grotesk',sans-serif;text-decoration:none;color:#050505;background:linear-gradient(135deg,#00E5CC,#00bfa5);box-shadow:0 0 30px rgba(0,229,204,0.3);transition:transform 0.15s;"
+        onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Go to Login →
+      </a>
+    </div>
+  </div>
+
   <!-- ── APPLY FORM ────────────────────────────────────────────────────────── -->
   <section id="apply" style="max-width:680px;margin:0 auto;padding:80px 24px 120px;position:relative;z-index:1;">
     <div style="text-align:center;margin-bottom:48px;">
